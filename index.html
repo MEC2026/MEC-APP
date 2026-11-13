@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E4F">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>MEC-APP — صفحة تجربة</title>
+<style>
+:root{--navy:#1D2E4F;--yellow:#F8B71C;--bg:#EEF1F5;--card:#fff;--ink:#14202E;--muted:#5A6B7A;--ok:#2E7D32;--okbg:#E5F2E6;--bad:#C62828;--badbg:#FCE8E8;--wait:#8A6100;--waitbg:#FFF3D6}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0E151C;--card:#16202A;--ink:#E7EDF2;--muted:#9AAAB8;--okbg:#183020;--badbg:#3A1C1C;--waitbg:#352812;--ok:#7BC77F;--bad:#FF8A80;--wait:#F0B44C}}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Tahoma,Arial,sans-serif;font-size:17px;line-height:1.55}
+header{background:var(--navy);color:#fff;padding:18px 16px;text-align:center}
+header b{display:block;font-size:24px;letter-spacing:1px}
+header b span{color:var(--yellow)}
+header small{opacity:.85}
+main{max-width:620px;margin:0 auto;padding:14px 12px 40px}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.row{display:flex;align-items:flex-start;gap:10px}
+.st{flex:0 0 auto;min-width:74px;text-align:center;border-radius:999px;padding:3px 10px;font-size:14px;font-weight:700}
+.ok{background:var(--okbg);color:var(--ok)}.bad{background:var(--badbg);color:var(--bad)}.wait{background:var(--waitbg);color:var(--wait)}
+.t{flex:1;min-width:0}
+.t b{display:block}
+.t p{margin:4px 0 0;color:var(--muted);font-size:14.5px}
+button{font:inherit;border:0;border-radius:12px;padding:12px;font-weight:700;width:100%;margin-top:10px;background:var(--navy);color:#fff}
+button.y{background:var(--yellow);color:#1A1400}
+input{font:inherit;width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1.5px solid #c9d3df;direction:ltr;background:var(--bg);color:var(--ink)}
+.info{font-size:13px;color:var(--muted);direction:ltr;text-align:left;word-break:break-all}
+</style>
+</head>
+<body>
+<header><b><span>MEC</span>-APP</b><small>صفحة تجربة قبل نقل التطبيق</small></header>
+<main>
+  <div class="card"><div class="row"><span class="st ok">✓</span><div class="t"><b>الصفحة فتحت</b><p>لو شايف ده من موبايل على شبكة مصرية، يبقى الموقع مش محجوب على الشبكة دي.</p></div></div></div>
+
+  <div class="card"><div class="row"><span class="st wait" id="s-install">…</span><div class="t"><b>التثبيت كتطبيق</b><p id="p-install">بنشوف…</p></div></div>
+    <button class="y" id="btn-install" hidden>ثبّت التطبيق</button></div>
+
+  <div class="card"><div class="row"><span class="st wait" id="s-off">…</span><div class="t"><b>يفتح من غير نت</b><p id="p-off">بنجهز…</p></div></div></div>
+
+  <div class="card"><div class="row"><span class="st wait" id="s-mic">…</span><div class="t"><b>المايك (الإدخال بالصوت)</b><p id="p-mic">دوس الزرار وقول أي جملة بالعربي.</p></div></div>
+    <button id="btn-mic">جرّب المايك</button></div>
+
+  <div class="card"><div class="row"><span class="st wait" id="s-share">…</span><div class="t"><b>مشاركة ملف على واتساب</b><p id="p-share">دوس الزرار، المفروض تطلع قايمة المشاركة.</p></div></div>
+    <button id="btn-share">جرّب المشاركة</button></div>
+
+  <div class="card"><div class="row"><span class="st wait" id="s-gas">…</span><div class="t"><b>الاتصال بجوجل شيت</b><p id="p-gas">الصق لينك التطبيق بتاع جوجل (اللي بيخلص بـ /exec) ودوس اختبار.</p></div></div>
+    <input id="gas" placeholder="https://script.google.com/macros/s/.../exec">
+    <button id="btn-gas">اختبر الاتصال</button></div>
+
+  <div class="card"><b>معلومات الجهاز</b><p class="info" id="ua"></p></div>
+</main>
+<script>
+(function(){
+function set(id,cls,txt,p){var s=document.getElementById('s-'+id);s.className='st '+cls;s.textContent=txt;if(p!=null)document.getElementById('p-'+id).textContent=p}
+document.getElementById('ua').textContent=navigator.userAgent+' | '+(navigator.onLine?'online':'offline');
+var standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+
+/* install + offline */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(function(){return navigator.serviceWorker.ready}).then(function(){
+    set('off','ok','✓','جاهز. للتأكد: اقفل النت (وضع الطيران) وافتح الصفحة تاني، المفروض تفتح عادي.');
+  }).catch(function(e){set('off','bad','✗','مقدرش يجهز الشغل من غير نت: '+e.message)});
+}else set('off','bad','✗','المتصفح ده مش بيدعم الشغل من غير نت.');
+var deferred=null;
+if(standalone)set('install','ok','✓','انت فاتحه كتطبيق متثبت فعلا.');
+else{
+  set('install','wait','…','لو مظهرش زرار «ثبّت التطبيق» خلال ثواني: من قايمة كروم (⋮) اختار «تثبيت التطبيق» أو «إضافة للشاشة الرئيسية». على الآيفون: من سفاري ← مشاركة ← «إضافة إلى الشاشة الرئيسية».');
+  window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferred=e;var b=document.getElementById('btn-install');b.hidden=false;set('install','ok','✓','ينفع يتثبت. دوس الزرار.')});
+  document.getElementById('btn-install').onclick=function(){if(!deferred)return;deferred.prompt();deferred.userChoice.then(function(c){set('install',c.outcome==='accepted'?'ok':'wait',c.outcome==='accepted'?'✓':'…',c.outcome==='accepted'?'اتثبت. هتلاقي أيقونة MEC على الشاشة الرئيسية.':'اتلغى التثبيت.');deferred=null;document.getElementById('btn-install').hidden=true})};
+  window.addEventListener('appinstalled',function(){set('install','ok','✓','اتثبت. هتلاقي أيقونة MEC على الشاشة الرئيسية.')});
+}
+
+/* mic */
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SR)set('mic','bad','✗','المتصفح ده مش بيدعم المايك. هنستخدم مايك الكيبورد بداله.');
+else set('mic','wait','…',null);
+document.getElementById('btn-mic').onclick=function(){
+  if(!SR)return;
+  try{var r=new SR();r.lang='ar-EG';r.interimResults=false;set('mic','wait','بيسمع','اتكلم دلوقتي…');
+    r.onresult=function(e){set('mic','ok','✓','سمع: «'+e.results[0][0].transcript+'»')};
+    r.onerror=function(e){set('mic','bad','✗','المايك اتقفل ('+e.error+'). لو طلب إذن، اسمح بيه وجرب تاني.')};
+    r.start();}catch(e){set('mic','bad','✗',e.message)}
+};
+
+/* share */
+var testFile=null;try{testFile=new File(['MEC test'],'mec-test.txt',{type:'text/plain'})}catch(e){}
+if(!(navigator.canShare&&testFile&&navigator.canShare({files:[testFile]})))set('share','bad','✗','مشاركة الملفات مش مدعومة هنا. التطبيق هينزل الملف في التنزيلات بداله.');
+else set('share','wait','…',null);
+document.getElementById('btn-share').onclick=function(){
+  if(!(navigator.canShare&&testFile&&navigator.canShare({files:[testFile]})))return;
+  navigator.share({files:[testFile],title:'MEC test'}).then(function(){set('share','ok','✓','اشتغلت.')}).catch(function(e){set('share',e.name==='AbortError'?'ok':'bad',e.name==='AbortError'?'✓':'✗',e.name==='AbortError'?'قايمة المشاركة ظهرت (انت قفلتها). كده شغالة.':'فشلت: '+e.message)});
+};
+
+/* google */
+document.getElementById('btn-gas').onclick=function(){
+  var u=document.getElementById('gas').value.trim();
+  if(!/^https:\/\/script\.google\.com\/.+\/exec/.test(u)){set('gas','bad','✗','اللينك لازم يبدأ بـ https://script.google.com ويخلص بـ /exec');return}
+  set('gas','wait','…','بيتصل…');
+  fetch(u+(u.indexOf('?')>=0?'&':'?')+'health=1').then(function(r){return r.json()}).then(function(j){
+    set('gas',j&&j.ok?'ok':'bad',j&&j.ok?'✓':'✗',j&&j.ok?'وصل لجوجل شيت ورد عليه.':'رد بس مش زي المتوقع.');
+  }).catch(function(e){set('gas','bad','✗','موصلش: '+e.message)});
+};
+})();
+</script>
+</body>
+</html>
