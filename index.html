@@ -1,112 +1,600 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1D2E4F">
+<title>MEC-APP</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>MEC-APP — صفحة تجربة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--navy:#1D2E4F;--yellow:#F8B71C;--bg:#EEF1F5;--card:#fff;--ink:#14202E;--muted:#5A6B7A;--ok:#2E7D32;--okbg:#E5F2E6;--bad:#C62828;--badbg:#FCE8E8;--wait:#8A6100;--waitbg:#FFF3D6}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0E151C;--card:#16202A;--ink:#E7EDF2;--muted:#9AAAB8;--okbg:#183020;--badbg:#3A1C1C;--waitbg:#352812;--ok:#7BC77F;--bad:#FF8A80;--wait:#F0B44C}}
-:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-*,*::before,*::after{box-sizing:inherit}
-html,body{max-width:100%;overflow-x:hidden}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Tahoma,Arial,sans-serif;font-size:17px;line-height:1.55}
-header{background:var(--navy);color:#fff;padding:18px 16px;text-align:center}
-header b{display:block;font-size:24px;letter-spacing:1px}
-header b span{color:var(--yellow)}
-header small{opacity:.85}
-main{max-width:620px;margin:0 auto;padding:14px 12px 40px}
-.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.row{display:flex;align-items:flex-start;gap:10px}
-.st{flex:0 0 auto;min-width:74px;text-align:center;border-radius:999px;padding:3px 10px;font-size:14px;font-weight:700}
-.ok{background:var(--okbg);color:var(--ok)}.bad{background:var(--badbg);color:var(--bad)}.wait{background:var(--waitbg);color:var(--wait)}
-.t{flex:1;min-width:0}
-.t b{display:block}
-.t p{margin:4px 0 0;color:var(--muted);font-size:14.5px}
-button{font:inherit;border:0;border-radius:12px;padding:12px;font-weight:700;width:100%;margin-top:10px;background:var(--navy);color:#fff}
-button.y{background:var(--yellow);color:#1A1400}
-input{font:inherit;width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1.5px solid #c9d3df;direction:ltr;background:var(--bg);color:var(--ink)}
-.info{font-size:13px;color:var(--muted);direction:ltr;text-align:left;word-break:break-all}
+:root{
+  --navy:#1D2E4F; --navy2:#2A4170; --gold:#F8B71C; --gold-soft:#FFF4D6;
+  --bg:#F5F6F8; --card:#FFFFFF; --ink:#1B2333; --muted:#6B7280; --line:#E3E6EB;
+  --ok:#1E8E5A; --ok-bg:#E6F4EC; --warn:#B7791F; --warn-bg:#FDF3DC; --bad:#C0392B; --bad-bg:#FBE9E7;
+  --r:14px; --nav-h:64px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Cairo,system-ui,"Segoe UI",Tahoma,sans-serif;font-size:15px;overflow-x:hidden}
+body{min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+input,select,textarea{font:inherit;color:inherit}
+svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.hidden{display:none!important}
+
+/* header */
+.top{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;gap:10px}
+.top .ttl{flex:1;min-width:0}
+.top .ttl b{display:block;font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .ttl small{display:block;font-size:12px;opacity:.75}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--gold);color:var(--navy);display:grid;place-items:center;font-weight:700;flex:none}
+.ibtn{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;position:relative}
+.ibtn:active{background:rgba(255,255,255,.12)}
+.dot{position:absolute;top:4px;left:4px;min-width:17px;height:17px;border-radius:9px;background:var(--gold);color:var(--navy);font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+.demo{background:var(--gold-soft);color:#7a5a00;font-size:12.5px;text-align:center;padding:6px 16px;border-bottom:1px solid #F3DFA6}
+
+/* layout */
+main{padding:16px 16px calc(var(--nav-h) + 28px + env(safe-area-inset-bottom));max-width:720px;margin:0 auto}
+h2.sec{font-size:15px;font-weight:700;margin:22px 0 10px;display:flex;align-items:center;gap:8px}
+h2.sec .more{margin-inline-start:auto;font-size:13px;font-weight:600;color:var(--navy2)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.muted{color:var(--muted)}
+.row{display:flex;align-items:center;gap:10px}
+.stack>*+*{margin-top:10px}
+
+/* latest cards strip */
+.strip{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:2px 16px 6px;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.kc{flex:0 0 78%;max-width:280px;scroll-snap-align:start;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;text-align:start}
+.kc .lbl{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.kc .val{font-size:20px;font-weight:700;margin:4px 0 2px;direction:ltr;text-align:right}
+.kc .sub{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.money.masked .mv{filter:blur(7px);user-select:none}
+
+/* pills */
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;white-space:nowrap}
+.p-ok{background:var(--ok-bg);color:var(--ok)} .p-warn{background:var(--warn-bg);color:var(--warn)} .p-bad{background:var(--bad-bg);color:var(--bad)} .p-info{background:#EAF0FA;color:var(--navy2)}
+
+/* list items */
+.li{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);width:100%;text-align:start}
+.li+.li{margin-top:8px}
+.li .t{flex:1;min-width:0}
+.li .t b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .t small{display:block;color:var(--muted);font-size:12.5px}
+.ico{width:38px;height:38px;border-radius:10px;background:#EEF2F8;color:var(--navy);display:grid;place-items:center;flex:none}
+
+/* project card */
+.pc{display:block;width:100%;text-align:start;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.pc+.pc{margin-top:10px}
+.pc .head{display:flex;align-items:flex-start;gap:8px}
+.pc .head b{flex:1;font-size:15.5px;font-weight:700;line-height:1.4}
+.pc .meta{font-size:12.5px;color:var(--muted);margin-top:2px}
+.bar{height:6px;background:#EDF0F4;border-radius:6px;overflow:hidden;margin:12px 0 4px}
+.bar i{display:block;height:100%;background:var(--navy2);border-radius:6px}
+.pc .facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+
+/* grid of sections */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 6px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;font-weight:600;text-align:center;position:relative;min-height:92px}
+.tile .soon{position:absolute;top:6px;left:6px;font-size:10px;font-weight:600;color:var(--muted);background:#F1F3F6;border-radius:6px;padding:0 5px}
+.tile.live{border-color:var(--navy2)}
+
+/* tabs */
+.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:12px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:13px;font-weight:600;white-space:nowrap}
+.tab.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+/* bottom nav */
+nav.bn{position:fixed;bottom:0;inset-inline:0;z-index:30;background:#fff;border-top:1px solid var(--line);height:calc(var(--nav-h) + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);display:grid;grid-template-columns:1fr 1fr 72px 1fr 1fr}
+nav.bn button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11.5px;color:var(--muted)}
+nav.bn button.on{color:var(--navy);font-weight:700}
+nav.bn .fab{width:54px;height:54px;border-radius:50%;background:var(--gold);color:var(--navy);margin:-22px auto 0;box-shadow:0 4px 12px rgba(29,46,79,.25);display:grid;place-items:center}
+nav.bn .fab svg{width:26px;height:26px;stroke-width:2}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(15,22,38,.45);z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;inset-inline:0;bottom:0;z-index:41;background:#fff;border-radius:20px 20px 0 0;max-height:85vh;overflow:auto;transform:translateY(105%);transition:transform .25s;padding:8px 16px calc(20px + env(safe-area-inset-bottom))}
+.sheet.on{transform:none}
+.sheet .grab{width:40px;height:4px;border-radius:2px;background:#D5D9E0;margin:6px auto 12px}
+.sheet h3{margin:0 0 12px;font-size:16px}
+.mi{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid #F0F2F5;width:100%;text-align:start;font-weight:600}
+.mi:last-child{border-bottom:0}
+.mi .soon{margin-inline-start:auto;font-size:11px;color:var(--muted);background:#F1F3F6;border-radius:6px;padding:1px 7px;font-weight:600}
+.qa{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.qa button{background:#F5F7FA;border:1px solid var(--line);border-radius:var(--r);padding:16px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:600}
+
+/* forms */
+label.f{display:block;font-size:13px;font-weight:600;margin:12px 0 6px}
+.in{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;background:#fff;font-size:15px}
+.in:focus{outline:2px solid #C9D6EE;border-color:var(--navy2)}
+textarea.in{min-height:88px;resize:vertical}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border-radius:12px;padding:12px;font-weight:700}
+.btn.pri{background:var(--navy);color:#fff}
+.btn.gold{background:var(--gold);color:var(--navy)}
+.btn.ghost{border:1px solid var(--line);background:#fff}
+.saved{font-size:12px;color:var(--ok);min-height:16px;margin-top:4px}
+
+/* screens: login & install */
+.full{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:24px 20px calc(24px + env(safe-area-inset-bottom));background:var(--navy);color:#fff}
+.full .box{background:#fff;color:var(--ink);border-radius:20px;padding:20px;max-width:420px;width:100%;margin:0 auto}
+.logo{width:72px;height:72px;border-radius:18px;margin:0 auto 12px;display:block}
+.brand{text-align:center;margin-bottom:18px}
+.brand b{display:block;font-size:22px}
+.brand small{opacity:.8}
+.users{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.users button{border:1px solid var(--line);border-radius:12px;padding:10px 6px;text-align:center}
+.users button.on{border-color:var(--navy);background:#EEF2F8}
+.users button b{display:block;font-size:14px}
+.users button small{color:var(--muted);font-size:12px}
+.err{color:var(--bad);font-size:13px;min-height:18px;margin-top:6px}
+.steps{margin:10px 0 0;padding-inline-start:20px;color:var(--muted);font-size:13.5px}
+
+.toast{position:fixed;bottom:calc(var(--nav-h) + 18px + env(safe-area-inset-bottom));inset-inline:16px;z-index:60;background:var(--ink);color:#fff;border-radius:12px;padding:11px 14px;font-size:14px;text-align:center;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none}
+.toast.on{opacity:1;transform:none}
+.empty{text-align:center;color:var(--muted);padding:28px 10px}
+.empty svg{width:40px;height:40px;stroke-width:1.2;color:#AAB2C0}
+.news{background:linear-gradient(0deg,#fff,#fff);border:1px solid #F3DFA6;background:var(--gold-soft)}
 </style>
 </head>
 <body>
-<header><b><span>MEC</span>-APP</b><small>صفحة تجربة قبل نقل التطبيق</small></header>
-<main>
-  <div class="card"><div class="row"><span class="st ok">✓</span><div class="t"><b>الصفحة فتحت</b><p>لو شايف ده من موبايل على شبكة مصرية، يبقى الموقع مش محجوب على الشبكة دي.</p></div></div></div>
 
-  <div class="card"><div class="row"><span class="st wait" id="s-install">…</span><div class="t"><b>التثبيت كتطبيق</b><p id="p-install">بنشوف…</p></div></div>
-    <button class="y" id="btn-install" hidden>ثبّت التطبيق</button></div>
+<!-- icon sprite (thin outline) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-eyeoff" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 6.1A9.6 9.6 0 0 1 12 6c6 0 9.5 6 9.5 6a16 16 0 0 1-3 3.6M6.4 7.6C4 9.3 2.5 12 2.5 12S6 18 12 18a9 9 0 0 0 4-.9"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+  <symbol id="i-ruler" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/></symbol>
+  <symbol id="i-cash" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6.5 9.5v5M17.5 9.5v5"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V4M4 20h16"/><path d="M8 16v-4M12 16V8M16 16v-6"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.5"/><path d="M3 19.5c.6-3.3 3-5 6-5s5.4 1.7 6 5"/><path d="M16 5.5a3 3 0 0 1 0 6M18 14.5c1.6.6 2.7 2.2 3 5"/></symbol>
+  <symbol id="i-truck" viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.7"/><circle cx="17" cy="17.5" r="1.7"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="4" y="8" width="17" height="11" rx="2"/><path d="M16 13.5h2"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 0 1-.6-9 6 6 0 0 1 11.4 1.5A3.8 3.8 0 0 1 17.5 18z"/><path d="M12 11v5M9.8 13.8 12 16l2.2-2.2"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M4.5 4.5l1.7 1.7M17.8 17.8l1.7 1.7M2.8 12h2.4M18.8 12h2.4M4.5 19.5l1.7-1.7M17.8 6.2l1.7-1.7"/></symbol>
+  <symbol id="i-tool" viewBox="0 0 24 24"><path d="M14.5 6.5a4 4 0 0 0-5.3 5.3L4 17v3h3l5.2-5.2a4 4 0 0 0 5.3-5.3l-2.4 2.4-2.3-.7-.7-2.3z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z"/><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5 21 19H3z"/><path d="M12 10v4M12 16.5v.5"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M14 4h5v16h-5"/><path d="M10 8l-4 4 4 4M6 12h9"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></symbol>
+  <symbol id="i-arrowL" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-arrowR" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></symbol>
+</svg>
 
-  <div class="card"><div class="row"><span class="st wait" id="s-off">…</span><div class="t"><b>يفتح من غير نت</b><p id="p-off">بنجهز…</p></div></div></div>
+<div id="app"></div>
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet"><div class="grab"></div><div id="sheetBody"></div></div>
+<div class="toast" id="toast"></div>
 
-  <div class="card"><div class="row"><span class="st wait" id="s-mic">…</span><div class="t"><b>المايك (الإدخال بالصوت)</b><p id="p-mic">دوس الزرار وقول أي جملة بالعربي.</p></div></div>
-    <button id="btn-mic">جرّب المايك</button></div>
-
-  <div class="card"><div class="row"><span class="st wait" id="s-share">…</span><div class="t"><b>مشاركة ملف على واتساب</b><p id="p-share">دوس الزرار، المفروض تطلع قايمة المشاركة.</p></div></div>
-    <button id="btn-share">جرّب المشاركة</button></div>
-
-  <div class="card"><div class="row"><span class="st wait" id="s-gas">…</span><div class="t"><b>الاتصال بجوجل شيت</b><p id="p-gas">الصق لينك التطبيق بتاع جوجل (اللي بيخلص بـ /exec) ودوس اختبار.</p></div></div>
-    <input id="gas" placeholder="https://script.google.com/macros/s/.../exec">
-    <button id="btn-gas">اختبر الاتصال</button></div>
-
-  <div class="card"><b>معلومات الجهاز</b><p class="info" id="ua"></p></div>
-</main>
 <script>
-(function(){
-function set(id,cls,txt,p){var s=document.getElementById('s-'+id);s.className='st '+cls;s.textContent=txt;if(p!=null)document.getElementById('p-'+id).textContent=p}
-document.getElementById('ua').textContent=navigator.userAgent+' | '+(navigator.onLine?'online':'offline');
-var standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+'use strict';
+/* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
+const APP_VERSION = '0.1';
+const APP_NOTES = ['أول نسخة من التطبيق الجديد ببيانات تجريبية', 'الشريط اللي تحت وزرار + في النص', 'الدخول بالأدوار', 'كروت المشاريع وكروت آخر حاجة', 'الحفظ التلقائي لأي خانة', 'سجل النشاط والاتصال بجوجل'];
+const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
+const LS = 'mec.';
 
-/* install + offline */
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').then(function(){return navigator.serviceWorker.ready}).then(function(){
-    set('off','ok','✓','جاهز. للتأكد: اقفل النت (وضع الطيران) وافتح الصفحة تاني، المفروض تفتح عادي.');
-  }).catch(function(e){set('off','bad','✗','مقدرش يجهز الشغل من غير نت: '+e.message)});
-}else set('off','bad','✗','المتصفح ده مش بيدعم الشغل من غير نت.');
-var deferred=null;
-if(standalone)set('install','ok','✓','انت فاتحه كتطبيق متثبت فعلا.');
-else{
-  set('install','wait','…','لو مظهرش زرار «ثبّت التطبيق» خلال ثواني: من قايمة كروم (⋮) اختار «تثبيت التطبيق» أو «إضافة للشاشة الرئيسية». على الآيفون: من سفاري ← مشاركة ← «إضافة إلى الشاشة الرئيسية».');
-  window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferred=e;var b=document.getElementById('btn-install');b.hidden=false;set('install','ok','✓','ينفع يتثبت. دوس الزرار.')});
-  document.getElementById('btn-install').onclick=function(){if(!deferred)return;deferred.prompt();deferred.userChoice.then(function(c){set('install',c.outcome==='accepted'?'ok':'wait',c.outcome==='accepted'?'✓':'…',c.outcome==='accepted'?'اتثبت. هتلاقي أيقونة MEC على الشاشة الرئيسية.':'اتلغى التثبيت.');deferred=null;document.getElementById('btn-install').hidden=true})};
-  window.addEventListener('appinstalled',function(){set('install','ok','✓','اتثبت. هتلاقي أيقونة MEC على الشاشة الرئيسية.')});
+const ROLES = {
+  owner:      {name:'المالك',  home:'owner'},
+  manager:    {name:'المدير',  home:'owner'},
+  engineer:   {name:'مهندس',   home:'eng'},
+  supervisor: {name:'مشرف',    home:'eng'},
+  contractor: {name:'مقاول',   home:'eng'}
+};
+/* بيانات تجريبية — هتتشال لما الأسامي الحقيقية توصل */
+const DEMO_USERS = [
+  {id:'u1', name:'المالك (تجربة)', role:'owner'},
+  {id:'u2', name:'المدير (تجربة)', role:'manager'},
+  {id:'u3', name:'م. أحمد (تجربة)', role:'engineer'},
+  {id:'u4', name:'م. محمود (تجربة)', role:'engineer'},
+  {id:'u5', name:'مشرف (تجربة)', role:'supervisor'},
+  {id:'u6', name:'مقاول (تجربة)', role:'contractor'}
+];
+const DEMO_PIN = '1234';
+const DEMO_PROJECTS = [
+  {code:'MEC-101', name:'شقة التجمع الخامس', client:'أ. خالد', type:'تشطيب عميل', eng:'u3', progress:62, extract:{no:3, value:185000, status:'اتعتمد'}, late:{item:'سيراميك الحمام 2', days:4}, next:null, status:'late'},
+  {code:'MEC-102', name:'فيلا الشيخ زايد', client:'م. سارة', type:'مقاولة', eng:'u4', progress:35, extract:{no:2, value:420000, status:'اتقدم'}, late:null, next:{item:'محارة الدور الأول', date:'20 نوفمبر'}, status:'ok'},
+  {code:'MEC-103', name:'عمارة المعادي', client:'شركة النور', type:'مقاولة', eng:'u3', progress:12, extract:{no:1, value:96000, status:'مسودة'}, late:null, next:{item:'كهرباء الدور الأرضي', date:'18 نوفمبر'}, status:'ok'},
+  {code:'MEC-104', name:'شقة مدينة نصر', client:'أ. منى', type:'تشطيب عميل', eng:'u4', progress:88, extract:{no:4, value:62000, status:'اتحصل'}, late:{item:'دهان الريسبشن', days:2}, next:null, status:'warn'}
+];
+const DEMO_TASKS = [
+  {t:'استلام محارة أوضة نوم 1', p:'MEC-101', who:'u3', by:'u1', due:'النهارده', state:'mine'},
+  {t:'تجهيز طلب سيراميك الحمامات', p:'MEC-101', who:'u3', by:'u1', due:'بكرة', state:'mine'},
+  {t:'مراجعة مستخلص المقاول', p:'MEC-102', who:'u4', by:'u1', due:'متأخرة يومين', state:'late'},
+  {t:'صور قبل وبعد الريسبشن', p:'MEC-104', who:'u4', by:'u2', due:'اتقفلت', state:'done'}
+];
+const SECTIONS = [
+  {k:'takeoff', n:'الحصر', i:'ruler', live:true},
+  {k:'boq', n:'المقايسة والمستخلصات', i:'doc'},
+  {k:'exp', n:'المصروفات والعهدة', i:'cash'},
+  {k:'mat', n:'الخامات والمخزن', i:'box'},
+  {k:'daily', n:'اليومية والصور', i:'camera'},
+  {k:'tasks', n:'المهام والاستلام', i:'check'},
+  {k:'files', n:'الملفات واللوحات', i:'layers'},
+  {k:'client', n:'رابط العميل', i:'link'},
+  {k:'acc', n:'حسابات المشروع', i:'chart'}
+];
+const MORE = [
+  {n:'المقاولين والصنايعية', i:'users'}, {n:'الموردين', i:'truck'}, {n:'العملاء وفرصهم', i:'users'},
+  {n:'الخزن والعهد', i:'wallet'}, {n:'الفريق والصلاحيات', i:'shield', own:true}, {n:'التقارير', i:'chart'},
+  {n:'أدوات المهندس', i:'tool'}, {n:'دليل الشركة', i:'book'}
+];
+
+/* ================= تخزين محلي آمن ================= */
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(LS+k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(LS+k, JSON.stringify(v)); return true; }catch(e){ return false; } },
+  del(k){ try{ localStorage.removeItem(LS+k); }catch(e){} }
+};
+
+/* ================= حالة التطبيق ================= */
+const S = {
+  user: store.get('user', null),
+  tab: 'home',
+  project: null,
+  taskTab: 'mine',
+  masked: store.get('masked', false),
+  installEvt: null
+};
+
+/* ================= أدوات صغيرة ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ic = (id, cls='') => `<svg class="i ${cls}"><use href="#i-${id}"/></svg>`;
+const money = n => `<span class="mv">${Number(n).toLocaleString('en-US')}</span> ج`;
+const userById = id => DEMO_USERS.find(u => u.id === id);
+const isBoss = () => S.user && (S.user.role === 'owner' || S.user.role === 'manager');
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2200); }
+function soon(name){ toast(`«${name}» جاي في مرحلة جاية`); }
+
+/* سجل النشاط: محلي في النسخة دي، وبيتنقل لجوجل في الأساس */
+function logAct(action){
+  const log = store.get('log', []);
+  log.unshift({at: new Date().toISOString(), user: S.user ? S.user.name : '—', action});
+  store.set('log', log.slice(0, 300));
 }
 
-/* mic */
-var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-if(!SR)set('mic','bad','✗','المتصفح ده مش بيدعم المايك. هنستخدم مايك الكيبورد بداله.');
-else set('mic','wait','…',null);
-document.getElementById('btn-mic').onclick=function(){
-  if(!SR)return;
-  try{var r=new SR();r.lang='ar-EG';r.interimResults=false;set('mic','wait','بيسمع','اتكلم دلوقتي…');
-    r.onresult=function(e){set('mic','ok','✓','سمع: «'+e.results[0][0].transcript+'»')};
-    r.onerror=function(e){set('mic','bad','✗','المايك اتقفل ('+e.error+'). لو طلب إذن، اسمح بيه وجرب تاني.')};
-    r.start();}catch(e){set('mic','bad','✗',e.message)}
-};
+/* ================= الحفظ التلقائي =================
+   أي عنصر فيه data-ak بيتحفظ مع كل حرف، ويرجع زي ما هو حتى لو التطبيق اتقفل */
+function bindAutosave(root){
+  root.querySelectorAll('[data-ak]').forEach(el => {
+    const key = 'ak.' + el.dataset.ak;
+    const v = store.get(key, null);
+    if (v !== null) el.value = v;
+    el.addEventListener('input', () => {
+      store.set(key, el.value);
+      const s = root.querySelector(`[data-saved="${el.dataset.ak}"]`);
+      if (s) s.textContent = 'اتحفظ على الموبايل ✓';
+    });
+  });
+}
 
-/* share */
-var testFile=null;try{testFile=new File(['MEC test'],'mec-test.txt',{type:'text/plain'})}catch(e){}
-if(!(navigator.canShare&&testFile&&navigator.canShare({files:[testFile]})))set('share','bad','✗','مشاركة الملفات مش مدعومة هنا. التطبيق هينزل الملف في التنزيلات بداله.');
-else set('share','wait','…',null);
-document.getElementById('btn-share').onclick=function(){
-  if(!(navigator.canShare&&testFile&&navigator.canShare({files:[testFile]})))return;
-  navigator.share({files:[testFile],title:'MEC test'}).then(function(){set('share','ok','✓','اشتغلت.')}).catch(function(e){set('share',e.name==='AbortError'?'ok':'bad',e.name==='AbortError'?'✓':'✗',e.name==='AbortError'?'قايمة المشاركة ظهرت (انت قفلتها). كده شغالة.':'فشلت: '+e.message)});
-};
+/* ================= الشاشات ================= */
+function isStandalone(){ return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
 
-/* google */
-document.getElementById('btn-gas').onclick=function(){
-  var u=document.getElementById('gas').value.trim();
-  if(!/^https:\/\/script\.google\.com\/.+\/exec/.test(u)){set('gas','bad','✗','اللينك لازم يبدأ بـ https://script.google.com ويخلص بـ /exec');return}
-  set('gas','wait','…','بيتصل…');
-  fetch(u+(u.indexOf('?')>=0?'&':'?')+'health=1').then(function(r){return r.json()}).then(function(j){
-    set('gas',j&&j.ok?'ok':'bad',j&&j.ok?'✓':'✗',j&&j.ok?'وصل لجوجل شيت ورد عليه.':'رد بس مش زي المتوقع.');
-  }).catch(function(e){set('gas','bad','✗','موصلش: '+e.message)});
-};
-})();
+function render(){
+  const app = $('#app');
+  if (!S.user) { app.innerHTML = loginView(); wireLogin(); return; }
+  if (!isStandalone() && !store.get('skipInstall', false)) { app.innerHTML = installView(); wireInstall(); return; }
+  app.innerHTML = shell();
+  wireShell();
+}
+
+function installView(){
+  return `<div class="full"><div class="box">
+    <img class="logo" src="icon-192.png" alt="">
+    <div class="brand" style="color:var(--ink)"><b>ثبّت MEC-APP</b><small class="muted">عشان يفتح من أيقونة على الشاشة ويشتغل من غير نت</small></div>
+    <button class="btn gold" id="doInstall">${ic('download')} ثبّت التطبيق</button>
+    <ol class="steps" id="manualSteps">
+      <li>لو الزرار ماشتغلش: من قايمة كروم ⋮ اختار «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».</li>
+      <li>افتح التطبيق بعد كده من الأيقونة اللي على الشاشة.</li>
+    </ol>
+    <button class="btn ghost" id="skipInstall" style="margin-top:14px">أكمّل من المتصفح دلوقتي</button>
+  </div></div>`;
+}
+function wireInstall(){
+  $('#doInstall').onclick = async () => {
+    if (S.installEvt) { S.installEvt.prompt(); const r = await S.installEvt.userChoice; S.installEvt = null; if (r.outcome === 'accepted') { logAct('ثبّت التطبيق'); toast('اتثبت ✓ افتحه من الأيقونة'); } }
+    else toast('استخدم قايمة كروم ⋮ ← تثبيت التطبيق');
+  };
+  $('#skipInstall').onclick = () => { store.set('skipInstall', true); render(); };
+}
+
+function loginView(){
+  return `<div class="full"><div class="box">
+    <img class="logo" src="icon-192.png" alt="">
+    <div class="brand" style="color:var(--ink)"><b>MEC-APP</b><small class="muted">شركة الشرق الأوسط للإنشاءات</small></div>
+    <label class="f">انت مين؟</label>
+    <div class="users">${DEMO_USERS.map(u => `<button data-u="${u.id}"><b>${esc(u.name)}</b><small>${ROLES[u.role].name}</small></button>`).join('')}</div>
+    <label class="f" for="pin">الرقم السري</label>
+    <input class="in" id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="الرقم السري (التجربة: 1234)">
+    <div class="err" id="lerr"></div>
+    <button class="btn pri" id="go">دخول</button>
+  </div></div>`;
+}
+function wireLogin(){
+  let picked = null;
+  document.querySelectorAll('.users button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.users button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on'); picked = b.dataset.u; $('#pin').focus();
+  });
+  const go = () => {
+    if (!picked) { $('#lerr').textContent = 'اختار اسمك الأول'; return; }
+    if ($('#pin').value.trim() !== DEMO_PIN) { $('#lerr').textContent = 'الرقم السري غلط'; return; }
+    S.user = userById(picked); store.set('user', S.user); logAct('دخل التطبيق'); render();
+  };
+  $('#go').onclick = go;
+  $('#pin').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+}
+
+function shell(){
+  const u = S.user;
+  const bell = isBoss() ? 3 : 1;
+  return `
+  <header class="top">
+    <div class="avatar">${esc(u.name.trim().charAt(0))}</div>
+    <div class="ttl"><b>${titleFor()}</b><small>${esc(u.name)} · ${ROLES[u.role].name}</small></div>
+    ${isBoss() ? `<button class="ibtn" id="eyeBtn" aria-label="إخفاء الأرقام">${ic(S.masked ? 'eyeoff' : 'eye')}</button>` : ''}
+    <button class="ibtn" id="searchBtn" aria-label="بحث">${ic('search')}</button>
+    <button class="ibtn" id="bellBtn" aria-label="الإشعارات">${ic('bell')}<span class="dot">${bell}</span></button>
+  </header>
+  <div class="demo">نسخة ${APP_VERSION} تجريبية · البيانات وهمية لحد ما الأسامي الحقيقية توصل</div>
+  <main id="view" class="money ${S.masked ? 'masked' : ''}">${view()}</main>
+  <nav class="bn">
+    <button data-t="home" class="${S.tab==='home'?'on':''}">${ic('home')}الرئيسية</button>
+    <button data-t="projects" class="${S.tab==='projects'?'on':''}">${ic('folder')}المشاريع</button>
+    <div><button class="fab" id="fab" aria-label="إضافة">${ic('plus')}</button></div>
+    <button data-t="tasks" class="${S.tab==='tasks'?'on':''}">${ic('check')}المهام</button>
+    <button data-t="more" class="${S.tab==='more'?'on':''}">${ic('grid')}المزيد</button>
+  </nav>`;
+}
+function titleFor(){
+  if (S.project) { const p = DEMO_PROJECTS.find(x => x.code === S.project); return esc(p.name); }
+  return {home:'الرئيسية', projects:'المشاريع', tasks:'المهام', more:'المزيد'}[S.tab];
+}
+function myProjects(){
+  return isBoss() ? DEMO_PROJECTS : DEMO_PROJECTS.filter(p => p.eng === S.user.id || S.user.role !== 'engineer');
+}
+
+function view(){
+  if (S.project) return projectView();
+  if (S.tab === 'home') return homeView();
+  if (S.tab === 'projects') return projectsView();
+  if (S.tab === 'tasks') return tasksView();
+  return moreView();
+}
+
+function latestStrip(items){
+  return `<div class="strip">${items.map(c => `<button class="kc" data-soon="${esc(c.lbl)}">
+    <div class="lbl">${ic(c.i)}${esc(c.lbl)}</div>
+    <div class="val">${c.money != null ? money(c.money) : esc(c.val)}</div>
+    <div class="sub">${esc(c.sub)}</div></button>`).join('')}</div>`;
+}
+
+function homeView(){
+  const seen = store.get('seenVersion', '');
+  const news = seen !== APP_VERSION ? `<div class="card news" style="margin-bottom:6px">
+      <div class="row"><b style="flex:1">${ic('sparkle')} جديد في التطبيق · نسخة ${APP_VERSION}</b><button class="pill p-info" id="newsOk">تمام</button></div>
+      <ul class="steps" style="color:var(--ink)">${APP_NOTES.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : '';
+  if (isBoss()) {
+    return news + `
+    <h2 class="sec">آخر العمليات</h2>
+    ${latestStrip([
+      {i:'cash', lbl:'آخر دفعة', money:15000, sub:'مقاول السيراميك · MEC-101 · امبارح'},
+      {i:'wallet', lbl:'آخر تحصيل', money:120000, sub:'أ. خالد · مستخلص 3 · من يومين'},
+      {i:'truck', lbl:'آخر شراء', money:8400, sub:'أسمنت ورمل · MEC-102 · النهارده'}
+    ])}
+    <h2 class="sec">${ic('alert')} محتاج تتصرف فيه</h2>
+    <button class="li" data-soon="الموافقات">${'<span class="ico">'+ic('cash')+'</span>'}<span class="t"><b>2 مصروف مستنيين موافقتك</b><small>فوق الحد اللي حددته</small></span><span class="pill p-warn">مستني</span></button>
+    <button class="li" data-open="MEC-101"><span class="ico">${ic('clock')}</span><span class="t"><b>سيراميك الحمام 2 متأخر 4 أيام</b><small>شقة التجمع الخامس</small></span><span class="pill p-bad">متأخر</span></button>
+    <h2 class="sec">المشاريع <button class="more" data-t2="projects">الكل</button></h2>
+    ${DEMO_PROJECTS.slice(0,2).map(projectCard).join('')}`;
+  }
+  const mine = myProjects();
+  return news + `
+    <h2 class="sec">مشاريعي</h2>
+    ${mine.length ? mine.map(projectCard).join('') : emptyBox('folder','مفيش مشاريع متسجلة عليك لسه')}
+    <h2 class="sec">مهامي النهارده</h2>
+    ${DEMO_TASKS.filter(t => t.who === S.user.id && t.state !== 'done').map(taskItem).join('') || emptyBox('check','مفيش مهام النهارده')}
+    <h2 class="sec">ملاحظة سريعة</h2>
+    <div class="card"><textarea class="in" data-ak="quicknote.${S.user.id}" placeholder="اكتب أي حاجة… بتتحفظ لوحدها حتى لو قفلت التطبيق"></textarea><div class="saved" data-saved="quicknote.${S.user.id}"></div></div>`;
+}
+
+function emptyBox(i, t){ return `<div class="empty">${ic(i)}<div>${esc(t)}</div></div>`; }
+
+function projectCard(p){
+  const facts = [];
+  facts.push(`<span class="pill p-info">مستخلص ${p.extract.no} · ${money(p.extract.value)} · ${esc(p.extract.status)}</span>`);
+  if (p.late) facts.push(`<span class="pill p-bad">${ic('clock')} ${esc(p.late.item)} متأخر ${p.late.days} أيام</span>`);
+  else if (p.next) facts.push(`<span class="pill p-ok">الجاي: ${esc(p.next.item)} · ${esc(p.next.date)}</span>`);
+  return `<button class="pc" data-open="${p.code}">
+    <div class="head"><b>${esc(p.name)}</b><span class="pill ${p.status==='late'?'p-bad':p.status==='warn'?'p-warn':'p-ok'}">${p.status==='late'?'متأخر':p.status==='warn'?'تنبيه':'ماشي'}</span></div>
+    <div class="meta">${esc(p.code)} · ${esc(p.client)} · ${esc(p.type)} · ${esc((userById(p.eng)||{}).name||'')}</div>
+    <div class="bar"><i style="width:${p.progress}%"></i></div>
+    <div class="meta">الإنجاز ${p.progress}%</div>
+    <div class="facts">${facts.join('')}</div>
+  </button>`;
+}
+
+function projectsView(){
+  const list = myProjects();
+  return `<div class="card" style="padding:10px 12px;margin-bottom:12px"><div class="row">${ic('search')}<input class="in" style="border:0;padding:4px" id="pSearch" placeholder="دوّر باسم المشروع أو الكود أو العميل"></div></div>
+  <div id="pList">${list.map(projectCard).join('')}</div>`;
+}
+
+function projectView(){
+  const p = DEMO_PROJECTS.find(x => x.code === S.project);
+  return `
+  <button class="row muted" id="back" style="margin-bottom:10px">${ic('arrowR')} المشاريع</button>
+  ${projectCard(p).replace('<button class="pc"', '<div class="pc"').replace(/<\/button>$/, '</div>')}
+  <h2 class="sec">آخر حاجة في المشروع</h2>
+  ${latestStrip([
+    {i:'doc', lbl:'آخر مستخلص', money:p.extract.value, sub:`جاري ${p.extract.no} · ${p.extract.status}`},
+    {i:'cash', lbl:'آخر مصروف', money:2350, sub:'نقل مخلفات · امبارح'},
+    {i:'camera', lbl:'آخر يومية', val:'النهارده', sub:'6 عمال · 4 صور · معوق واحد'}
+  ])}
+  <h2 class="sec">أقسام المشروع</h2>
+  <div class="grid">${SECTIONS.map(s => `<button class="tile ${s.live?'live':''}" data-sec="${s.k}" data-n="${esc(s.n)}">${s.live?'':'<span class="soon">قريبًا</span>'}<span class="ico">${ic(s.i)}</span>${esc(s.n)}</button>`).join('')}</div>
+  <h2 class="sec">ملاحظات المشروع</h2>
+  <div class="card"><textarea class="in" data-ak="pnote.${p.code}" placeholder="ملاحظات سريعة على المشروع… بتتحفظ لوحدها"></textarea><div class="saved" data-saved="pnote.${p.code}"></div></div>`;
+}
+
+function taskItem(t){
+  const pill = t.state === 'late' ? '<span class="pill p-bad">متأخرة</span>' : t.state === 'done' ? '<span class="pill p-ok">اتقفلت</span>' : `<span class="pill p-info">${esc(t.due)}</span>`;
+  return `<button class="li" data-soon="المهام"><span class="ico">${ic('check')}</span><span class="t"><b>${esc(t.t)}</b><small>${esc(t.p)} · من ${esc((userById(t.by)||{}).name||'')}</small></span>${pill}</button>`;
+}
+function tasksView(){
+  const tabs = [['mine','مهامي'],['given','اللي أسندتها'],['late','المتأخرة'],['done','المكتملة']];
+  let list = DEMO_TASKS;
+  if (S.taskTab === 'mine') list = list.filter(t => (t.who === S.user.id || isBoss()) && t.state === 'mine');
+  if (S.taskTab === 'given') list = list.filter(t => t.by === S.user.id);
+  if (S.taskTab === 'late') list = list.filter(t => t.state === 'late');
+  if (S.taskTab === 'done') list = list.filter(t => t.state === 'done');
+  return `<div class="tabs">${tabs.map(([k,n]) => `<button class="tab ${S.taskTab===k?'on':''}" data-tt="${k}">${n}</button>`).join('')}</div>
+    ${list.map(taskItem).join('') || emptyBox('check','مفيش مهام هنا')}`;
+}
+
+function moreView(){
+  const items = MORE.filter(m => !m.own || S.user.role === 'owner');
+  return `<div class="card" style="padding:4px 14px">
+    ${items.map(m => `<button class="mi" data-soon="${esc(m.n)}">${ic(m.i)}${esc(m.n)}<span class="soon">قريبًا</span></button>`).join('')}
+  </div>
+  <h2 class="sec">النظام</h2>
+  <div class="card" style="padding:4px 14px">
+    ${isBoss() ? `<button class="mi" id="actLog">${ic('clock')}سجل النشاط</button>` : ''}
+    ${S.user.role === 'owner' ? `<button class="mi" data-soon="النسخ الاحتياطي">${ic('cloud')}النسخ الاحتياطي<span class="soon">قريبًا</span></button>` : ''}
+    <button class="mi" id="settings">${ic('gear')}الإعدادات والاتصال</button>
+    <button class="mi" id="report">${ic('alert')}الإبلاغ عن مشكلة</button>
+    <button class="mi" id="install">${ic('download')}حمّل تطبيق MEC</button>
+    <button class="mi" id="logout" style="color:var(--bad)">${ic('logout')}تسجيل الخروج</button>
+  </div>
+  <p class="muted" style="text-align:center;font-size:12.5px;margin-top:16px">MEC-APP · نسخة ${APP_VERSION}</p>`;
+}
+
+/* ================= الشيتات اللي بتطلع من تحت ================= */
+function openSheet(html){ $('#sheetBody').innerHTML = html; $('#sheet').classList.add('on'); $('#scrim').classList.add('on'); bindAutosave($('#sheetBody')); }
+function closeSheet(){ $('#sheet').classList.remove('on'); $('#scrim').classList.remove('on'); }
+$('#scrim').onclick = closeSheet;
+
+function fabSheet(){
+  const acts = [['ruler','أوضة في الحصر','takeoff'],['cash','مصروف','exp'],['camera','يومية','daily'],['check','مهمة','task'],['wallet','تحصيل','pay'],['box','استلام خامة','mat']];
+  openSheet(`<h3>تضيف إيه؟</h3><div class="qa">${acts.map(([i,n,k]) => `<button data-qa="${k}" data-n="${n}">${ic(i)}${n}</button>`).join('')}</div>`);
+  document.querySelectorAll('[data-qa]').forEach(b => b.onclick = () => { closeSheet(); if (b.dataset.qa === 'takeoff') openTakeoff(); else soon(b.dataset.n); });
+}
+
+function settingsSheet(){
+  const exec = store.get('exec', DEFAULT_EXEC);
+  openSheet(`<h3>الإعدادات والاتصال</h3>
+    <label class="f">لينك جوجل (/exec)</label>
+    <input class="in" id="sExec" dir="ltr" value="${esc(exec)}">
+    <label class="f">الكلمة السرية (بتتحفظ على الموبايل ده بس)</label>
+    <input class="in" id="sTok" type="password" dir="ltr" value="${esc(store.get('token',''))}" placeholder="نفس TOKEN اللي في السكريبت">
+    <div class="err" id="sMsg" style="color:var(--muted)"></div>
+    <div class="row" style="margin-top:6px"><button class="btn ghost" id="sTest">اختبار الاتصال</button><button class="btn pri" id="sSave">حفظ</button></div>`);
+  $('#sSave').onclick = () => { store.set('exec', $('#sExec').value.trim()); store.set('token', $('#sTok').value.trim()); logAct('غيّر إعدادات الاتصال'); toast('اتحفظ ✓'); closeSheet(); };
+  $('#sTest').onclick = async () => {
+    const m = $('#sMsg'); m.style.color = 'var(--muted)'; m.textContent = 'بيختبر…';
+    try {
+      const r = await fetch($('#sExec').value.trim() + '?health=1', {cache:'no-store'});
+      const j = await r.json();
+      if (j && j.ok) { m.style.color = 'var(--ok)'; m.textContent = 'الاتصال بجوجل شغال ✓'; logAct('اختبر الاتصال بجوجل: شغال'); }
+      else { m.style.color = 'var(--bad)'; m.textContent = 'جوجل رد بس فيه مشكلة'; }
+    } catch (e) { m.style.color = 'var(--bad)'; m.textContent = navigator.onLine ? 'مش قادر يوصل للينك. اتأكد إن النشر Anyone' : 'مفيش نت دلوقتي'; }
+  };
+}
+
+function logSheet(){
+  const log = store.get('log', []);
+  const users = [...new Set(log.map(l => l.user))];
+  const draw = who => (who ? log.filter(l => l.user === who) : log).slice(0, 80).map(l => {
+    const d = new Date(l.at);
+    return `<div class="mi" style="font-weight:400"><span class="ico">${ic('clock')}</span><span style="flex:1;min-width:0"><b style="display:block;font-weight:600">${esc(l.action)}</b><small class="muted">${esc(l.user)} · ${d.toLocaleDateString('ar-EG')} ${d.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'})}</small></span></div>`;
+  }).join('') || emptyBox('clock','مفيش نشاط لسه');
+  openSheet(`<h3>سجل النشاط</h3>
+    <select class="in" id="logWho"><option value="">الكل</option>${users.map(u => `<option>${esc(u)}</option>`).join('')}</select>
+    <p class="muted" style="font-size:12.5px">في النسخة دي السجل على الموبايل ده بس. في الأساس هيتجمع من كل الموبايلات في جوجل.</p>
+    <div id="logList">${draw('')}</div>`);
+  $('#logWho').onchange = e => { $('#logList').innerHTML = draw(e.target.value); };
+}
+
+function reportSheet(){
+  const info = `نسخة ${APP_VERSION} · ${navigator.userAgent}`;
+  openSheet(`<h3>الإبلاغ عن مشكلة</h3>
+    <textarea class="in" data-ak="report" placeholder="حصل إيه؟ كنت بتعمل إيه وقتها؟"></textarea><div class="saved" data-saved="report"></div>
+    <p class="muted" style="font-size:12px;direction:ltr;text-align:left;word-break:break-all">${esc(info)}</p>
+    <button class="btn gold" id="rSend">ابعتها على واتساب</button>`);
+  $('#rSend').onclick = () => {
+    const txt = (store.get('ak.report','') || '') + '\n\n' + info;
+    window.open('https://wa.me/?text=' + encodeURIComponent('مشكلة في MEC-APP:\n' + txt), '_blank');
+    logAct('بعت بلاغ عن مشكلة');
+  };
+}
+
+function openTakeoff(){
+  const exec = store.get('exec', DEFAULT_EXEC);
+  logAct('فتح الحصر');
+  window.open(exec, '_blank');
+}
+
+/* ================= الربط ================= */
+function wireShell(){
+  const v = $('#view');
+  bindAutosave(v);
+  document.querySelectorAll('nav.bn [data-t]').forEach(b => b.onclick = () => { S.tab = b.dataset.t; S.project = null; render(); scrollTo(0,0); });
+  $('#fab').onclick = fabSheet;
+  $('#searchBtn').onclick = () => { S.tab = 'projects'; S.project = null; render(); setTimeout(() => { const s = $('#pSearch'); if (s) s.focus(); }, 50); };
+  $('#bellBtn').onclick = () => openSheet(`<h3>الإشعارات</h3>${isBoss()
+      ? '<div class="li">'+ic('cash')+'<span class="t"><b>2 مصروف مستنيين موافقتك</b><small>تجربة</small></span></div><div class="li">'+ic('clock')+'<span class="t"><b>بند متأخر في MEC-101</b><small>تجربة</small></span></div><div class="li">'+ic('doc')+'<span class="t"><b>مستخلص 2 في MEC-102 اتقدم</b><small>تجربة</small></span></div>'
+      : '<div class="li">'+ic('check')+'<span class="t"><b>مهمة جديدة: استلام محارة أوضة نوم 1</b><small>تجربة</small></span></div>'}`);
+  const eye = $('#eyeBtn');
+  if (eye) eye.onclick = () => { S.masked = !S.masked; store.set('masked', S.masked); render(); };
+  v.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { S.project = b.dataset.open; logAct('فتح مشروع ' + S.project); render(); scrollTo(0,0); });
+  v.querySelectorAll('[data-t2]').forEach(b => b.onclick = () => { S.tab = b.dataset.t2; render(); });
+  v.querySelectorAll('[data-soon]').forEach(b => b.onclick = () => soon(b.dataset.soon));
+  v.querySelectorAll('[data-sec]').forEach(b => b.onclick = () => { if (b.dataset.sec === 'takeoff') openTakeoff(); else soon(b.dataset.n); });
+  v.querySelectorAll('[data-tt]').forEach(b => b.onclick = () => { S.taskTab = b.dataset.tt; render(); });
+  const back = $('#back'); if (back) back.onclick = () => { S.project = null; S.tab = 'projects'; render(); };
+  const ok = $('#newsOk'); if (ok) ok.onclick = () => { store.set('seenVersion', APP_VERSION); render(); };
+  const ps = $('#pSearch');
+  if (ps) ps.oninput = () => {
+    const q = ps.value.trim();
+    const list = myProjects().filter(p => !q || (p.name + p.code + p.client).includes(q));
+    $('#pList').innerHTML = list.map(projectCard).join('') || emptyBox('search','مفيش نتايج');
+    $('#pList').querySelectorAll('[data-open]').forEach(b => b.onclick = () => { S.project = b.dataset.open; render(); });
+  };
+  const id = x => document.getElementById(x);
+  if (id('settings')) id('settings').onclick = settingsSheet;
+  if (id('actLog')) id('actLog').onclick = logSheet;
+  if (id('report')) id('report').onclick = reportSheet;
+  if (id('install')) id('install').onclick = () => { if (isStandalone()) toast('التطبيق متثبت عندك بالفعل ✓'); else { store.set('skipInstall', false); render(); } };
+  if (id('logout')) id('logout').onclick = () => { logAct('خرج من التطبيق'); S.user = null; store.del('user'); S.project = null; S.tab = 'home'; render(); };
+}
+
+/* ================= التثبيت وشغل من غير نت ================= */
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); S.installEvt = e; });
+addEventListener('appinstalled', () => { toast('اتثبت ✓'); });
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+render();
 </script>
 </body>
 </html>
