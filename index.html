@@ -7,12 +7,13 @@
 <title>MEC-APP</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
+<link rel="preload" as="image" href="logo-512.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --navy:#1D2E4F; --navy2:#2A4170; --gold:#F8B71C; --gold-soft:#FFF4D6;
+  --navy:#1D2E4F; --navy2:#2A4170; --gold:#E8AA2E; --gold-soft:#FBF1DC;
   --bg:#F5F6F8; --card:#FFFFFF; --ink:#1B2333; --muted:#6B7280; --line:#E3E6EB;
   --ok:#1E8E5A; --ok-bg:#E6F4EC; --warn:#B7791F; --warn-bg:#FDF3DC; --bad:#C0392B; --bad-bg:#FBE9E7;
   --r:14px; --nav-h:64px;
@@ -118,11 +119,12 @@ textarea.in{min-height:88px;resize:vertical}
 .btn.gold{background:var(--gold);color:var(--navy)}
 .btn.ghost{border:1px solid var(--line);background:#fff}
 .saved{font-size:12px;color:var(--ok);min-height:16px;margin-top:4px}
+.sheetX{position:sticky;top:0;float:left;width:36px;height:36px;border-radius:50%;background:#F1F3F6;display:grid;place-items:center;z-index:2;margin-top:-6px}
 
 /* screens: login & install */
-.full{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:24px 20px calc(24px + env(safe-area-inset-bottom));background:var(--navy);color:#fff}
-.full .box{background:#fff;color:var(--ink);border-radius:20px;padding:20px;max-width:420px;width:100%;margin:0 auto}
-.logo{width:72px;height:72px;border-radius:18px;margin:0 auto 12px;display:block}
+.full{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:32px 24px calc(24px + env(safe-area-inset-bottom));background:#fff;color:var(--ink)}
+.full .box{max-width:400px;width:100%;margin:0 auto}
+.logo{width:150px;height:150px;margin:0 auto 6px;display:block}
 .brand{text-align:center;margin-bottom:18px}
 .brand b{display:block;font-size:22px}
 .brand small{opacity:.8}
@@ -134,7 +136,7 @@ textarea.in{min-height:88px;resize:vertical}
 .err{color:var(--bad);font-size:13px;min-height:18px;margin-top:6px}
 .steps{margin:10px 0 0;padding-inline-start:20px;color:var(--muted);font-size:13.5px}
 
-.toast{position:fixed;bottom:calc(var(--nav-h) + 18px + env(safe-area-inset-bottom));inset-inline:16px;z-index:60;background:var(--ink);color:#fff;border-radius:12px;padding:11px 14px;font-size:14px;text-align:center;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none}
+.toast{position:fixed;top:calc(66px + env(safe-area-inset-top));inset-inline:16px;z-index:60;background:var(--ink);color:#fff;border-radius:12px;padding:11px 14px;font-size:14px;text-align:center;opacity:0;transform:translateY(-8px);transition:.2s;pointer-events:none}
 .toast.on{opacity:1;transform:none}
 .empty{text-align:center;color:var(--muted);padding:28px 10px}
 .empty svg{width:40px;height:40px;stroke-width:1.2;color:#AAB2C0}
@@ -188,39 +190,38 @@ textarea.in{min-height:88px;resize:vertical}
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.1';
-const APP_NOTES = ['أول نسخة من التطبيق الجديد ببيانات تجريبية', 'الشريط اللي تحت وزرار + في النص', 'الدخول بالأدوار', 'كروت المشاريع وكروت آخر حاجة', 'الحفظ التلقائي لأي خانة', 'سجل النشاط والاتصال بجوجل'];
+const APP_VERSION = '0.4';
+const APP_NOTES = ['لوجو الشركة على الأيقونة وصفحة الدخول البيضا، والدهبي الهادي', 'المدير بقى بنفس صلاحيات المالك، والمشرف يقدر يعمل حصر', 'الدخول الحقيقي: رقم الموبايل والرقم السري، من غير أسامي ظاهرة', 'لينك دعوة شخصي لكل واحد، وهو يعمل رقمه السري بنفسه', 'الموبايل بيفتكرك ويطلب الرقم السري بس', 'الفريق والصلاحيات للمالك: إضافة، وقفل، ولينك جديد', 'سجل النشاط بيتجمع في جوجل من كل الموبايلات'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
 
 const ROLES = {
-  owner:      {name:'المالك',  home:'owner'},
-  manager:    {name:'المدير',  home:'owner'},
-  engineer:   {name:'مهندس',   home:'eng'},
-  supervisor: {name:'مشرف',    home:'eng'},
-  contractor: {name:'مقاول',   home:'eng'}
+  owner:      {name:'المالك'},
+  manager:    {name:'المدير'},
+  engineer:   {name:'مهندس'},
+  supervisor: {name:'مشرف'},
+  contractor: {name:'مقاول'}
 };
-/* بيانات تجريبية — هتتشال لما الأسامي الحقيقية توصل */
-const DEMO_USERS = [
-  {id:'u1', name:'المالك (تجربة)', role:'owner'},
-  {id:'u2', name:'المدير (تجربة)', role:'manager'},
-  {id:'u3', name:'م. أحمد (تجربة)', role:'engineer'},
-  {id:'u4', name:'م. محمود (تجربة)', role:'engineer'},
-  {id:'u5', name:'مشرف (تجربة)', role:'supervisor'},
-  {id:'u6', name:'مقاول (تجربة)', role:'contractor'}
-];
-const DEMO_PIN = '1234';
+const ERR = {
+  wrong:'رقم الموبايل أو الرقم السري غلط', locked:'الحساب اتقفل بعد محاولات غلط كتير. كلّم المالك يفتحه',
+  disabled:'الحساب ده متوقف. كلّم المالك', noPin:'لسه ما فعّلتش حسابك. افتح لينك الدعوة اللي جالك',
+  badInvite:'لينك الدعوة ده مش شغال أو اتستخدم قبل كده. اطلب لينك جديد', pinFormat:'الرقم السري لازم يكون من 4 لـ 8 أرقام',
+  token:'الكلمة السرية غلط', ownerExists:'حساب المالك موجود بالفعل', missing:'كمّل الخانات الناقصة',
+  phoneExists:'الرقم ده متسجل لحد تاني', role:'الدور مش مسموح', denied:'مش من صلاحيتك', session:'سجّل دخول تاني',
+  net:'مفيش اتصال بجوجل دلوقتي. جرّب تاني', server:'حصلت مشكلة عند جوجل. جرّب تاني', self:'مينفعش تعمل كده على حسابك'
+};
+/* مشاريع تجريبية لحد ما المشاريع الحقيقية تتسجل */
 const DEMO_PROJECTS = [
-  {code:'MEC-101', name:'شقة التجمع الخامس', client:'أ. خالد', type:'تشطيب عميل', eng:'u3', progress:62, extract:{no:3, value:185000, status:'اتعتمد'}, late:{item:'سيراميك الحمام 2', days:4}, next:null, status:'late'},
-  {code:'MEC-102', name:'فيلا الشيخ زايد', client:'م. سارة', type:'مقاولة', eng:'u4', progress:35, extract:{no:2, value:420000, status:'اتقدم'}, late:null, next:{item:'محارة الدور الأول', date:'20 نوفمبر'}, status:'ok'},
-  {code:'MEC-103', name:'عمارة المعادي', client:'شركة النور', type:'مقاولة', eng:'u3', progress:12, extract:{no:1, value:96000, status:'مسودة'}, late:null, next:{item:'كهرباء الدور الأرضي', date:'18 نوفمبر'}, status:'ok'},
-  {code:'MEC-104', name:'شقة مدينة نصر', client:'أ. منى', type:'تشطيب عميل', eng:'u4', progress:88, extract:{no:4, value:62000, status:'اتحصل'}, late:{item:'دهان الريسبشن', days:2}, next:null, status:'warn'}
+  {code:'MEC-101', name:'شقة التجمع الخامس', client:'أ. خالد', type:'تشطيب عميل', eng:'م. أحمد', progress:62, extract:{no:3, value:185000, status:'اتعتمد'}, late:{item:'سيراميك الحمام 2', days:4}, next:null, status:'late'},
+  {code:'MEC-102', name:'فيلا الشيخ زايد', client:'م. سارة', type:'مقاولة', eng:'م. محمود', progress:35, extract:{no:2, value:420000, status:'اتقدم'}, late:null, next:{item:'محارة الدور الأول', date:'20 نوفمبر'}, status:'ok'},
+  {code:'MEC-103', name:'عمارة المعادي', client:'شركة النور', type:'مقاولة', eng:'م. أحمد', progress:12, extract:{no:1, value:96000, status:'مسودة'}, late:null, next:{item:'كهرباء الدور الأرضي', date:'18 نوفمبر'}, status:'ok'},
+  {code:'MEC-104', name:'شقة مدينة نصر', client:'أ. منى', type:'تشطيب عميل', eng:'م. محمود', progress:88, extract:{no:4, value:62000, status:'اتحصل'}, late:{item:'دهان الريسبشن', days:2}, next:null, status:'warn'}
 ];
 const DEMO_TASKS = [
-  {t:'استلام محارة أوضة نوم 1', p:'MEC-101', who:'u3', by:'u1', due:'النهارده', state:'mine'},
-  {t:'تجهيز طلب سيراميك الحمامات', p:'MEC-101', who:'u3', by:'u1', due:'بكرة', state:'mine'},
-  {t:'مراجعة مستخلص المقاول', p:'MEC-102', who:'u4', by:'u1', due:'متأخرة يومين', state:'late'},
-  {t:'صور قبل وبعد الريسبشن', p:'MEC-104', who:'u4', by:'u2', due:'اتقفلت', state:'done'}
+  {t:'استلام محارة أوضة نوم 1', p:'MEC-101', by:'المالك', due:'النهارده', state:'mine'},
+  {t:'تجهيز طلب سيراميك الحمامات', p:'MEC-101', by:'المالك', due:'بكرة', state:'mine'},
+  {t:'مراجعة مستخلص المقاول', p:'MEC-102', by:'المالك', due:'متأخرة يومين', state:'late'},
+  {t:'صور قبل وبعد الريسبشن', p:'MEC-104', by:'المدير', due:'اتقفلت', state:'done'}
 ];
 const SECTIONS = [
   {k:'takeoff', n:'الحصر', i:'ruler', live:true},
@@ -235,8 +236,7 @@ const SECTIONS = [
 ];
 const MORE = [
   {n:'المقاولين والصنايعية', i:'users'}, {n:'الموردين', i:'truck'}, {n:'العملاء وفرصهم', i:'users'},
-  {n:'الخزن والعهد', i:'wallet'}, {n:'الفريق والصلاحيات', i:'shield', own:true}, {n:'التقارير', i:'chart'},
-  {n:'أدوات المهندس', i:'tool'}, {n:'دليل الشركة', i:'book'}
+  {n:'الخزن والعهد', i:'wallet'}, {n:'التقارير', i:'chart'}, {n:'أدوات المهندس', i:'tool'}, {n:'دليل الشركة', i:'book'}
 ];
 
 /* ================= تخزين محلي آمن ================= */
@@ -249,11 +249,13 @@ const store = {
 /* ================= حالة التطبيق ================= */
 const S = {
   user: store.get('user', null),
-  tab: 'home',
-  project: null,
-  taskTab: 'mine',
+  session: store.get('session', ''),
+  unlocked: false,
+  tab: 'home', project: null, taskTab: 'mine',
   masked: store.get('masked', false),
-  installEvt: null
+  installEvt: null,
+  invite: store.get('pendingInvite', ''),
+  hasOwner: null
 };
 
 /* ================= أدوات صغيرة ================= */
@@ -261,17 +263,49 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ic = (id, cls='') => `<svg class="i ${cls}"><use href="#i-${id}"/></svg>`;
 const money = n => `<span class="mv">${Number(n).toLocaleString('en-US')}</span> ج`;
-const userById = id => DEMO_USERS.find(u => u.id === id);
 const isBoss = () => S.user && (S.user.role === 'owner' || S.user.role === 'manager');
-function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2200); }
+const isOwner = () => S.user && S.user.role === 'owner';
+const canManage = () => isBoss(); /* المدير زي المالك، ماعدا حساب المالك ولينك جوجل والنسخ الاحتياطي */
+const device = () => (navigator.userAgent.match(/\(([^)]+)\)/) || ['', 'جهاز'])[1].slice(0, 60);
+const execUrl = () => store.get('exec', DEFAULT_EXEC);
+const errMsg = r => ERR[(r && r.error) || 'server'] + (r && r.left ? ` (فاضل ${r.left} محاولات)` : '');
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); }
 function soon(name){ toast(`«${name}» جاي في مرحلة جاية`); }
+const digits = s => String(s || '').replace(/[٠-٩]/g, c => String(c.charCodeAt(0) - 1632));
+async function sha(s){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,'0')).join(''); }
 
-/* سجل النشاط: محلي في النسخة دي، وبيتنقل لجوجل في الأساس */
-function logAct(action){
-  const log = store.get('log', []);
-  log.unshift({at: new Date().toISOString(), user: S.user ? S.user.name : '—', action});
-  store.set('log', log.slice(0, 300));
+/* ================= الكلام مع جوجل ================= */
+async function api(action, data = {}){
+  const body = Object.assign({action, device: device()}, data);
+  if (S.session && !body.session) body.session = S.session;
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 25000);
+  try {
+    const r = await fetch(execUrl(), {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(body), signal: ctl.signal});
+    return await r.json();
+  } catch (e) { return {ok:false, error:'net'}; }
+  finally { clearTimeout(t); }
 }
+
+/* سجل النشاط: بيتحفظ على الموبايل ويتبعت لجوجل أول ما النت يبقى متاح */
+function logAct(action, project){
+  if (!S.user) return;
+  const q = store.get('logq', []);
+  q.push({action, project: project || '', at: new Date().toISOString()});
+  store.set('logq', q.slice(-300));
+  flushLog();
+}
+let flushing = false;
+async function flushLog(){
+  if (flushing || !S.session || !navigator.onLine) return;
+  const q = store.get('logq', []); if (!q.length) return;
+  flushing = true;
+  const batch = q.slice(0, 50);
+  const r = await api('log', {items: batch});
+  if (r.ok) store.set('logq', store.get('logq', []).slice(batch.length));
+  flushing = false;
+  if (r.ok && store.get('logq', []).length) flushLog();
+}
+addEventListener('online', flushLog);
 
 /* ================= الحفظ التلقائي =================
    أي عنصر فيه data-ak بيتحفظ مع كل حرف، ويرجع زي ما هو حتى لو التطبيق اتقفل */
@@ -288,28 +322,157 @@ function bindAutosave(root){
   });
 }
 
-/* ================= الشاشات ================= */
+/* ================= الدخول ================= */
+async function signedIn(r, pin){
+  S.session = r.session; S.user = r.user; S.unlocked = true;
+  store.set('session', r.session); store.set('user', r.user); store.set('lastPhone', r.user.phone);
+  store.set('pinHash', await sha(r.user.id + ':' + pin)); store.set('lockFails', 0);
+  store.del('pendingInvite'); S.invite = '';
+  render(); flushLog();
+}
+function signOut(msg){
+  S.session = ''; S.user = null; S.unlocked = false; S.project = null; S.tab = 'home';
+  ['session','user','pinHash','lockFails'].forEach(store.del);
+  render(); if (msg) toast(msg);
+}
+async function refreshMe(){
+  if (!S.session || !navigator.onLine) return;
+  const r = await api('me');
+  if (r.ok) { S.user = r.user; store.set('user', r.user); }
+  else if (['session','disabled','locked'].includes(r.error)) signOut(errMsg(r));
+}
+
 function isStandalone(){ return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
 
 function render(){
   const app = $('#app');
-  if (!S.user) { app.innerHTML = loginView(); wireLogin(); return; }
+  if (S.invite) { app.innerHTML = inviteView(); wireInvite(); return; }
+  if (!S.session || !S.user) { app.innerHTML = loginView(); wireLogin(); return; }
+  if (!S.unlocked) { app.innerHTML = lockView(); wireLock(); return; }
   if (!isStandalone() && !store.get('skipInstall', false)) { app.innerHTML = installView(); wireInstall(); return; }
   app.innerHTML = shell();
   wireShell();
 }
 
+const box = inner => `<div class="full"><div class="box"><img class="logo" src="logo-512.png" alt="MEC">${inner}</div></div>`;
+const brand = (t, s) => `<div class="brand" style="color:var(--ink)"><b>${t}</b><small class="muted">${s}</small></div>`;
+const pinInput = (id, ph) => `<input class="in" id="${id}" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="${ph}">`;
+function busy(btn, on){ btn.disabled = on; btn.style.opacity = on ? .6 : 1; }
+
+function loginView(){
+  return box(`${brand('MEC-APP', 'شركة الشرق الأوسط للإنشاءات')}
+    <label class="f" for="lPhone">رقم الموبايل</label>
+    <input class="in" id="lPhone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" value="${esc(store.get('lastPhone',''))}" placeholder="01xxxxxxxxx">
+    <label class="f" for="lPin">الرقم السري</label>
+    ${pinInput('lPin', 'الرقم السري')}
+    <div class="err" id="lErr"></div>
+    <button class="btn pri" id="lGo">دخول</button>
+    <p class="muted" style="font-size:12.5px;text-align:center;margin:14px 0 0">أول مرة؟ افتح لينك الدعوة اللي جالك على واتساب</p>
+    <div id="ownerSetup"></div>`);
+}
+function wireLogin(){
+  const go = async () => {
+    const phone = digits($('#lPhone').value), pin = digits($('#lPin').value);
+    if (!phone || !pin) { $('#lErr').textContent = 'اكتب رقم الموبايل والرقم السري'; return; }
+    busy($('#lGo'), true); $('#lErr').textContent = '';
+    const r = await api('login', {phone, pin});
+    busy($('#lGo'), false);
+    if (r.ok) signedIn(r, pin); else $('#lErr').textContent = errMsg(r);
+  };
+  $('#lGo').onclick = go;
+  $('#lPin').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  /* لو مفيش مالك لسه (أول تشغيل خالص) يظهر إعداد المالك */
+  api('status').then(r => {
+    if (!r.ok || r.hasOwner || !$('#ownerSetup')) return;
+    $('#ownerSetup').innerHTML = `<button class="btn ghost" id="osOpen" style="margin-top:12px">أول تشغيل: إعداد حساب المالك</button>`;
+    $('#osOpen').onclick = () => { $('#app').innerHTML = ownerView(); wireOwner(); };
+  });
+}
+
+function ownerView(){
+  return box(`${brand('إعداد حساب المالك', 'مرة واحدة بس، أول تشغيل')}
+    <label class="f">اسمك</label><input class="in" id="oName" placeholder="الاسم زي ما هيظهر">
+    <label class="f">رقم موبايلك</label><input class="in" id="oPhone" type="tel" dir="ltr" placeholder="01xxxxxxxxx">
+    <label class="f">الكلمة السرية بتاعة السكريبت (TOKEN)</label><input class="in" id="oTok" type="password" dir="ltr" placeholder="نفس اللي في Code.gs">
+    <label class="f">اعمل رقمك السري (4 لـ 8 أرقام)</label>${pinInput('oPin', 'الرقم السري')}
+    <label class="f">اكتبه تاني</label>${pinInput('oPin2', 'تأكيد الرقم السري')}
+    <div class="err" id="oErr"></div>
+    <button class="btn gold" id="oGo">عمل الحساب</button>
+    <button class="btn ghost" id="oBack" style="margin-top:8px">رجوع</button>`);
+}
+function wireOwner(){
+  $('#oBack').onclick = render;
+  $('#oGo').onclick = async () => {
+    const pin = digits($('#oPin').value);
+    if (pin !== digits($('#oPin2').value)) { $('#oErr').textContent = 'الرقمين مش زي بعض'; return; }
+    busy($('#oGo'), true);
+    const r = await api('setupOwner', {name: $('#oName').value, phone: digits($('#oPhone').value), token: $('#oTok').value.trim(), pin});
+    busy($('#oGo'), false);
+    if (r.ok) { signedIn(r, pin); setTimeout(() => toast('أهلا بيك ✓ ضيف فريقك من المزيد ← الفريق والصلاحيات'), 400); }
+    else $('#oErr').textContent = errMsg(r);
+  };
+}
+
+function inviteView(){
+  return box(`${brand('أهلا بيك في MEC-APP', 'تفعيل حسابك')}
+    <div id="iInfo" class="card" style="text-align:center">بيتأكد من لينك الدعوة…</div>
+    <div id="iForm" class="hidden">
+      <label class="f">اعمل رقمك السري (4 لـ 8 أرقام)</label>${pinInput('iPin', 'الرقم السري')}
+      <label class="f">اكتبه تاني</label>${pinInput('iPin2', 'تأكيد الرقم السري')}
+      <p class="muted" style="font-size:12.5px">الرقم ده بتاعك انت بس، محدش يعرفه حتى المالك.</p>
+      <div class="err" id="iErr"></div>
+      <button class="btn gold" id="iGo">تفعيل الحساب</button>
+    </div>
+    <button class="btn ghost" id="iCancel" style="margin-top:8px">عندي حساب، رجوع للدخول</button>`);
+}
+async function wireInvite(){
+  $('#iCancel').onclick = () => { store.del('pendingInvite'); S.invite = ''; render(); };
+  const r = await api('invite', {code: S.invite});
+  if (!$('#iInfo')) return;
+  if (!r.ok) { $('#iInfo').innerHTML = `<span style="color:var(--bad)">${esc(errMsg(r))}</span>`; return; }
+  $('#iInfo').innerHTML = `أهلا <b>${esc(r.name)}</b><br><span class="muted">دورك: ${esc((ROLES[r.role]||{}).name || r.role)}</span>`;
+  $('#iForm').classList.remove('hidden');
+  $('#iGo').onclick = async () => {
+    const pin = digits($('#iPin').value);
+    if (pin !== digits($('#iPin2').value)) { $('#iErr').textContent = 'الرقمين مش زي بعض'; return; }
+    busy($('#iGo'), true);
+    const a = await api('acceptInvite', {code: S.invite, pin});
+    busy($('#iGo'), false);
+    if (a.ok) signedIn(a, pin); else $('#iErr').textContent = errMsg(a);
+  };
+}
+
+function lockView(){
+  return box(`${brand('أهلا ' + esc(S.user.name), 'اكتب رقمك السري')}
+    ${pinInput('kPin', 'الرقم السري')}
+    <div class="err" id="kErr"></div>
+    <button class="btn pri" id="kGo">فتح</button>
+    <button class="btn ghost" id="kOut" style="margin-top:8px">مش انت؟ خروج</button>`);
+}
+function wireLock(){
+  const go = async () => {
+    const pin = digits($('#kPin').value);
+    if (await sha(S.user.id + ':' + pin) === store.get('pinHash', '')) {
+      store.set('lockFails', 0); S.unlocked = true; render(); refreshMe(); flushLog(); return;
+    }
+    const f = store.get('lockFails', 0) + 1; store.set('lockFails', f);
+    if (f >= 5) { signOut('محاولات غلط كتير. سجّل دخول تاني'); return; }
+    $('#kErr').textContent = `الرقم السري غلط (فاضل ${5 - f} محاولات)`;
+  };
+  $('#kGo').onclick = go;
+  $('#kPin').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  $('#kOut').onclick = () => { api('logout'); signOut(); };
+  setTimeout(() => { const k = $('#kPin'); if (k) k.focus(); }, 50);
+}
+
 function installView(){
-  return `<div class="full"><div class="box">
-    <img class="logo" src="icon-192.png" alt="">
-    <div class="brand" style="color:var(--ink)"><b>ثبّت MEC-APP</b><small class="muted">عشان يفتح من أيقونة على الشاشة ويشتغل من غير نت</small></div>
+  return box(`${brand('ثبّت MEC-APP', 'عشان يفتح من أيقونة على الشاشة ويشتغل من غير نت')}
     <button class="btn gold" id="doInstall">${ic('download')} ثبّت التطبيق</button>
-    <ol class="steps" id="manualSteps">
+    <ol class="steps">
       <li>لو الزرار ماشتغلش: من قايمة كروم ⋮ اختار «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».</li>
       <li>افتح التطبيق بعد كده من الأيقونة اللي على الشاشة.</li>
     </ol>
-    <button class="btn ghost" id="skipInstall" style="margin-top:14px">أكمّل من المتصفح دلوقتي</button>
-  </div></div>`;
+    <button class="btn ghost" id="skipInstall" style="margin-top:14px">أكمّل من المتصفح دلوقتي</button>`);
 }
 function wireInstall(){
   $('#doInstall').onclick = async () => {
@@ -319,45 +482,19 @@ function wireInstall(){
   $('#skipInstall').onclick = () => { store.set('skipInstall', true); render(); };
 }
 
-function loginView(){
-  return `<div class="full"><div class="box">
-    <img class="logo" src="icon-192.png" alt="">
-    <div class="brand" style="color:var(--ink)"><b>MEC-APP</b><small class="muted">شركة الشرق الأوسط للإنشاءات</small></div>
-    <label class="f">انت مين؟</label>
-    <div class="users">${DEMO_USERS.map(u => `<button data-u="${u.id}"><b>${esc(u.name)}</b><small>${ROLES[u.role].name}</small></button>`).join('')}</div>
-    <label class="f" for="pin">الرقم السري</label>
-    <input class="in" id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="الرقم السري (التجربة: 1234)">
-    <div class="err" id="lerr"></div>
-    <button class="btn pri" id="go">دخول</button>
-  </div></div>`;
-}
-function wireLogin(){
-  let picked = null;
-  document.querySelectorAll('.users button').forEach(b => b.onclick = () => {
-    document.querySelectorAll('.users button').forEach(x => x.classList.remove('on'));
-    b.classList.add('on'); picked = b.dataset.u; $('#pin').focus();
-  });
-  const go = () => {
-    if (!picked) { $('#lerr').textContent = 'اختار اسمك الأول'; return; }
-    if ($('#pin').value.trim() !== DEMO_PIN) { $('#lerr').textContent = 'الرقم السري غلط'; return; }
-    S.user = userById(picked); store.set('user', S.user); logAct('دخل التطبيق'); render();
-  };
-  $('#go').onclick = go;
-  $('#pin').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
-}
-
+/* ================= الشكل العام ================= */
 function shell(){
   const u = S.user;
   const bell = isBoss() ? 3 : 1;
   return `
   <header class="top">
     <div class="avatar">${esc(u.name.trim().charAt(0))}</div>
-    <div class="ttl"><b>${titleFor()}</b><small>${esc(u.name)} · ${ROLES[u.role].name}</small></div>
+    <div class="ttl"><b>${titleFor()}</b><small>${esc(u.name)} · ${(ROLES[u.role]||{}).name || ''}</small></div>
     ${isBoss() ? `<button class="ibtn" id="eyeBtn" aria-label="إخفاء الأرقام">${ic(S.masked ? 'eyeoff' : 'eye')}</button>` : ''}
     <button class="ibtn" id="searchBtn" aria-label="بحث">${ic('search')}</button>
     <button class="ibtn" id="bellBtn" aria-label="الإشعارات">${ic('bell')}<span class="dot">${bell}</span></button>
   </header>
-  <div class="demo">نسخة ${APP_VERSION} تجريبية · البيانات وهمية لحد ما الأسامي الحقيقية توصل</div>
+  <div class="demo">نسخة ${APP_VERSION} · المشاريع والمهام لسه تجريبية لحد ما المشاريع الحقيقية تتسجل</div>
   <main id="view" class="money ${S.masked ? 'masked' : ''}">${view()}</main>
   <nav class="bn">
     <button data-t="home" class="${S.tab==='home'?'on':''}">${ic('home')}الرئيسية</button>
@@ -371,9 +508,7 @@ function titleFor(){
   if (S.project) { const p = DEMO_PROJECTS.find(x => x.code === S.project); return esc(p.name); }
   return {home:'الرئيسية', projects:'المشاريع', tasks:'المهام', more:'المزيد'}[S.tab];
 }
-function myProjects(){
-  return isBoss() ? DEMO_PROJECTS : DEMO_PROJECTS.filter(p => p.eng === S.user.id || S.user.role !== 'engineer');
-}
+const myProjects = () => DEMO_PROJECTS;
 
 function view(){
   if (S.project) return projectView();
@@ -391,8 +526,7 @@ function latestStrip(items){
 }
 
 function homeView(){
-  const seen = store.get('seenVersion', '');
-  const news = seen !== APP_VERSION ? `<div class="card news" style="margin-bottom:6px">
+  const news = store.get('seenVersion', '') !== APP_VERSION ? `<div class="card news" style="margin-bottom:6px">
       <div class="row"><b style="flex:1">${ic('sparkle')} جديد في التطبيق · نسخة ${APP_VERSION}</b><button class="pill p-info" id="newsOk">تمام</button></div>
       <ul class="steps" style="color:var(--ink)">${APP_NOTES.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : '';
   if (isBoss()) {
@@ -404,31 +538,29 @@ function homeView(){
       {i:'truck', lbl:'آخر شراء', money:8400, sub:'أسمنت ورمل · MEC-102 · النهارده'}
     ])}
     <h2 class="sec">${ic('alert')} محتاج تتصرف فيه</h2>
-    <button class="li" data-soon="الموافقات">${'<span class="ico">'+ic('cash')+'</span>'}<span class="t"><b>2 مصروف مستنيين موافقتك</b><small>فوق الحد اللي حددته</small></span><span class="pill p-warn">مستني</span></button>
+    <button class="li" data-soon="الموافقات"><span class="ico">${ic('cash')}</span><span class="t"><b>2 مصروف مستنيين موافقتك</b><small>فوق الحد اللي حددته</small></span><span class="pill p-warn">مستني</span></button>
     <button class="li" data-open="MEC-101"><span class="ico">${ic('clock')}</span><span class="t"><b>سيراميك الحمام 2 متأخر 4 أيام</b><small>شقة التجمع الخامس</small></span><span class="pill p-bad">متأخر</span></button>
     <h2 class="sec">المشاريع <button class="more" data-t2="projects">الكل</button></h2>
     ${DEMO_PROJECTS.slice(0,2).map(projectCard).join('')}`;
   }
-  const mine = myProjects();
   return news + `
     <h2 class="sec">مشاريعي</h2>
-    ${mine.length ? mine.map(projectCard).join('') : emptyBox('folder','مفيش مشاريع متسجلة عليك لسه')}
+    ${myProjects().map(projectCard).join('')}
     <h2 class="sec">مهامي النهارده</h2>
-    ${DEMO_TASKS.filter(t => t.who === S.user.id && t.state !== 'done').map(taskItem).join('') || emptyBox('check','مفيش مهام النهارده')}
+    ${DEMO_TASKS.filter(t => t.state === 'mine').map(taskItem).join('')}
     <h2 class="sec">ملاحظة سريعة</h2>
-    <div class="card"><textarea class="in" data-ak="quicknote.${S.user.id}" placeholder="اكتب أي حاجة… بتتحفظ لوحدها حتى لو قفلت التطبيق"></textarea><div class="saved" data-saved="quicknote.${S.user.id}"></div></div>`;
+    <div class="card"><textarea class="in" data-ak="quicknote.${esc(S.user.id)}" placeholder="اكتب أي حاجة… بتتحفظ لوحدها حتى لو قفلت التطبيق"></textarea><div class="saved" data-saved="quicknote.${esc(S.user.id)}"></div></div>`;
 }
 
-function emptyBox(i, t){ return `<div class="empty">${ic(i)}<div>${esc(t)}</div></div>`; }
+const emptyBox = (i, t) => `<div class="empty">${ic(i)}<div>${esc(t)}</div></div>`;
 
 function projectCard(p){
-  const facts = [];
-  facts.push(`<span class="pill p-info">مستخلص ${p.extract.no} · ${money(p.extract.value)} · ${esc(p.extract.status)}</span>`);
+  const facts = [`<span class="pill p-info">مستخلص ${p.extract.no} · ${money(p.extract.value)} · ${esc(p.extract.status)}</span>`];
   if (p.late) facts.push(`<span class="pill p-bad">${ic('clock')} ${esc(p.late.item)} متأخر ${p.late.days} أيام</span>`);
   else if (p.next) facts.push(`<span class="pill p-ok">الجاي: ${esc(p.next.item)} · ${esc(p.next.date)}</span>`);
   return `<button class="pc" data-open="${p.code}">
     <div class="head"><b>${esc(p.name)}</b><span class="pill ${p.status==='late'?'p-bad':p.status==='warn'?'p-warn':'p-ok'}">${p.status==='late'?'متأخر':p.status==='warn'?'تنبيه':'ماشي'}</span></div>
-    <div class="meta">${esc(p.code)} · ${esc(p.client)} · ${esc(p.type)} · ${esc((userById(p.eng)||{}).name||'')}</div>
+    <div class="meta">${esc(p.code)} · ${esc(p.client)} · ${esc(p.type)} · ${esc(p.eng)}</div>
     <div class="bar"><i style="width:${p.progress}%"></i></div>
     <div class="meta">الإنجاز ${p.progress}%</div>
     <div class="facts">${facts.join('')}</div>
@@ -436,16 +568,15 @@ function projectCard(p){
 }
 
 function projectsView(){
-  const list = myProjects();
   return `<div class="card" style="padding:10px 12px;margin-bottom:12px"><div class="row">${ic('search')}<input class="in" style="border:0;padding:4px" id="pSearch" placeholder="دوّر باسم المشروع أو الكود أو العميل"></div></div>
-  <div id="pList">${list.map(projectCard).join('')}</div>`;
+  <div id="pList">${myProjects().map(projectCard).join('')}</div>`;
 }
 
 function projectView(){
   const p = DEMO_PROJECTS.find(x => x.code === S.project);
   return `
   <button class="row muted" id="back" style="margin-bottom:10px">${ic('arrowR')} المشاريع</button>
-  ${projectCard(p).replace('<button class="pc"', '<div class="pc"').replace(/<\/button>$/, '</div>')}
+  ${projectCard(p).replace('<button class="pc" data-open', '<div class="pc" data-x').replace(/<\/button>$/, '</div>')}
   <h2 class="sec">آخر حاجة في المشروع</h2>
   ${latestStrip([
     {i:'doc', lbl:'آخر مستخلص', money:p.extract.value, sub:`جاري ${p.extract.no} · ${p.extract.status}`},
@@ -460,28 +591,24 @@ function projectView(){
 
 function taskItem(t){
   const pill = t.state === 'late' ? '<span class="pill p-bad">متأخرة</span>' : t.state === 'done' ? '<span class="pill p-ok">اتقفلت</span>' : `<span class="pill p-info">${esc(t.due)}</span>`;
-  return `<button class="li" data-soon="المهام"><span class="ico">${ic('check')}</span><span class="t"><b>${esc(t.t)}</b><small>${esc(t.p)} · من ${esc((userById(t.by)||{}).name||'')}</small></span>${pill}</button>`;
+  return `<button class="li" data-soon="المهام"><span class="ico">${ic('check')}</span><span class="t"><b>${esc(t.t)}</b><small>${esc(t.p)} · من ${esc(t.by)}</small></span>${pill}</button>`;
 }
 function tasksView(){
   const tabs = [['mine','مهامي'],['given','اللي أسندتها'],['late','المتأخرة'],['done','المكتملة']];
-  let list = DEMO_TASKS;
-  if (S.taskTab === 'mine') list = list.filter(t => (t.who === S.user.id || isBoss()) && t.state === 'mine');
-  if (S.taskTab === 'given') list = list.filter(t => t.by === S.user.id);
-  if (S.taskTab === 'late') list = list.filter(t => t.state === 'late');
-  if (S.taskTab === 'done') list = list.filter(t => t.state === 'done');
+  const list = DEMO_TASKS.filter(t => S.taskTab === 'given' ? isBoss() && t.state !== 'done' : t.state === S.taskTab);
   return `<div class="tabs">${tabs.map(([k,n]) => `<button class="tab ${S.taskTab===k?'on':''}" data-tt="${k}">${n}</button>`).join('')}</div>
     ${list.map(taskItem).join('') || emptyBox('check','مفيش مهام هنا')}`;
 }
 
 function moreView(){
-  const items = MORE.filter(m => !m.own || S.user.role === 'owner');
   return `<div class="card" style="padding:4px 14px">
-    ${items.map(m => `<button class="mi" data-soon="${esc(m.n)}">${ic(m.i)}${esc(m.n)}<span class="soon">قريبًا</span></button>`).join('')}
+    ${isBoss() ? `<button class="mi" id="team">${ic('shield')}الفريق والصلاحيات</button>` : ''}
+    ${MORE.map(m => `<button class="mi" data-soon="${esc(m.n)}">${ic(m.i)}${esc(m.n)}<span class="soon">قريبًا</span></button>`).join('')}
   </div>
   <h2 class="sec">النظام</h2>
   <div class="card" style="padding:4px 14px">
     ${isBoss() ? `<button class="mi" id="actLog">${ic('clock')}سجل النشاط</button>` : ''}
-    ${S.user.role === 'owner' ? `<button class="mi" data-soon="النسخ الاحتياطي">${ic('cloud')}النسخ الاحتياطي<span class="soon">قريبًا</span></button>` : ''}
+    ${isOwner() ? `<button class="mi" data-soon="النسخ الاحتياطي">${ic('cloud')}النسخ الاحتياطي<span class="soon">قريبًا</span></button>` : ''}
     <button class="mi" id="settings">${ic('gear')}الإعدادات والاتصال</button>
     <button class="mi" id="report">${ic('alert')}الإبلاغ عن مشكلة</button>
     <button class="mi" id="install">${ic('download')}حمّل تطبيق MEC</button>
@@ -491,7 +618,11 @@ function moreView(){
 }
 
 /* ================= الشيتات اللي بتطلع من تحت ================= */
-function openSheet(html){ $('#sheetBody').innerHTML = html; $('#sheet').classList.add('on'); $('#scrim').classList.add('on'); bindAutosave($('#sheetBody')); }
+function openSheet(html){
+  $('#sheetBody').innerHTML = `<button class="sheetX" id="sheetX" aria-label="قفل"><svg class="i"><path d="M6 6l12 12M18 6 6 18"/></svg></button>` + html;
+  $('#sheet').classList.add('on'); $('#scrim').classList.add('on'); bindAutosave($('#sheetBody'));
+  $('#sheetX').onclick = closeSheet;
+}
 function closeSheet(){ $('#sheet').classList.remove('on'); $('#scrim').classList.remove('on'); }
 $('#scrim').onclick = closeSheet;
 
@@ -501,39 +632,95 @@ function fabSheet(){
   document.querySelectorAll('[data-qa]').forEach(b => b.onclick = () => { closeSheet(); if (b.dataset.qa === 'takeoff') openTakeoff(); else soon(b.dataset.n); });
 }
 
-function settingsSheet(){
-  const exec = store.get('exec', DEFAULT_EXEC);
-  openSheet(`<h3>الإعدادات والاتصال</h3>
-    <label class="f">لينك جوجل (/exec)</label>
-    <input class="in" id="sExec" dir="ltr" value="${esc(exec)}">
-    <label class="f">الكلمة السرية (بتتحفظ على الموبايل ده بس)</label>
-    <input class="in" id="sTok" type="password" dir="ltr" value="${esc(store.get('token',''))}" placeholder="نفس TOKEN اللي في السكريبت">
-    <div class="err" id="sMsg" style="color:var(--muted)"></div>
-    <div class="row" style="margin-top:6px"><button class="btn ghost" id="sTest">اختبار الاتصال</button><button class="btn pri" id="sSave">حفظ</button></div>`);
-  $('#sSave').onclick = () => { store.set('exec', $('#sExec').value.trim()); store.set('token', $('#sTok').value.trim()); logAct('غيّر إعدادات الاتصال'); toast('اتحفظ ✓'); closeSheet(); };
-  $('#sTest').onclick = async () => {
-    const m = $('#sMsg'); m.style.color = 'var(--muted)'; m.textContent = 'بيختبر…';
-    try {
-      const r = await fetch($('#sExec').value.trim() + '?health=1', {cache:'no-store'});
-      const j = await r.json();
-      if (j && j.ok) { m.style.color = 'var(--ok)'; m.textContent = 'الاتصال بجوجل شغال ✓'; logAct('اختبر الاتصال بجوجل: شغال'); }
-      else { m.style.color = 'var(--bad)'; m.textContent = 'جوجل رد بس فيه مشكلة'; }
-    } catch (e) { m.style.color = 'var(--bad)'; m.textContent = navigator.onLine ? 'مش قادر يوصل للينك. اتأكد إن النشر Anyone' : 'مفيش نت دلوقتي'; }
+/* ---------- الفريق والصلاحيات ---------- */
+const inviteLink = code => location.origin + location.pathname + '?invite=' + code;
+const waPhone = p => { const d = digits(p).replace(/\D/g, ''); return d.startsWith('0') ? '2' + d : d; };
+function shareInvite(name, phone, code){
+  const link = inviteLink(code);
+  const msg = `أهلا ${name}، ده لينك تفعيل حسابك على تطبيق MEC-APP بتاع شركة الشرق الأوسط للإنشاءات:\n${link}\nافتحه من كروم على موبايلك، واعمل رقمك السري. اللينك بيشتغل مرة واحدة وخلال 7 أيام.`;
+  openSheet(`<h3>لينك الدعوة لـ ${esc(name)}</h3>
+    <div class="card" style="direction:ltr;text-align:left;word-break:break-all;font-size:13px">${esc(link)}</div>
+    <p class="muted" style="font-size:12.5px">ابعته له هو بس. اللينك بيشتغل مرة واحدة وخلال 7 أيام.</p>
+    <a class="btn gold" href="https://wa.me/${waPhone(phone)}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" style="text-decoration:none">ابعته على واتساب</a>
+    <button class="btn ghost" id="cpLink" style="margin-top:8px">نسخ اللينك</button>`);
+  $('#cpLink').onclick = async () => { try { await navigator.clipboard.writeText(link); toast('اتنسخ ✓'); } catch (e) { toast('انسخه بإيدك من فوق'); } };
+}
+async function teamSheet(){
+  openSheet(`<h3>الفريق والصلاحيات</h3><div id="tList" class="muted">بيحمّل…</div>
+    ${canManage() ? `<button class="btn pri" id="tAdd" style="margin-top:12px">${ic('plus')} ضيف شخص</button>` : ''}`);
+  if (canManage()) $('#tAdd').onclick = addUserSheet;
+  const r = await api('users');
+  if (!$('#tList')) return;
+  if (!r.ok) { $('#tList').innerHTML = `<span style="color:var(--bad)">${esc(errMsg(r))}</span>`; return; }
+  const st = u => u.status === 'disabled' ? '<span class="pill p-bad">متوقف</span>' : u.status === 'locked' ? '<span class="pill p-bad">مقفول</span>' : u.status === 'invited' ? '<span class="pill p-warn">لسه ما فعّلش</span>' : '<span class="pill p-ok">شغال</span>';
+  $('#tList').innerHTML = r.items.map(u => `<div class="li" style="flex-wrap:wrap">
+      <span class="ico">${ic('users')}</span>
+      <span class="t"><b>${esc(u.name)}</b><small>${(ROLES[u.role]||{}).name || u.role} · <span dir="ltr">${esc(u.phone)}</span>${u.last ? ' · آخر دخول ' + new Date(u.last).toLocaleDateString('ar-EG') : ''}</small></span>${st(u)}
+      ${canManage() && u.role !== 'owner' && u.id !== S.user.id ? `<div class="row" style="width:100%;gap:6px;margin-top:8px">
+        <button class="btn ghost" style="padding:8px;font-size:13px" data-re="${esc(u.id)}" data-nm="${esc(u.name)}" data-ph="${esc(u.phone)}">لينك جديد</button>
+        <button class="btn ghost" style="padding:8px;font-size:13px;color:${u.status==='disabled'||u.status==='locked'?'var(--ok)':'var(--bad)'}" data-st="${esc(u.id)}" data-to="${u.status==='disabled'||u.status==='locked'?'active':'disabled'}">${u.status==='disabled'||u.status==='locked'?'فتح الحساب':'إيقاف الحساب'}</button>
+      </div>` : ''}
+    </div>`).join('') || emptyBox('users','مفيش حد لسه');
+  document.querySelectorAll('[data-re]').forEach(b => b.onclick = async () => {
+    if (!confirmBox(`لينك جديد لـ ${b.dataset.nm}؟ الرقم السري القديم بتاعه هيتلغي ويعمل واحد جديد.`)) return;
+    const x = await api('reinvite', {id: b.dataset.re});
+    if (x.ok) shareInvite(b.dataset.nm, b.dataset.ph, x.code); else toast(errMsg(x));
+  });
+  document.querySelectorAll('[data-st]').forEach(b => b.onclick = async () => {
+    const x = await api('setStatus', {id: b.dataset.st, status: b.dataset.to});
+    if (x.ok) { toast(b.dataset.to === 'disabled' ? 'الحساب اتوقف ✓' : 'الحساب اتفتح ✓'); teamSheet(); } else toast(errMsg(x));
+  });
+}
+function confirmBox(msg){ return window.confirm(msg); }
+function addUserSheet(){
+  openSheet(`<h3>ضيف شخص للفريق</h3>
+    <label class="f">الاسم زي ما هيظهر</label><input class="in" id="aName" data-ak="add.name">
+    <label class="f">رقم الموبايل</label><input class="in" id="aPhone" type="tel" dir="ltr" placeholder="01xxxxxxxxx" data-ak="add.phone">
+    <label class="f">الدور</label>
+    <select class="in" id="aRole" data-ak="add.role">
+      <option value="engineer">مهندس: مشاريعه، ويقدر يعمل شغل المشرف</option>
+      <option value="supervisor">مشرف: الحضور والخامات والحصر ومهامه في مشروعه</option>
+      <option value="manager">مدير: نفس صلاحيات المالك</option>
+      <option value="contractor">مقاول: مهامه وصور شغله وحسابه</option>
+    </select>
+    <label class="f">المشاريع (اختياري)</label><input class="in" id="aProj" placeholder="أكواد المشاريع، أو سيبها لحد ما المشاريع تتسجل" data-ak="add.proj">
+    <div class="err" id="aErr"></div>
+    <button class="btn gold" id="aGo">ضيفه واعمل لينك الدعوة</button>`);
+  $('#aGo').onclick = async () => {
+    busy($('#aGo'), true);
+    const r = await api('addUser', {name: $('#aName').value, phone: digits($('#aPhone').value), role: $('#aRole').value, projects: $('#aProj').value});
+    busy($('#aGo'), false);
+    if (!r.ok) { $('#aErr').textContent = errMsg(r); return; }
+    ['name','phone','role','proj'].forEach(k => store.del('ak.add.' + k));
+    shareInvite(r.user.name, r.user.phone, r.code);
   };
 }
 
-function logSheet(){
-  const log = store.get('log', []);
-  const users = [...new Set(log.map(l => l.user))];
-  const draw = who => (who ? log.filter(l => l.user === who) : log).slice(0, 80).map(l => {
-    const d = new Date(l.at);
-    return `<div class="mi" style="font-weight:400"><span class="ico">${ic('clock')}</span><span style="flex:1;min-width:0"><b style="display:block;font-weight:600">${esc(l.action)}</b><small class="muted">${esc(l.user)} · ${d.toLocaleDateString('ar-EG')} ${d.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'})}</small></span></div>`;
-  }).join('') || emptyBox('clock','مفيش نشاط لسه');
-  openSheet(`<h3>سجل النشاط</h3>
-    <select class="in" id="logWho"><option value="">الكل</option>${users.map(u => `<option>${esc(u)}</option>`).join('')}</select>
-    <p class="muted" style="font-size:12.5px">في النسخة دي السجل على الموبايل ده بس. في الأساس هيتجمع من كل الموبايلات في جوجل.</p>
-    <div id="logList">${draw('')}</div>`);
-  $('#logWho').onchange = e => { $('#logList').innerHTML = draw(e.target.value); };
+/* ---------- سجل النشاط ---------- */
+async function logSheet(){
+  openSheet(`<h3>سجل النشاط</h3><select class="in" id="logWho"><option value="">الكل</option></select><div id="logList" class="muted" style="margin-top:10px">بيحمّل…</div>`);
+  const [u, l] = await Promise.all([api('users'), api('logs', {limit: 200})]);
+  if (!$('#logList')) return;
+  if (u.ok) $('#logWho').innerHTML = '<option value="">الكل</option>' + u.items.map(x => `<option>${esc(x.name)}</option>`).join('');
+  const draw = items => items.map(x => { const d = new Date(x.at);
+    return `<div class="mi" style="font-weight:400"><span class="ico">${ic('clock')}</span><span style="flex:1;min-width:0"><b style="display:block;font-weight:600">${esc(x.action)}${x.project ? ' · ' + esc(x.project) : ''}</b><small class="muted">${esc(x.user)} · ${d.toLocaleDateString('ar-EG')} ${d.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'})}</small></span></div>`; }).join('') || emptyBox('clock','مفيش نشاط');
+  if (!l.ok) { $('#logList').innerHTML = `<span style="color:var(--bad)">${esc(errMsg(l))}</span>`; return; }
+  $('#logList').innerHTML = draw(l.items);
+  $('#logWho').onchange = async e => { $('#logList').textContent = 'بيحمّل…'; const r = await api('logs', {user: e.target.value, limit: 200}); $('#logList').innerHTML = r.ok ? draw(r.items) : esc(errMsg(r)); };
+}
+
+function settingsSheet(){
+  openSheet(`<h3>الإعدادات والاتصال</h3>
+    ${isOwner() ? `<label class="f">لينك جوجل (/exec)</label><input class="in" id="sExec" dir="ltr" value="${esc(execUrl())}">` : ''}
+    <div class="err" id="sMsg" style="color:var(--muted)"></div>
+    <div class="row" style="margin-top:6px"><button class="btn ghost" id="sTest">اختبار الاتصال</button>${isOwner() ? '<button class="btn pri" id="sSave">حفظ</button>' : ''}</div>`);
+  if ($('#sSave')) $('#sSave').onclick = () => { store.set('exec', $('#sExec').value.trim()); logAct('غيّر لينك جوجل'); toast('اتحفظ ✓'); closeSheet(); };
+  $('#sTest').onclick = async () => {
+    const m = $('#sMsg'); m.style.color = 'var(--muted)'; m.textContent = 'بيختبر…';
+    const r = await api('me');
+    if (r.ok) { m.style.color = 'var(--ok)'; m.textContent = 'الاتصال بجوجل شغال ✓'; }
+    else { m.style.color = 'var(--bad)'; m.textContent = errMsg(r); }
+  };
 }
 
 function reportSheet(){
@@ -549,11 +736,7 @@ function reportSheet(){
   };
 }
 
-function openTakeoff(){
-  const exec = store.get('exec', DEFAULT_EXEC);
-  logAct('فتح الحصر');
-  window.open(exec, '_blank');
-}
+function openTakeoff(){ logAct('فتح الحصر', S.project || ''); window.open(execUrl(), '_blank'); }
 
 /* ================= الربط ================= */
 function wireShell(){
@@ -562,12 +745,12 @@ function wireShell(){
   document.querySelectorAll('nav.bn [data-t]').forEach(b => b.onclick = () => { S.tab = b.dataset.t; S.project = null; render(); scrollTo(0,0); });
   $('#fab').onclick = fabSheet;
   $('#searchBtn').onclick = () => { S.tab = 'projects'; S.project = null; render(); setTimeout(() => { const s = $('#pSearch'); if (s) s.focus(); }, 50); };
-  $('#bellBtn').onclick = () => openSheet(`<h3>الإشعارات</h3>${isBoss()
-      ? '<div class="li">'+ic('cash')+'<span class="t"><b>2 مصروف مستنيين موافقتك</b><small>تجربة</small></span></div><div class="li">'+ic('clock')+'<span class="t"><b>بند متأخر في MEC-101</b><small>تجربة</small></span></div><div class="li">'+ic('doc')+'<span class="t"><b>مستخلص 2 في MEC-102 اتقدم</b><small>تجربة</small></span></div>'
-      : '<div class="li">'+ic('check')+'<span class="t"><b>مهمة جديدة: استلام محارة أوضة نوم 1</b><small>تجربة</small></span></div>'}`);
+  $('#bellBtn').onclick = () => openSheet(`<h3>الإشعارات</h3><p class="muted">الإشعارات الحقيقية هتشتغل مع المصروفات والمهام. دي أمثلة.</p>${isBoss()
+      ? `<div class="li">${ic('cash')}<span class="t"><b>2 مصروف مستنيين موافقتك</b><small>تجربة</small></span></div><div class="li">${ic('clock')}<span class="t"><b>بند متأخر في MEC-101</b><small>تجربة</small></span></div>`
+      : `<div class="li">${ic('check')}<span class="t"><b>مهمة جديدة: استلام محارة أوضة نوم 1</b><small>تجربة</small></span></div>`}`);
   const eye = $('#eyeBtn');
   if (eye) eye.onclick = () => { S.masked = !S.masked; store.set('masked', S.masked); render(); };
-  v.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { S.project = b.dataset.open; logAct('فتح مشروع ' + S.project); render(); scrollTo(0,0); });
+  v.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { S.project = b.dataset.open; logAct('فتح مشروع', S.project); render(); scrollTo(0,0); });
   v.querySelectorAll('[data-t2]').forEach(b => b.onclick = () => { S.tab = b.dataset.t2; render(); });
   v.querySelectorAll('[data-soon]').forEach(b => b.onclick = () => soon(b.dataset.soon));
   v.querySelectorAll('[data-sec]').forEach(b => b.onclick = () => { if (b.dataset.sec === 'takeoff') openTakeoff(); else soon(b.dataset.n); });
@@ -582,18 +765,27 @@ function wireShell(){
     $('#pList').querySelectorAll('[data-open]').forEach(b => b.onclick = () => { S.project = b.dataset.open; render(); });
   };
   const id = x => document.getElementById(x);
+  if (id('team')) id('team').onclick = teamSheet;
   if (id('settings')) id('settings').onclick = settingsSheet;
   if (id('actLog')) id('actLog').onclick = logSheet;
   if (id('report')) id('report').onclick = reportSheet;
   if (id('install')) id('install').onclick = () => { if (isStandalone()) toast('التطبيق متثبت عندك بالفعل ✓'); else { store.set('skipInstall', false); render(); } };
-  if (id('logout')) id('logout').onclick = () => { logAct('خرج من التطبيق'); S.user = null; store.del('user'); S.project = null; S.tab = 'home'; render(); };
+  if (id('logout')) id('logout').onclick = () => { api('logout'); signOut(); };
 }
 
-/* ================= التثبيت وشغل من غير نت ================= */
+/* ================= البداية ================= */
+(function boot(){
+  const code = new URLSearchParams(location.search).get('invite');
+  if (code) {
+    S.invite = code; store.set('pendingInvite', code);
+    /* لو موبايل عليه حساب تاني، الدعوة الجديدة بتطلعه منه */
+    if (S.session) { S.session = ''; S.user = null; ['session','user','pinHash','lockFails'].forEach(store.del); }
+    history.replaceState(null, '', location.pathname);
+  }
+})();
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); S.installEvt = e; });
 addEventListener('appinstalled', () => { toast('اتثبت ✓'); });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
-
 render();
 </script>
 </body>
