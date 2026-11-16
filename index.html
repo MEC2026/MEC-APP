@@ -190,8 +190,8 @@ textarea.in{min-height:88px;resize:vertical}
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.4';
-const APP_NOTES = ['لوجو الشركة على الأيقونة وصفحة الدخول البيضا، والدهبي الهادي', 'المدير بقى بنفس صلاحيات المالك، والمشرف يقدر يعمل حصر', 'الدخول الحقيقي: رقم الموبايل والرقم السري، من غير أسامي ظاهرة', 'لينك دعوة شخصي لكل واحد، وهو يعمل رقمه السري بنفسه', 'الموبايل بيفتكرك ويطلب الرقم السري بس', 'الفريق والصلاحيات للمالك: إضافة، وقفل، ولينك جديد', 'سجل النشاط بيتجمع في جوجل من كل الموبايلات'];
+const APP_VERSION = '0.5';
+const APP_NOTES = ['المشاريع الحقيقية: مشروع جديد وتعديل، وكل واحد يشوف مشاريعه بس', 'الرئيسية بقت بأرقام حقيقية: المشاريع حسب الحالة، وآخر دخول، والحسابات المستنية', 'شيلنا كل البيانات التجريبية'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
 
@@ -208,21 +208,8 @@ const ERR = {
   badInvite:'لينك الدعوة ده مش شغال أو اتستخدم قبل كده. اطلب لينك جديد', pinFormat:'الرقم السري لازم يكون من 4 لـ 8 أرقام',
   token:'الكلمة السرية غلط', ownerExists:'حساب المالك موجود بالفعل', missing:'كمّل الخانات الناقصة',
   phoneExists:'الرقم ده متسجل لحد تاني', role:'الدور مش مسموح', denied:'مش من صلاحيتك', session:'سجّل دخول تاني',
-  net:'مفيش اتصال بجوجل دلوقتي. جرّب تاني', server:'حصلت مشكلة عند جوجل. جرّب تاني', self:'مينفعش تعمل كده على حسابك'
+  net:'مفيش اتصال بجوجل دلوقتي. جرّب تاني', server:'حصلت مشكلة عند جوجل. جرّب تاني', self:'مينفعش تعمل كده على حسابك', badUser:'الشخص ده مش في الفريق أو دوره مش مناسب', notfound:'مش لاقي ده. اعمل تحديث'
 };
-/* مشاريع تجريبية لحد ما المشاريع الحقيقية تتسجل */
-const DEMO_PROJECTS = [
-  {code:'MEC-101', name:'شقة التجمع الخامس', client:'أ. خالد', type:'تشطيب عميل', eng:'م. أحمد', progress:62, extract:{no:3, value:185000, status:'اتعتمد'}, late:{item:'سيراميك الحمام 2', days:4}, next:null, status:'late'},
-  {code:'MEC-102', name:'فيلا الشيخ زايد', client:'م. سارة', type:'مقاولة', eng:'م. محمود', progress:35, extract:{no:2, value:420000, status:'اتقدم'}, late:null, next:{item:'محارة الدور الأول', date:'20 نوفمبر'}, status:'ok'},
-  {code:'MEC-103', name:'عمارة المعادي', client:'شركة النور', type:'مقاولة', eng:'م. أحمد', progress:12, extract:{no:1, value:96000, status:'مسودة'}, late:null, next:{item:'كهرباء الدور الأرضي', date:'18 نوفمبر'}, status:'ok'},
-  {code:'MEC-104', name:'شقة مدينة نصر', client:'أ. منى', type:'تشطيب عميل', eng:'م. محمود', progress:88, extract:{no:4, value:62000, status:'اتحصل'}, late:{item:'دهان الريسبشن', days:2}, next:null, status:'warn'}
-];
-const DEMO_TASKS = [
-  {t:'استلام محارة أوضة نوم 1', p:'MEC-101', by:'المالك', due:'النهارده', state:'mine'},
-  {t:'تجهيز طلب سيراميك الحمامات', p:'MEC-101', by:'المالك', due:'بكرة', state:'mine'},
-  {t:'مراجعة مستخلص المقاول', p:'MEC-102', by:'المالك', due:'متأخرة يومين', state:'late'},
-  {t:'صور قبل وبعد الريسبشن', p:'MEC-104', by:'المدير', due:'اتقفلت', state:'done'}
-];
 const SECTIONS = [
   {k:'takeoff', n:'الحصر', i:'ruler', live:true},
   {k:'boq', n:'المقايسة والمستخلصات', i:'doc'},
@@ -255,7 +242,8 @@ const S = {
   masked: store.get('masked', false),
   installEvt: null,
   invite: store.get('pendingInvite', ''),
-  hasOwner: null
+  hasOwner: null,
+  projects: store.get('projects', []), projectsAt: 0, pFilter: 'all', team: null
 };
 
 /* ================= أدوات صغيرة ================= */
@@ -332,7 +320,7 @@ async function signedIn(r, pin){
 }
 function signOut(msg){
   S.session = ''; S.user = null; S.unlocked = false; S.project = null; S.tab = 'home';
-  ['session','user','pinHash','lockFails'].forEach(store.del);
+  ['session','user','pinHash','lockFails','projects','team'].forEach(store.del); S.projects = []; S.team = null; S.teamLoaded = false;
   render(); if (msg) toast(msg);
 }
 async function refreshMe(){
@@ -485,16 +473,14 @@ function wireInstall(){
 /* ================= الشكل العام ================= */
 function shell(){
   const u = S.user;
-  const bell = isBoss() ? 3 : 1;
   return `
   <header class="top">
     <div class="avatar">${esc(u.name.trim().charAt(0))}</div>
     <div class="ttl"><b>${titleFor()}</b><small>${esc(u.name)} · ${(ROLES[u.role]||{}).name || ''}</small></div>
     ${isBoss() ? `<button class="ibtn" id="eyeBtn" aria-label="إخفاء الأرقام">${ic(S.masked ? 'eyeoff' : 'eye')}</button>` : ''}
     <button class="ibtn" id="searchBtn" aria-label="بحث">${ic('search')}</button>
-    <button class="ibtn" id="bellBtn" aria-label="الإشعارات">${ic('bell')}<span class="dot">${bell}</span></button>
+    <button class="ibtn" id="bellBtn" aria-label="الإشعارات">${ic('bell')}</button>
   </header>
-  <div class="demo">نسخة ${APP_VERSION} · المشاريع والمهام لسه تجريبية لحد ما المشاريع الحقيقية تتسجل</div>
   <main id="view" class="money ${S.masked ? 'masked' : ''}">${view()}</main>
   <nav class="bn">
     <button data-t="home" class="${S.tab==='home'?'on':''}">${ic('home')}الرئيسية</button>
@@ -504,11 +490,30 @@ function shell(){
     <button data-t="more" class="${S.tab==='more'?'on':''}">${ic('grid')}المزيد</button>
   </nav>`;
 }
+const findProject = code => S.projects.find(x => x.code === code);
 function titleFor(){
-  if (S.project) { const p = DEMO_PROJECTS.find(x => x.code === S.project); return esc(p.name); }
+  if (S.project) { const p = findProject(S.project); return p ? esc(p.name) : 'المشروع'; }
   return {home:'الرئيسية', projects:'المشاريع', tasks:'المهام', more:'المزيد'}[S.tab];
 }
-const myProjects = () => DEMO_PROJECTS;
+
+/* ---------- المشاريع من جوجل (ومتخزنة على الموبايل للشغل من غير نت) ---------- */
+let loadingProjects = false;
+async function loadProjects(force){
+  if (loadingProjects || (!force && S.projectsAt && Date.now() - S.projectsAt < 60000)) return;
+  loadingProjects = true;
+  const r = await api('projects');
+  loadingProjects = false;
+  if (r.ok) {
+    S.projects = r.items; S.projectsAt = Date.now(); store.set('projects', r.items);
+    if (S.user && S.unlocked && !$('#sheet').classList.contains('on')) { const y = scrollY; render(); scrollTo(0, y); }
+  } else if (['session','disabled','locked'].includes(r.error)) signOut(errMsg(r));
+}
+async function loadTeam(){
+  if (!isBoss()) return [];
+  const r = await api('users');
+  if (r.ok) { S.team = r.items; store.set('team', r.items); }
+  return S.team || [];
+}
 
 function view(){
   if (S.project) return projectView();
@@ -518,11 +523,16 @@ function view(){
   return moreView();
 }
 
-function latestStrip(items){
-  return `<div class="strip">${items.map(c => `<button class="kc" data-soon="${esc(c.lbl)}">
-    <div class="lbl">${ic(c.i)}${esc(c.lbl)}</div>
-    <div class="val">${c.money != null ? money(c.money) : esc(c.val)}</div>
-    <div class="sub">${esc(c.sub)}</div></button>`).join('')}</div>`;
+const STATUS_PILL = {'جاري':'p-ok', 'متوقف':'p-warn', 'انتهى':'p-info'};
+const fmtDate = d => d ? new Date(d + (d.length === 10 ? 'T00:00:00' : '')).toLocaleDateString('ar-EG', {day:'numeric', month:'long', year:'numeric'}) : '';
+const ago = iso => { if (!iso) return ''; const m = Math.round((Date.now() - new Date(iso)) / 60000);
+  return m < 1 ? 'دلوقتي' : m < 60 ? `من ${m} دقيقة` : m < 1440 ? `من ${Math.round(m/60)} ساعة` : `من ${Math.round(m/1440)} يوم`; };
+
+function statCards(){
+  const n = s => S.projects.filter(p => p.status === s).length;
+  return `<div class="grid" style="grid-template-columns:repeat(3,1fr)">
+    ${[['جاري','p-ok'],['متوقف','p-warn'],['انتهى','p-info']].map(([s,c]) => `<button class="tile" data-flt="${s}" style="min-height:76px"><span class="pill ${c}">${s}</span><b style="font-size:22px">${n(s)}</b></button>`).join('')}
+  </div>`;
 }
 
 function homeView(){
@@ -530,74 +540,82 @@ function homeView(){
       <div class="row"><b style="flex:1">${ic('sparkle')} جديد في التطبيق · نسخة ${APP_VERSION}</b><button class="pill p-info" id="newsOk">تمام</button></div>
       <ul class="steps" style="color:var(--ink)">${APP_NOTES.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : '';
   if (isBoss()) {
+    const team = S.team || store.get('team', []);
+    const waiting = team.filter(u => u.status === 'invited');
+    const locked = team.filter(u => u.status === 'locked');
+    const recent = team.filter(u => u.last).sort((a, b) => b.last.localeCompare(a.last)).slice(0, 4);
+    const act = [
+      ...locked.map(u => `<button class="li" data-team="1"><span class="ico">${ic('shield')}</span><span class="t"><b>حساب ${esc(u.name)} اتقفل</b><small>محاولات رقم سري غلط. افتحه من الفريق</small></span><span class="pill p-bad">مقفول</span></button>`),
+      ...waiting.map(u => `<button class="li" data-team="1"><span class="ico">${ic('users')}</span><span class="t"><b>${esc(u.name)} لسه ما فعّلش حسابه</b><small>ابعتله لينك جديد لو اللي معاه ضاع</small></span><span class="pill p-warn">مستني</span></button>`)
+    ].join('');
     return news + `
-    <h2 class="sec">آخر العمليات</h2>
-    ${latestStrip([
-      {i:'cash', lbl:'آخر دفعة', money:15000, sub:'مقاول السيراميك · MEC-101 · امبارح'},
-      {i:'wallet', lbl:'آخر تحصيل', money:120000, sub:'أ. خالد · مستخلص 3 · من يومين'},
-      {i:'truck', lbl:'آخر شراء', money:8400, sub:'أسمنت ورمل · MEC-102 · النهارده'}
-    ])}
-    <h2 class="sec">${ic('alert')} محتاج تتصرف فيه</h2>
-    <button class="li" data-soon="الموافقات"><span class="ico">${ic('cash')}</span><span class="t"><b>2 مصروف مستنيين موافقتك</b><small>فوق الحد اللي حددته</small></span><span class="pill p-warn">مستني</span></button>
-    <button class="li" data-open="MEC-101"><span class="ico">${ic('clock')}</span><span class="t"><b>سيراميك الحمام 2 متأخر 4 أيام</b><small>شقة التجمع الخامس</small></span><span class="pill p-bad">متأخر</span></button>
     <h2 class="sec">المشاريع <button class="more" data-t2="projects">الكل</button></h2>
-    ${DEMO_PROJECTS.slice(0,2).map(projectCard).join('')}`;
+    ${S.projects.length ? statCards() : `<div class="card empty">${ic('folder')}<div>مفيش مشاريع لسه</div><button class="btn gold" id="newProj" style="margin-top:12px">${ic('plus')} مشروع جديد</button></div>`}
+    ${act ? `<h2 class="sec">${ic('alert')} محتاج تتصرف فيه</h2>${act}` : ''}
+    ${S.projects.length ? `<h2 class="sec">آخر المشاريع اللي اتعدلت</h2>${S.projects.slice(0, 3).map(projectCard).join('')}` : ''}
+    ${recent.length ? `<h2 class="sec">آخر دخول <button class="more" id="openLog">سجل النشاط</button></h2>
+      <div class="card" style="padding:4px 14px">${recent.map(u => `<div class="mi" style="font-weight:400"><span style="flex:1"><b style="font-weight:600">${esc(u.name)}</b> <small class="muted">· ${(ROLES[u.role]||{}).name || ''}</small></span><small class="muted">${ago(u.last)}</small></div>`).join('')}</div>` : ''}`;
   }
   return news + `
     <h2 class="sec">مشاريعي</h2>
-    ${myProjects().map(projectCard).join('')}
-    <h2 class="sec">مهامي النهارده</h2>
-    ${DEMO_TASKS.filter(t => t.state === 'mine').map(taskItem).join('')}
+    ${S.projects.length ? S.projects.filter(p => p.status !== 'انتهى').map(projectCard).join('') : emptyBox('folder','مفيش مشاريع متسجلة عليك لسه')}
     <h2 class="sec">ملاحظة سريعة</h2>
     <div class="card"><textarea class="in" data-ak="quicknote.${esc(S.user.id)}" placeholder="اكتب أي حاجة… بتتحفظ لوحدها حتى لو قفلت التطبيق"></textarea><div class="saved" data-saved="quicknote.${esc(S.user.id)}"></div></div>`;
 }
 
 const emptyBox = (i, t) => `<div class="empty">${ic(i)}<div>${esc(t)}</div></div>`;
 
-function projectCard(p){
-  const facts = [`<span class="pill p-info">مستخلص ${p.extract.no} · ${money(p.extract.value)} · ${esc(p.extract.status)}</span>`];
-  if (p.late) facts.push(`<span class="pill p-bad">${ic('clock')} ${esc(p.late.item)} متأخر ${p.late.days} أيام</span>`);
-  else if (p.next) facts.push(`<span class="pill p-ok">الجاي: ${esc(p.next.item)} · ${esc(p.next.date)}</span>`);
-  return `<button class="pc" data-open="${p.code}">
-    <div class="head"><b>${esc(p.name)}</b><span class="pill ${p.status==='late'?'p-bad':p.status==='warn'?'p-warn':'p-ok'}">${p.status==='late'?'متأخر':p.status==='warn'?'تنبيه':'ماشي'}</span></div>
-    <div class="meta">${esc(p.code)} · ${esc(p.client)} · ${esc(p.type)} · ${esc(p.eng)}</div>
-    <div class="bar"><i style="width:${p.progress}%"></i></div>
-    <div class="meta">الإنجاز ${p.progress}%</div>
-    <div class="facts">${facts.join('')}</div>
-  </button>`;
+function projectCard(p, asDiv){
+  const tag = asDiv ? 'div' : 'button';
+  const meta = [p.code, p.client, p.type, p.engName ? 'م. المسؤول: ' + p.engName : ''].filter(Boolean).map(esc).join(' · ');
+  return `<${tag} class="pc" ${asDiv ? '' : `data-open="${esc(p.code)}"`}>
+    <div class="head"><b>${esc(p.name)}</b><span class="pill ${STATUS_PILL[p.status] || 'p-info'}">${esc(p.status)}</span></div>
+    <div class="meta">${meta}</div>
+    <div class="facts" style="margin-top:10px">
+      <span class="pill" style="background:#F1F3F6;color:var(--muted)">الإنجاز: لسه</span>
+      <span class="pill" style="background:#F1F3F6;color:var(--muted)">المستخلص: لسه</span>
+      ${p.start ? `<span class="pill p-info">بدأ ${esc(fmtDate(p.start))}</span>` : ''}
+    </div>
+  </${tag}>`;
 }
 
 function projectsView(){
-  return `<div class="card" style="padding:10px 12px;margin-bottom:12px"><div class="row">${ic('search')}<input class="in" style="border:0;padding:4px" id="pSearch" placeholder="دوّر باسم المشروع أو الكود أو العميل"></div></div>
-  <div id="pList">${myProjects().map(projectCard).join('')}</div>`;
+  const f = S.pFilter;
+  const list = S.projects.filter(p => f === 'all' || p.status === f);
+  return `<div class="card" style="padding:10px 12px;margin-bottom:10px"><div class="row">${ic('search')}<input class="in" style="border:0;padding:4px" id="pSearch" placeholder="دوّر باسم المشروع أو الكود أو العميل"></div></div>
+  <div class="tabs">${[['all','الكل'],['جاري','جاري'],['متوقف','متوقف'],['انتهى','انتهى']].map(([k,n]) => `<button class="tab ${f===k?'on':''}" data-flt="${k}">${n}</button>`).join('')}</div>
+  ${canManage() ? `<button class="btn gold" id="newProj" style="margin-bottom:12px">${ic('plus')} مشروع جديد</button>` : ''}
+  <div id="pList">${list.map(p => projectCard(p)).join('') || emptyBox('folder', S.projects.length ? 'مفيش مشاريع بالحالة دي' : (canManage() ? 'مفيش مشاريع لسه. اعمل أول مشروع' : 'مفيش مشاريع متسجلة عليك لسه'))}</div>`;
 }
 
 function projectView(){
-  const p = DEMO_PROJECTS.find(x => x.code === S.project);
+  const p = findProject(S.project);
+  if (!p) return `<button class="row muted" id="back" style="margin-bottom:10px">${ic('arrowR')} المشاريع</button>${emptyBox('folder','المشروع ده مش موجود أو اتشال من عليك')}`;
+  const info = [
+    p.client && ['العميل', esc(p.client)],
+    p.clientPhone && ['تليفون العميل', `<a href="tel:${esc(p.clientPhone)}" dir="ltr" style="color:var(--navy2)">${esc(p.clientPhone)}</a>`],
+    p.address && ['العنوان', esc(p.address)],
+    ['المهندس المسؤول', esc(p.engName || 'لسه')],
+    ['المشرف', esc(p.supName || 'لسه')],
+    p.start && ['تاريخ البداية', esc(fmtDate(p.start))],
+    p.notes && ['ملاحظات', esc(p.notes)]
+  ].filter(Boolean);
   return `
   <button class="row muted" id="back" style="margin-bottom:10px">${ic('arrowR')} المشاريع</button>
-  ${projectCard(p).replace('<button class="pc" data-open', '<div class="pc" data-x').replace(/<\/button>$/, '</div>')}
-  <h2 class="sec">آخر حاجة في المشروع</h2>
-  ${latestStrip([
-    {i:'doc', lbl:'آخر مستخلص', money:p.extract.value, sub:`جاري ${p.extract.no} · ${p.extract.status}`},
-    {i:'cash', lbl:'آخر مصروف', money:2350, sub:'نقل مخلفات · امبارح'},
-    {i:'camera', lbl:'آخر يومية', val:'النهارده', sub:'6 عمال · 4 صور · معوق واحد'}
-  ])}
+  ${projectCard(p, true)}
+  <div class="card" style="margin-top:10px;padding:4px 14px">
+    ${info.map(([k, v]) => `<div class="mi" style="font-weight:400"><small class="muted" style="width:110px;flex:none">${k}</small><span style="flex:1;min-width:0">${v}</span></div>`).join('')}
+  </div>
+  ${canManage() ? `<button class="btn ghost" id="editProj" style="margin-top:10px">تعديل بيانات المشروع</button>` : ''}
   <h2 class="sec">أقسام المشروع</h2>
   <div class="grid">${SECTIONS.map(s => `<button class="tile ${s.live?'live':''}" data-sec="${s.k}" data-n="${esc(s.n)}">${s.live?'':'<span class="soon">قريبًا</span>'}<span class="ico">${ic(s.i)}</span>${esc(s.n)}</button>`).join('')}</div>
-  <h2 class="sec">ملاحظات المشروع</h2>
-  <div class="card"><textarea class="in" data-ak="pnote.${p.code}" placeholder="ملاحظات سريعة على المشروع… بتتحفظ لوحدها"></textarea><div class="saved" data-saved="pnote.${p.code}"></div></div>`;
+  <h2 class="sec">ملاحظات سريعة</h2>
+  <div class="card"><textarea class="in" data-ak="pnote.${esc(p.code)}" placeholder="ملاحظاتك على المشروع… بتتحفظ على موبايلك"></textarea><div class="saved" data-saved="pnote.${esc(p.code)}"></div></div>`;
 }
 
-function taskItem(t){
-  const pill = t.state === 'late' ? '<span class="pill p-bad">متأخرة</span>' : t.state === 'done' ? '<span class="pill p-ok">اتقفلت</span>' : `<span class="pill p-info">${esc(t.due)}</span>`;
-  return `<button class="li" data-soon="المهام"><span class="ico">${ic('check')}</span><span class="t"><b>${esc(t.t)}</b><small>${esc(t.p)} · من ${esc(t.by)}</small></span>${pill}</button>`;
-}
 function tasksView(){
-  const tabs = [['mine','مهامي'],['given','اللي أسندتها'],['late','المتأخرة'],['done','المكتملة']];
-  const list = DEMO_TASKS.filter(t => S.taskTab === 'given' ? isBoss() && t.state !== 'done' : t.state === S.taskTab);
-  return `<div class="tabs">${tabs.map(([k,n]) => `<button class="tab ${S.taskTab===k?'on':''}" data-tt="${k}">${n}</button>`).join('')}</div>
-    ${list.map(taskItem).join('') || emptyBox('check','مفيش مهام هنا')}`;
+  return `<div class="card empty">${ic('check')}<div style="margin-top:6px">المهام جاية في المرحلة 7</div>
+    <small class="muted">هتطلع لوحدها من مراحل الشغل، وتتقفل بصورة</small></div>`;
 }
 
 function moreView(){
@@ -617,6 +635,55 @@ function moreView(){
   <p class="muted" style="text-align:center;font-size:12.5px;margin-top:16px">MEC-APP · نسخة ${APP_VERSION}</p>`;
 }
 
+/* ---------- مشروع جديد / تعديل ---------- */
+async function projectForm(code){
+  const p = code ? findProject(code) : null;
+  const k = 'pf.' + (code || 'new') + '.';
+  const opt = (v, cur) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(v)}</option>`;
+  openSheet(`<h3>${p ? 'تعديل ' + esc(p.name) : 'مشروع جديد'}</h3>
+    ${p ? `<p class="muted" style="margin:-6px 0 6px">${esc(p.code)}</p>` : '<p class="muted" style="margin:-6px 0 6px;font-size:12.5px">الكود بيطلع لوحده</p>'}
+    <label class="f">اسم المشروع *</label><input class="in" id="fName" data-ak="${k}name" placeholder="مثلا: شقة التجمع الخامس - عمارة 12">
+    <label class="f">النوع *</label><select class="in" id="fType" data-ak="${k}type">${['تشطيب عميل','مقاولة'].map(v => opt(v, p ? p.type : 'تشطيب عميل')).join('')}</select>
+    <label class="f">العميل</label><input class="in" id="fClient" data-ak="${k}client">
+    <label class="f">تليفون العميل</label><input class="in" id="fCPhone" type="tel" dir="ltr" data-ak="${k}cphone" placeholder="01xxxxxxxxx">
+    <label class="f">العنوان</label><input class="in" id="fAddr" data-ak="${k}addr">
+    <label class="f">المهندس المسؤول</label><select class="in" id="fEng" data-ak="${k}eng"><option value="">بيحمّل الفريق…</option></select>
+    <label class="f">المشرف</label><select class="in" id="fSup" data-ak="${k}sup"><option value="">بيحمّل الفريق…</option></select>
+    <label class="f">تاريخ البداية</label><input class="in" id="fStart" type="date" data-ak="${k}start">
+    <label class="f">الحالة</label><select class="in" id="fStatus" data-ak="${k}status">${['جاري','متوقف','انتهى'].map(v => opt(v, p ? p.status : 'جاري')).join('')}</select>
+    <label class="f">ملاحظات</label><textarea class="in" id="fNotes" data-ak="${k}notes"></textarea>
+    <div class="err" id="fErr"></div>
+    <button class="btn gold" id="fSave">${p ? 'حفظ التعديل' : 'عمل المشروع'}</button>`);
+  /* لو مفيش مسودة متحفظة، املى من بيانات المشروع */
+  if (p) [['fName','name'],['fClient','client'],['fCPhone','clientPhone'],['fAddr','address'],['fStart','start'],['fNotes','notes']].forEach(([id, f]) => {
+    const key = k + {fName:'name',fClient:'client',fCPhone:'cphone',fAddr:'addr',fStart:'start',fNotes:'notes'}[id];
+    if (store.get('ak.' + key, null) === null) $('#' + id).value = p[f] || '';
+  });
+  const team = await loadTeam();
+  if (!$('#fEng')) return;
+  const people = (roles, cur) => `<option value="">من غير</option>` + team.filter(u => roles.includes(u.role) && u.status !== 'disabled')
+    .map(u => `<option value="${esc(u.id)}" ${u.id === cur ? 'selected' : ''}>${esc(u.name)} · ${(ROLES[u.role]||{}).name}</option>`).join('');
+  const draftEng = store.get('ak.' + k + 'eng', null), draftSup = store.get('ak.' + k + 'sup', null);
+  $('#fEng').innerHTML = people(['engineer','manager','owner'], draftEng !== null ? draftEng : (p ? p.engId : ''));
+  $('#fSup').innerHTML = people(['supervisor','engineer'], draftSup !== null ? draftSup : (p ? p.supId : ''));
+  $('#fSave').onclick = async () => {
+    const data = {code: p ? p.code : '', name: $('#fName').value, type: $('#fType').value, client: $('#fClient').value,
+      clientPhone: digits($('#fCPhone').value), address: $('#fAddr').value, engId: $('#fEng').value, supId: $('#fSup').value,
+      start: $('#fStart').value, status: $('#fStatus').value, notes: $('#fNotes').value};
+    if (!data.name.trim()) { $('#fErr').textContent = 'اكتب اسم المشروع'; return; }
+    busy($('#fSave'), true);
+    const r = await api('saveProject', {project: data});
+    busy($('#fSave'), false);
+    if (!r.ok) { $('#fErr').textContent = errMsg(r); return; }
+    ['name','type','client','cphone','addr','eng','sup','start','status','notes'].forEach(f => store.del('ak.' + k + f));
+    const i = S.projects.findIndex(x => x.code === r.project.code);
+    if (i >= 0) S.projects.splice(i, 1);
+    S.projects.unshift(r.project); store.set('projects', S.projects);
+    closeSheet(); S.project = r.project.code; render(); scrollTo(0, 0);
+    toast(p ? 'اتحفظ التعديل ✓' : `اتعمل المشروع ${r.project.code} ✓`);
+  };
+}
+
 /* ================= الشيتات اللي بتطلع من تحت ================= */
 function openSheet(html){
   $('#sheetBody').innerHTML = `<button class="sheetX" id="sheetX" aria-label="قفل"><svg class="i"><path d="M6 6l12 12M18 6 6 18"/></svg></button>` + html;
@@ -627,9 +694,9 @@ function closeSheet(){ $('#sheet').classList.remove('on'); $('#scrim').classList
 $('#scrim').onclick = closeSheet;
 
 function fabSheet(){
-  const acts = [['ruler','أوضة في الحصر','takeoff'],['cash','مصروف','exp'],['camera','يومية','daily'],['check','مهمة','task'],['wallet','تحصيل','pay'],['box','استلام خامة','mat']];
+  const acts = [...(canManage() ? [['folder','مشروع جديد','proj']] : []), ['ruler','أوضة في الحصر','takeoff'],['cash','مصروف','exp'],['camera','يومية','daily'],['check','مهمة','task'],['wallet','تحصيل','pay'],['box','استلام خامة','mat']];
   openSheet(`<h3>تضيف إيه؟</h3><div class="qa">${acts.map(([i,n,k]) => `<button data-qa="${k}" data-n="${n}">${ic(i)}${n}</button>`).join('')}</div>`);
-  document.querySelectorAll('[data-qa]').forEach(b => b.onclick = () => { closeSheet(); if (b.dataset.qa === 'takeoff') openTakeoff(); else soon(b.dataset.n); });
+  document.querySelectorAll('[data-qa]').forEach(b => b.onclick = () => { closeSheet(); if (b.dataset.qa === 'takeoff') openTakeoff(); else if (b.dataset.qa === 'proj') setTimeout(() => projectForm(''), 260); else soon(b.dataset.n); });
 }
 
 /* ---------- الفريق والصلاحيات ---------- */
@@ -745,32 +812,38 @@ function wireShell(){
   document.querySelectorAll('nav.bn [data-t]').forEach(b => b.onclick = () => { S.tab = b.dataset.t; S.project = null; render(); scrollTo(0,0); });
   $('#fab').onclick = fabSheet;
   $('#searchBtn').onclick = () => { S.tab = 'projects'; S.project = null; render(); setTimeout(() => { const s = $('#pSearch'); if (s) s.focus(); }, 50); };
-  $('#bellBtn').onclick = () => openSheet(`<h3>الإشعارات</h3><p class="muted">الإشعارات الحقيقية هتشتغل مع المصروفات والمهام. دي أمثلة.</p>${isBoss()
-      ? `<div class="li">${ic('cash')}<span class="t"><b>2 مصروف مستنيين موافقتك</b><small>تجربة</small></span></div><div class="li">${ic('clock')}<span class="t"><b>بند متأخر في MEC-101</b><small>تجربة</small></span></div>`
-      : `<div class="li">${ic('check')}<span class="t"><b>مهمة جديدة: استلام محارة أوضة نوم 1</b><small>تجربة</small></span></div>`}`);
+  $('#bellBtn').onclick = () => openSheet(`<h3>الإشعارات</h3>${emptyBox('bell','الإشعارات هتشتغل مع المصروفات والمهام')}`);
   const eye = $('#eyeBtn');
   if (eye) eye.onclick = () => { S.masked = !S.masked; store.set('masked', S.masked); render(); };
-  v.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { S.project = b.dataset.open; logAct('فتح مشروع', S.project); render(); scrollTo(0,0); });
+  const openP = b => b.onclick = () => { S.project = b.dataset.open; logAct('فتح مشروع', S.project); render(); scrollTo(0,0); };
+  v.querySelectorAll('[data-open]').forEach(openP);
   v.querySelectorAll('[data-t2]').forEach(b => b.onclick = () => { S.tab = b.dataset.t2; render(); });
   v.querySelectorAll('[data-soon]').forEach(b => b.onclick = () => soon(b.dataset.soon));
   v.querySelectorAll('[data-sec]').forEach(b => b.onclick = () => { if (b.dataset.sec === 'takeoff') openTakeoff(); else soon(b.dataset.n); });
-  v.querySelectorAll('[data-tt]').forEach(b => b.onclick = () => { S.taskTab = b.dataset.tt; render(); });
+  v.querySelectorAll('[data-flt]').forEach(b => b.onclick = () => { S.pFilter = b.dataset.flt; S.tab = 'projects'; render(); });
+  v.querySelectorAll('[data-team]').forEach(b => b.onclick = teamSheet);
   const back = $('#back'); if (back) back.onclick = () => { S.project = null; S.tab = 'projects'; render(); };
   const ok = $('#newsOk'); if (ok) ok.onclick = () => { store.set('seenVersion', APP_VERSION); render(); };
   const ps = $('#pSearch');
   if (ps) ps.oninput = () => {
     const q = ps.value.trim();
-    const list = myProjects().filter(p => !q || (p.name + p.code + p.client).includes(q));
-    $('#pList').innerHTML = list.map(projectCard).join('') || emptyBox('search','مفيش نتايج');
-    $('#pList').querySelectorAll('[data-open]').forEach(b => b.onclick = () => { S.project = b.dataset.open; render(); });
+    const list = S.projects.filter(p => (S.pFilter === 'all' || p.status === S.pFilter) && (!q || (p.name + p.code + p.client).includes(q)));
+    $('#pList').innerHTML = list.map(p => projectCard(p)).join('') || emptyBox('search','مفيش نتايج');
+    $('#pList').querySelectorAll('[data-open]').forEach(openP);
   };
   const id = x => document.getElementById(x);
+  if (id('newProj')) id('newProj').onclick = () => projectForm('');
+  if (id('editProj')) id('editProj').onclick = () => projectForm(S.project);
+  if (id('openLog')) id('openLog').onclick = logSheet;
   if (id('team')) id('team').onclick = teamSheet;
   if (id('settings')) id('settings').onclick = settingsSheet;
   if (id('actLog')) id('actLog').onclick = logSheet;
   if (id('report')) id('report').onclick = reportSheet;
   if (id('install')) id('install').onclick = () => { if (isStandalone()) toast('التطبيق متثبت عندك بالفعل ✓'); else { store.set('skipInstall', false); render(); } };
   if (id('logout')) id('logout').onclick = () => { api('logout'); signOut(); };
+  /* تحديث من جوجل في الخلفية */
+  loadProjects();
+  if (isBoss() && S.tab === 'home' && !S.project && !S.teamLoaded) { S.teamLoaded = true; loadTeam().then(() => { if (S.tab === 'home' && !S.project && !$('#sheet').classList.contains('on')) render(); }); }
 }
 
 /* ================= البداية ================= */
@@ -779,7 +852,7 @@ function wireShell(){
   if (code) {
     S.invite = code; store.set('pendingInvite', code);
     /* لو موبايل عليه حساب تاني، الدعوة الجديدة بتطلعه منه */
-    if (S.session) { S.session = ''; S.user = null; ['session','user','pinHash','lockFails'].forEach(store.del); }
+    if (S.session) { S.session = ''; S.user = null; ['session','user','pinHash','lockFails','projects','team'].forEach(store.del); S.projects = []; }
     history.replaceState(null, '', location.pathname);
   }
 })();
