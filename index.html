@@ -195,14 +195,15 @@ textarea.in{min-height:88px;resize:vertical}
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.6';
-const APP_NOTES = ['بيانات العقد في المشروع: قيمة العقد، والمقدم، والمحتجز، وطريقة الحساب (Cost Plus أو نسبة)، وتاريخ النهاية، واسم مختصر', 'كارت المشروع بيوري الوقت: فات كام يوم من المدة، وبيحمرّ لو متأخر', 'بنود الشركة بكود موحد في المزيد (لمقايسات التشطيب بتاعتنا)', 'الجرس شغال، و«الإبلاغ عن مشكلة» بقى يتبعت جوه التطبيق ومعاه صورة', 'للمالك: النسخ الاحتياطي كل يوم على Drive وكل جمعة على الإيميل التاني، وزرار «نسخة دلوقتي»'];
+const APP_VERSION = '0.7';
+const APP_NOTES = ['قوايم العمال (L-001) والمقاولين (C-001) والموردين (S-001) في المزيد', 'بيانات الدفع في كل كارت: لينك إنستاباي، والرقم ونوعه، والحساب البنكي، وكل تعديل بيتسجل ومعاه القديم', 'كارت العامل فيه اليومية وسعر الساعة الزيادة ورصيد قبل التطبيق، ولو اليومية اتغيرت الأيام القديمة بتفضل بسعرها', 'اللي يضيفه المهندس أو المشرف بيفضل «مستني تأكيد» والشغل ماشي، والتطبيق بينبّه لو فيه اسم قريب', 'صلاحية جديدة: محاسب'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
 
 const ROLES = {
   owner:      {name:'المالك'},
   manager:    {name:'المدير'},
+  accountant: {name:'محاسب'},
   engineer:   {name:'مهندس'},
   supervisor: {name:'مشرف'},
   contractor: {name:'مقاول'}
@@ -213,7 +214,7 @@ const ERR = {
   badInvite:'لينك الدعوة ده مش شغال أو اتستخدم قبل كده. اطلب لينك جديد', pinFormat:'الرقم السري لازم يكون من 4 لـ 8 أرقام',
   token:'الكلمة السرية غلط', ownerExists:'حساب المالك موجود بالفعل', missing:'كمّل الخانات الناقصة',
   phoneExists:'الرقم ده متسجل لحد تاني', role:'الصلاحية دي مش مسموحة', wrongPhone:'ده مش رقم موبايل المالك', denied:'مش من صلاحيتك', session:'سجّل دخول تاني',
-  net:'مفيش اتصال بجوجل دلوقتي. جرّب تاني', server:'حصلت مشكلة عند جوجل. جرّب تاني', self:'مينفعش تعمل كده على حسابك', badUser:'الشخص ده مش في الفريق أو صلاحيته مش مناسبة', bigPhoto:'الصورة كبيرة قوي، جرّب صورة تانية', itemExists:'البند ده موجود قبل كده بنفس الاسم', badDates:'تاريخ النهاية لازم يبقى بعد البداية', badPercent:'النسبة لازم تبقى من 0 لـ 100', badNumber:'الرقم مش مظبوط', badAdvance:'الدفعة المقدمة أكبر من قيمة العقد', backup:'النسخة ما اتعملتش. جرّب تاني', notfound:'مش لاقي ده. اعمل تحديث'
+  net:'مفيش اتصال بجوجل دلوقتي. جرّب تاني', server:'حصلت مشكلة عند جوجل. جرّب تاني', self:'مينفعش تعمل كده على حسابك', badUser:'الشخص ده مش في الفريق أو صلاحيته مش مناسبة', bigPhoto:'الصورة كبيرة قوي، جرّب صورة تانية', itemExists:'البند ده موجود قبل كده بنفس الاسم', badDates:'تاريخ النهاية لازم يبقى بعد البداية', badPercent:'النسبة لازم تبقى من 0 لـ 100', badNumber:'الرقم مش مظبوط', badAdvance:'الدفعة المقدمة أكبر من قيمة العقد', badIpn:'لينك إنستاباي لازم يبدأ بـ https://ipn.eg/S/ (انسخه زي ما هو من تطبيق إنستاباي)', payType:'اختار نوع الرقم: إنستاباي ولا محفظة', badPhone:'رقم الموبايل مش مظبوط', backup:'النسخة ما اتعملتش. جرّب تاني', notfound:'مش لاقي ده. اعمل تحديث'
 };
 const SECTIONS = [
   {k:'takeoff', n:'الحصر', i:'ruler', live:true},
@@ -227,7 +228,7 @@ const SECTIONS = [
   {k:'acc', n:'حسابات المشروع', i:'chart'}
 ];
 const MORE = [
-  {n:'المقاولين والصنايعية', i:'users'}, {n:'الموردين', i:'truck'}, {n:'العملاء وفرصهم', i:'users'},
+  {n:'العملاء وفرصهم', i:'users'},
   {n:'الخزن والعهد', i:'wallet'}, {n:'التقارير', i:'chart'}, {n:'أدوات المهندس', i:'tool'}, {n:'دليل الشركة', i:'book'}
 ];
 
@@ -486,7 +487,7 @@ function shell(){
   <header class="top">
     <div class="avatar">${esc(u.name.trim().charAt(0))}</div>
     <div class="ttl"><b>${titleFor()}</b><small>${esc(dn(u))}</small></div>
-    ${isBoss() ? `<button class="ibtn" id="eyeBtn" aria-label="إخفاء الأرقام">${ic(S.masked ? 'eyeoff' : 'eye')}</button>` : ''}
+    ${canMoney() ? `<button class="ibtn" id="eyeBtn" aria-label="إخفاء الأرقام">${ic(S.masked ? 'eyeoff' : 'eye')}</button>` : ''}
     <button class="ibtn" id="searchBtn" aria-label="بحث">${ic('search')}</button>
     <button class="ibtn" id="bellBtn" aria-label="الإشعارات">${ic('bell')}${unreadCount() ? `<span class="bdg">${unreadCount() > 9 ? '9+' : unreadCount()}</span>` : ''}</button>
   </header>
@@ -652,6 +653,7 @@ function tasksView(){
 function moreView(){
   return `<div class="card" style="padding:4px 14px">
     ${isBoss() ? `<button class="mi" id="team">${ic('shield')}الفريق والصلاحيات</button>` : ''}
+    ${S.user.role !== 'contractor' ? `<button class="mi" data-ppl="L">${ic('users')}العمال</button><button class="mi" data-ppl="C">${ic('tool')}المقاولين</button><button class="mi" data-ppl="S">${ic('truck')}الموردين</button>` : ''}
     <button class="mi" id="items">${ic('doc')}بنود الشركة</button>
     ${MORE.map(m => `<button class="mi" data-soon="${esc(m.n)}">${ic(m.i)}${esc(m.n)}<span class="soon">قريبًا</span></button>`).join('')}
   </div>
@@ -812,7 +814,7 @@ function addUserSheet(){
 const titleSelect = (id, cur, ak) => `<select class="in" id="${id}"${ak ? ` data-ak="${ak}"` : ''}>${[['م.','م. (مهندس)'],['أ.','أ.'],['','من غير لقب']].map(([v, n]) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${n}</option>`).join('')}</select>`;
 const roleSelect = (id, cur, ak) => `<select class="in" id="${id}"${ak ? ` data-ak="${ak}"` : ''}>${[
   ['engineer','مهندس: مشاريعه، ويقدر يعمل شغل المشرف'], ['supervisor','مشرف: الحضور والخامات والحصر ومهامه في مشروعه'],
-  ['manager','مدير: نفس صلاحيات المالك'], ['contractor','مقاول: مهامه وصور شغله وحسابه']
+  ['manager','مدير: نفس صلاحيات المالك'], ['accountant','محاسب: الفلوس والعهد وبيانات الدفع والمستخلصات'], ['contractor','مقاول: مهامه وصور شغله وحسابه']
 ].map(([v, n]) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${n}</option>`).join('')}</select>`;
 function editUserSheet(u){
   if (!u) return;
@@ -953,6 +955,129 @@ async function backupSheet(){
   };
 }
 
+/* ---------- العمال والمقاولين والموردين ---------- */
+const PPL = {L:{n:'العمال', one:'عامل'}, C:{n:'المقاولين', one:'مقاول'}, S:{n:'الموردين', one:'مورد'}};
+const role = () => S.user ? S.user.role : '';
+const canPay = () => ['owner','manager','accountant','engineer'].includes(role());
+const canMoney = () => ['owner','manager','accountant'].includes(role());
+const canAddP = t => ['owner','manager','accountant','engineer'].includes(role()) || (t === 'L' && role() === 'supervisor');
+const canEditP = () => ['owner','manager','accountant','engineer'].includes(role());
+S.people = {};
+async function loadPeople(t, force){
+  if (S.people[t] && !force) return S.people[t];
+  const r = await api('people', {type: t});
+  if (r.ok) S.people[t] = r.items;
+  return r.ok ? r.items : (S.people[t] || null);
+}
+async function peopleSheet(t, filter){
+  const P = PPL[t];
+  openSheet(`<h3>${P.n}</h3>
+    <input class="in" id="ppQ" placeholder="دوّر بالاسم أو الكود أو التليفون">
+    <div class="tabs" style="margin-top:8px">${[['all','الكل'],['wait','مستني تأكيد']].map(([k, n]) => `<button class="tab ${(filter || 'all') === k ? 'on' : ''}" data-pf="${k}">${n}</button>`).join('')}</div>
+    ${canAddP(t) ? `<button class="btn pri" id="ppAdd">${ic('plus')} ${P.one} جديد</button>` : ''}
+    <div id="ppList" class="muted" style="margin-top:8px">بيحمّل…</div>`);
+  const list = await loadPeople(t, true);
+  if (!$('#ppList')) return;
+  if (!list) { $('#ppList').innerHTML = esc(ERR.net); return; }
+  let f = filter || 'all';
+  const draw = () => { const q = normAr($('#ppQ').value), qd = digits($('#ppQ').value);
+    const l = list.filter(p => (f === 'all' || p.status === 'مستني تأكيد') && (!q || normAr(p.name + ' ' + p.code + ' ' + (p.trade || '') + ' ' + (p.goods || '')).includes(q) || (qd && p.phones.includes(qd))));
+    $('#ppList').innerHTML = l.map(p => `<button class="li" data-pp="${esc(p.code)}"><span class="pill p-info" dir="ltr" style="min-width:56px;justify-content:center">${esc(p.code)}</span>
+      <span class="t"><b>${esc(p.name)}</b><small>${esc([p.trade, p.goods, p.kind === 'شركة' ? 'شركة' : '', p.phones].filter(Boolean).join(' · ') || 'من غير بيانات')}</small></span>
+      ${p.status === 'مستني تأكيد' ? '<span class="pill p-warn">مستني تأكيد</span>' : p.status === 'متوقف' ? '<span class="pill p-bad">متوقف</span>' : ''}</button>`).join('')
+      || emptyBox('users', list.length ? 'مفيش نتايج' : `مفيش ${P.n} لسه`);
+    document.querySelectorAll('[data-pp]').forEach(b => b.onclick = () => personView(t, list.find(x => x.code === b.dataset.pp))); };
+  $('#ppQ').oninput = draw; draw();
+  document.querySelectorAll('[data-pf]').forEach(b => b.onclick = () => { f = b.dataset.pf; document.querySelectorAll('[data-pf]').forEach(x => x.classList.toggle('on', x === b)); draw(); });
+  if ($('#ppAdd')) $('#ppAdd').onclick = () => personForm(t, null);
+}
+function personView(t, p){
+  if (!p) return;
+  const rows = [
+    ['الكود', `<span dir="ltr">${esc(p.code)}</span>`],
+    p.kind && ['النوع', esc(p.kind)], p.trade && ['الصنعة', esc(p.trade)], p.goods && ['الخامات', esc(p.goods)],
+    p.phones && ['التليفون', p.phones.split('، ').map(x => `<a href="tel:${esc(x)}" dir="ltr" style="color:var(--navy2)">${esc(x)}</a>`).join('<br>')],
+    p.project && ['المشروع', esc(p.project)],
+    p.wage !== undefined && p.wage !== '' && ['اليومية', money(p.wage)], p.hour !== undefined && p.hour !== '' && ['سعر الساعة', money(p.hour)],
+    p.opening !== undefined && p.opening !== '' && ['رصيد قبل التطبيق', money(p.opening)],
+    canPay() && ['الدفع', [p.ipn ? `<a href="${esc(p.ipn)}" target="_blank" rel="noopener" style="color:var(--navy2)">لينك إنستاباي</a>` : '', p.payNo ? `${esc(p.payType)}: <span dir="ltr">${esc(p.payNo)}</span>` : '', p.iban ? `${esc(p.bank)} <span dir="ltr">${esc(p.iban)}</span>` : ''].filter(Boolean).join('<br>') || '<span class="muted">لسه</span>'],
+    p.files && ['المرفقات', p.files.split('\n').map(l => { const [n, u] = l.split(' | '); return u ? `<a href="${esc(u)}" target="_blank" rel="noopener" style="color:var(--navy2)">${esc(n)}</a>` : ''; }).join('<br>')],
+    p.notes && ['ملاحظات', esc(p.notes)], p.by && ['ضافه', esc(p.by)]
+  ].filter(Boolean);
+  openSheet(`<h3>${esc(p.name)}</h3>
+    ${p.status === 'مستني تأكيد' ? `<div class="card" style="background:var(--warn-bg);color:var(--warn);font-size:13.5px">مستني تأكيد من المالك أو المدير. الشغل معاه ماشي عادي.</div>` : ''}
+    <div class="card money ${S.masked ? 'masked' : ''}" style="padding:4px 14px">${rows.map(([k, v]) => `<div class="mi" style="font-weight:400"><small class="muted" style="width:105px;flex:none">${k}</small><span style="flex:1;min-width:0">${v}</span></div>`).join('')}</div>
+    <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:10px">
+      ${canEditP() ? `<button class="btn ghost" style="flex:1" id="pvEdit">تعديل</button>` : ''}
+      ${isBoss() && p.status === 'مستني تأكيد' ? `<button class="btn gold" style="flex:1" id="pvOk">اعتماد</button>` : ''}
+      ${isBoss() ? `<button class="btn ghost" style="flex:1" id="pvMerge">دمج مع…</button>` : ''}
+      ${t === 'L' && canMoney() ? `<button class="btn ghost" style="flex:1" id="pvWage">تاريخ اليومية</button>` : ''}
+      ${t === 'C' && canPay() ? `<label class="btn ghost" style="flex:1;text-align:center">${ic('camera')} مرفق<input type="file" id="pvFile" accept="image/*" hidden></label>` : ''}
+    </div><div id="pvMore"></div>`);
+  if ($('#pvEdit')) $('#pvEdit').onclick = () => personForm(t, p);
+  if ($('#pvOk')) $('#pvOk').onclick = async () => { const r = await api('approvePerson', {type: t, code: p.code}); if (r.ok) { toast('اتعتمد ✓'); peopleSheet(t); } else toast(errMsg(r)); };
+  if ($('#pvWage')) $('#pvWage').onclick = async () => { const r = await api('wageHistory', {type: t, code: p.code});
+    $('#pvMore').innerHTML = r.ok ? `<h4 style="margin:14px 0 6px">تاريخ اليومية</h4><div class="card money ${S.masked ? 'masked' : ''}" style="padding:2px 14px">${r.items.map(w => `<div class="mi" style="font-weight:400"><span style="flex:1">من ${esc(fmtDate(w.from))}</span>${w.wage !== '' ? money(w.wage) : ''}${w.hour !== '' ? ` <small class="muted">· الساعة ${esc(w.hour)}</small>` : ''}</div>`).join('') || '<div class="mi muted">لسه</div>'}</div>` : esc(errMsg(r)); };
+  if ($('#pvMerge')) $('#pvMerge').onclick = () => {
+    const others = (S.people[t] || []).filter(x => x.code !== p.code);
+    $('#pvMore').innerHTML = `<h4 style="margin:14px 0 4px">دمج ${esc(p.name)} في:</h4><p class="muted" style="font-size:12.5px;margin:0 0 6px">${esc(p.code)} هيختفي من القايمة، والناقص في التاني يتكمّل من بياناته.</p>
+      <select class="in" id="mgTo">${others.map(x => `<option value="${esc(x.code)}">${esc(x.code)} · ${esc(x.name)}</option>`).join('')}</select><button class="btn gold" id="mgGo" style="margin-top:8px">دمج</button>`;
+    $('#mgGo').onclick = async () => { if (!confirmBox(`تدمج ${p.name} في ${$('#mgTo').selectedOptions[0].textContent}؟`)) return;
+      const r = await api('mergePerson', {type: t, from: p.code, into: $('#mgTo').value}); if (r.ok) { toast('اتدمج ✓'); peopleSheet(t); } else toast(errMsg(r)); };
+  };
+  if ($('#pvFile')) $('#pvFile').onchange = async e => { const f = e.target.files[0]; if (!f) return;
+    const label = window.prompt('اسم المرفق (مثلا: صورة العقد، صورة البطاقة)', 'صورة العقد'); if (label === null) return;
+    toast('بيرفع…'); const r = await api('personFile', {type: t, code: p.code, label, photo: await shrinkImage(f, 1600)});
+    if (r.ok) { toast('اترفع ✓'); p.files = r.files; personView(t, p); } else toast(errMsg(r)); };
+}
+function personForm(t, p, force){
+  const P = PPL[t], v = k => esc(p && p[k] != null ? p[k] : '');
+  const opt = (val, cur) => `<option ${val === cur ? 'selected' : ''}>${esc(val)}</option>`;
+  openSheet(`<h3>${p ? 'تعديل ' + esc(p.name) : P.one + ' جديد'}</h3>
+    ${p ? `<p class="muted" style="margin:-6px 0 6px" dir="ltr">${esc(p.code)}</p>` : `<p class="muted" style="margin:-6px 0 6px;font-size:12.5px">الكود بيطلع لوحده${isBoss() ? '' : '، وهيفضل «مستني تأكيد» لحد ما المالك أو المدير يعتمد'}</p>`}
+    <label class="f">الاسم *</label><input class="in" id="xName" value="${v('name')}">
+    ${t === 'C' ? `<label class="f">فرد ولا شركة</label><select class="in" id="xKind">${opt('فرد', p ? p.kind : 'فرد')}${opt('شركة', p ? p.kind : '')}</select>` : ''}
+    ${t !== 'S' ? `<label class="f">الصنعة</label><input class="in" id="xTrade" value="${v('trade')}" placeholder="${t === 'L' ? 'مبيض، نجار، مساعد…' : 'محارة، ألوميتال، كهرباء…'}">` : `<label class="f">نوع الخامات</label><input class="in" id="xGoods" value="${v('goods')}" placeholder="سيراميك، دهانات، أسمنت…">`}
+    <label class="f">${t === 'L' ? 'التليفون' : 'التليفونات (افصل بينهم بفاصلة)'}</label><input class="in" id="xPhones" type="tel" dir="ltr" value="${v('phones')}" placeholder="01xxxxxxxxx">
+    ${t === 'L' ? `<label class="f">المشروع اللي شغال فيه</label><select class="in" id="xProj"><option value="">من غير</option>${S.projects.map(x => `<option value="${esc(x.short || x.name)}" ${p && p.project === (x.short || x.name) ? 'selected' : ''}>${esc(x.short || x.name)}</option>`).join('')}</select>` : ''}
+    ${t === 'L' && canMoney() ? `<h4 style="margin:16px 0 0;font-size:14px">اليومية <small class="muted" style="font-weight:400">· المالك والمدير والمحاسب بس</small></h4>
+      <div class="row" style="gap:8px"><div style="flex:1"><label class="f">اليومية (ج)</label><input class="in" id="xWage" inputmode="decimal" dir="ltr" value="${v('wage')}"></div>
+      <div style="flex:1"><label class="f">سعر الساعة الزيادة</label><input class="in" id="xHour" inputmode="decimal" dir="ltr" value="${v('hour')}"></div></div>
+      ${p ? `<label class="f">لو غيرت اليومية: تبدأ من</label><input class="in" id="xFrom" type="date" value="${new Date().toISOString().slice(0,10)}"><p class="muted" style="font-size:12px;margin:4px 0 0">الأيام اللي قبل التاريخ ده تفضل بالسعر القديم.</p>` : ''}
+      <label class="f">رصيد قبل التطبيق (ج)</label><input class="in" id="xOpen" inputmode="decimal" dir="ltr" value="${v('opening')}" placeholder="المتأخرات اللي ليه من الشيت القديم">` : ''}
+    ${canPay() ? `<h4 style="margin:16px 0 0;font-size:14px">بيانات الدفع</h4>
+      <label class="f">لينك دفع إنستاباي (اختياري)</label><input class="in" id="xIpn" dir="ltr" value="${v('ipn')}" placeholder="https://ipn.eg/S/…">
+      <div class="row" style="gap:8px"><div style="flex:1.4"><label class="f">رقم الدفع</label><input class="in" id="xPayNo" type="tel" dir="ltr" value="${v('payNo')}" placeholder="01xxxxxxxxx"></div>
+      <div style="flex:1"><label class="f">نوعه</label><select class="in" id="xPayType"><option value="">اختار</option>${opt('إنستاباي', p ? p.payType : '')}${opt('محفظة', p ? p.payType : '')}</select></div></div>
+      <label class="f">البنك</label><input class="in" id="xBank" value="${v('bank')}">
+      <label class="f">رقم الحساب أو IBAN</label><input class="in" id="xIban" dir="ltr" value="${v('iban')}">` : ''}
+    <label class="f">ملاحظات</label><textarea class="in" id="xNotes">${v('notes')}</textarea>
+    <div class="err" id="xErr"></div><div id="xSim"></div>
+    <button class="btn gold" id="xSave">${p ? 'حفظ' : 'ضيف'}</button>`);
+  const val = id => { const e = document.getElementById(id); return e ? e.value : undefined; };
+  const send = async force => {
+    const person = {code: p ? p.code : '', name: val('xName'), kind: val('xKind'), trade: val('xTrade'), goods: val('xGoods'), phones: digits(val('xPhones') || ''),
+      project: val('xProj'), wage: digits(val('xWage') || ''), hour: digits(val('xHour') || ''), opening: digits(val('xOpen') || ''), wageFrom: val('xFrom'),
+      ipn: (val('xIpn') || '').trim(), payNo: digits(val('xPayNo') || ''), payType: val('xPayType'), bank: val('xBank'), iban: val('xIban'), notes: val('xNotes')};
+    if (!person.name.trim()) { $('#xErr').textContent = 'اكتب الاسم'; return; }
+    busy($('#xSave'), true); $('#xErr').textContent = '';
+    const r = await api('savePerson', {type: t, person, force: !!force});
+    busy($('#xSave'), false);
+    if (r.error === 'similar') {
+      $('#xSim').innerHTML = `<div class="card" style="margin:8px 0;border-color:var(--warn)"><b>فيه اسم قريب، هو ده؟</b>
+        ${r.matches.map(m => `<button class="mi" data-same="${esc(m.code)}" style="font-weight:400"><span class="pill p-info" dir="ltr">${esc(m.code)}</span><span style="flex:1">${esc(m.name)}<small class="muted" style="display:block">${esc(m.phones || '')}</small></span><small style="color:var(--navy2)">هو ده</small></button>`).join('')}
+        <button class="btn ghost" id="xForce" style="margin-top:6px">لأ، ده شخص تاني. ${p ? 'احفظ' : 'ضيفه'}</button></div>`;
+      document.querySelectorAll('[data-same]').forEach(b => b.onclick = async () => { const l = await loadPeople(t, true); personView(t, (l || []).find(x => x.code === b.dataset.same)); });
+      $('#xForce').onclick = () => send(true);
+      $('#xSim').scrollIntoView({behavior:'smooth', block:'center'});
+      return;
+    }
+    if (!r.ok) { $('#xErr').textContent = errMsg(r); return; }
+    S.people[t] = null; toast(p ? 'اتحفظ ✓' : `اتضاف ${r.person.code} ✓`); personView(t, r.person);
+  };
+  $('#xSave').onclick = () => send(force);
+}
+
 /* ---------- بنود الشركة ---------- */
 const normAr = s => String(s || '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[ً-ْ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
 async function itemsSheet(){
@@ -1032,6 +1157,7 @@ function wireShell(){
   if (id('install')) id('install').onclick = () => { if (isStandalone()) toast('التطبيق متثبت عندك بالفعل ✓'); else { store.set('skipInstall', false); render(); } };
   if (id('logout')) id('logout').onclick = () => { api('logout'); signOut(); };
   if (id('items')) id('items').onclick = itemsSheet;
+  v.querySelectorAll('[data-ppl]').forEach(b => b.onclick = () => peopleSheet(b.dataset.ppl));
   if (id('backups')) id('backups').onclick = backupSheet;
   if (id('reports')) id('reports').onclick = reportsSheet;
   /* تحديث من جوجل في الخلفية */
