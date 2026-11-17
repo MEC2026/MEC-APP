@@ -190,8 +190,8 @@ textarea.in{min-height:88px;resize:vertical}
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.5';
-const APP_NOTES = ['المشاريع الحقيقية: مشروع جديد وتعديل، وكل واحد يشوف مشاريعه بس', 'الرئيسية بقت بأرقام حقيقية: المشاريع حسب الحالة، وآخر دخول، والحسابات المستنية', 'شيلنا كل البيانات التجريبية'];
+const APP_VERSION = '0.5.1';
+const APP_NOTES = ['الدخول بقى شغال من أي موبايل (كانت مشكلة في الصفر اللي في أول الرقم)', 'الرقم السري مرة واحدة بس على كل موبايل، وبعدها التطبيق يفتح على طول', 'مفيش مسميات جنب الأسامي: اللقب قبل الاسم (م. أحمد)، والصلاحية بيحددها المالك بس', 'نسيت الرقم السري؟ في صفحة الدخول بقى فيه شرح، واسترجاع حساب المالك بالكلمة السرية'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
 
@@ -207,8 +207,8 @@ const ERR = {
   disabled:'الحساب ده متوقف. كلّم المالك', noPin:'لسه ما فعّلتش حسابك. افتح لينك الدعوة اللي جالك',
   badInvite:'لينك الدعوة ده مش شغال أو اتستخدم قبل كده. اطلب لينك جديد', pinFormat:'الرقم السري لازم يكون من 4 لـ 8 أرقام',
   token:'الكلمة السرية غلط', ownerExists:'حساب المالك موجود بالفعل', missing:'كمّل الخانات الناقصة',
-  phoneExists:'الرقم ده متسجل لحد تاني', role:'الدور مش مسموح', denied:'مش من صلاحيتك', session:'سجّل دخول تاني',
-  net:'مفيش اتصال بجوجل دلوقتي. جرّب تاني', server:'حصلت مشكلة عند جوجل. جرّب تاني', self:'مينفعش تعمل كده على حسابك', badUser:'الشخص ده مش في الفريق أو دوره مش مناسب', notfound:'مش لاقي ده. اعمل تحديث'
+  phoneExists:'الرقم ده متسجل لحد تاني', role:'الصلاحية دي مش مسموحة', wrongPhone:'ده مش رقم موبايل المالك', denied:'مش من صلاحيتك', session:'سجّل دخول تاني',
+  net:'مفيش اتصال بجوجل دلوقتي. جرّب تاني', server:'حصلت مشكلة عند جوجل. جرّب تاني', self:'مينفعش تعمل كده على حسابك', badUser:'الشخص ده مش في الفريق أو صلاحيته مش مناسبة', notfound:'مش لاقي ده. اعمل تحديث'
 };
 const SECTIONS = [
   {k:'takeoff', n:'الحصر', i:'ruler', live:true},
@@ -237,7 +237,6 @@ const store = {
 const S = {
   user: store.get('user', null),
   session: store.get('session', ''),
-  unlocked: false,
   tab: 'home', project: null, taskTab: 'mine',
   masked: store.get('masked', false),
   installEvt: null,
@@ -251,6 +250,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ic = (id, cls='') => `<svg class="i ${cls}"><use href="#i-${id}"/></svg>`;
 const money = n => `<span class="mv">${Number(n).toLocaleString('en-US')}</span> ج`;
+const dn = u => (u && (u.dn || u.name)) || '';
 const isBoss = () => S.user && (S.user.role === 'owner' || S.user.role === 'manager');
 const isOwner = () => S.user && S.user.role === 'owner';
 const canManage = () => isBoss(); /* المدير زي المالك، ماعدا حساب المالك ولينك جوجل والنسخ الاحتياطي */
@@ -312,14 +312,14 @@ function bindAutosave(root){
 
 /* ================= الدخول ================= */
 async function signedIn(r, pin){
-  S.session = r.session; S.user = r.user; S.unlocked = true;
+  S.session = r.session; S.user = r.user;
   store.set('session', r.session); store.set('user', r.user); store.set('lastPhone', r.user.phone);
-  store.set('pinHash', await sha(r.user.id + ':' + pin)); store.set('lockFails', 0);
+  ['pinHash','lockFails'].forEach(store.del); /* من 0.5.1 مفيش قفل محلي: الرقم السري مرة واحدة على الموبايل */
   store.del('pendingInvite'); S.invite = '';
   render(); flushLog();
 }
 function signOut(msg){
-  S.session = ''; S.user = null; S.unlocked = false; S.project = null; S.tab = 'home';
+  S.session = ''; S.user = null; S.project = null; S.tab = 'home';
   ['session','user','pinHash','lockFails','projects','team'].forEach(store.del); S.projects = []; S.team = null; S.teamLoaded = false;
   render(); if (msg) toast(msg);
 }
@@ -336,7 +336,6 @@ function render(){
   const app = $('#app');
   if (S.invite) { app.innerHTML = inviteView(); wireInvite(); return; }
   if (!S.session || !S.user) { app.innerHTML = loginView(); wireLogin(); return; }
-  if (!S.unlocked) { app.innerHTML = lockView(); wireLock(); return; }
   if (!isStandalone() && !store.get('skipInstall', false)) { app.innerHTML = installView(); wireInstall(); return; }
   app.innerHTML = shell();
   wireShell();
@@ -356,6 +355,7 @@ function loginView(){
     <div class="err" id="lErr"></div>
     <button class="btn pri" id="lGo">دخول</button>
     <p class="muted" style="font-size:12.5px;text-align:center;margin:14px 0 0">أول مرة؟ افتح لينك الدعوة اللي جالك على واتساب</p>
+    <button class="btn ghost" id="forgot" style="margin-top:8px">نسيت الرقم السري؟</button>
     <div id="ownerSetup"></div>`);
 }
 function wireLogin(){
@@ -369,12 +369,38 @@ function wireLogin(){
   };
   $('#lGo').onclick = go;
   $('#lPin').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  $('#forgot').onclick = () => { $('#app').innerHTML = forgotView(); wireForgot(); };
   /* لو مفيش مالك لسه (أول تشغيل خالص) يظهر إعداد المالك */
   api('status').then(r => {
     if (!r.ok || r.hasOwner || !$('#ownerSetup')) return;
     $('#ownerSetup').innerHTML = `<button class="btn ghost" id="osOpen" style="margin-top:12px">أول تشغيل: إعداد حساب المالك</button>`;
     $('#osOpen').onclick = () => { $('#app').innerHTML = ownerView(); wireOwner(); };
   });
+}
+
+function forgotView(){
+  return box(`${brand('نسيت الرقم السري؟', 'حسابك وكل شغلك موجودين، مفيش حاجة بتضيع')}
+    <div class="card" style="font-size:14px;line-height:1.8">كلّم المسؤول عن التطبيق في الشركة. هيبعتلك <b>لينك جديد</b> على واتساب، تفتحه وتعمل رقم سري جديد على نفس حسابك.</div>
+    <details style="margin-top:12px"><summary class="muted" style="cursor:pointer">انت المالك؟ استرجع حسابك بالكلمة السرية</summary>
+      <label class="f">رقم موبايلك</label><input class="in" id="rPhone" type="tel" dir="ltr" placeholder="01xxxxxxxxx" value="${esc(store.get('lastPhone',''))}">
+      <label class="f">الكلمة السرية بتاعة السكريبت (اللي في Code.gs)</label><input class="in" id="rTok" type="password" dir="ltr">
+      <label class="f">رقم سري جديد (4 لـ 8 أرقام)</label>${pinInput('rPin', 'الرقم السري الجديد')}
+      <label class="f">اكتبه تاني</label>${pinInput('rPin2', 'تأكيد الرقم السري')}
+      <div class="err" id="rErr"></div>
+      <button class="btn gold" id="rGo">استرجاع الحساب</button>
+    </details>
+    <button class="btn ghost" id="rBack" style="margin-top:12px">رجوع للدخول</button>`);
+}
+function wireForgot(){
+  $('#rBack').onclick = render;
+  $('#rGo').onclick = async () => {
+    const pin = digits($('#rPin').value);
+    if (pin !== digits($('#rPin2').value)) { $('#rErr').textContent = 'الرقمين مش زي بعض'; return; }
+    busy($('#rGo'), true);
+    const r = await api('recoverOwner', {phone: digits($('#rPhone').value), token: $('#rTok').value.trim(), pin});
+    busy($('#rGo'), false);
+    if (r.ok) { signedIn(r, pin); setTimeout(() => toast('اتعمل رقم سري جديد ✓'), 400); } else $('#rErr').textContent = errMsg(r);
+  };
 }
 
 function ownerView(){
@@ -418,7 +444,7 @@ async function wireInvite(){
   const r = await api('invite', {code: S.invite});
   if (!$('#iInfo')) return;
   if (!r.ok) { $('#iInfo').innerHTML = `<span style="color:var(--bad)">${esc(errMsg(r))}</span>`; return; }
-  $('#iInfo').innerHTML = `أهلا <b>${esc(r.name)}</b><br><span class="muted">دورك: ${esc((ROLES[r.role]||{}).name || r.role)}</span>`;
+  $('#iInfo').innerHTML = `أهلا <b>${esc(r.name)}</b><br><span class="muted">اعمل رقمك السري وادخل</span>`;
   $('#iForm').classList.remove('hidden');
   $('#iGo').onclick = async () => {
     const pin = digits($('#iPin').value);
@@ -428,29 +454,6 @@ async function wireInvite(){
     busy($('#iGo'), false);
     if (a.ok) signedIn(a, pin); else $('#iErr').textContent = errMsg(a);
   };
-}
-
-function lockView(){
-  return box(`${brand('أهلا ' + esc(S.user.name), 'اكتب رقمك السري')}
-    ${pinInput('kPin', 'الرقم السري')}
-    <div class="err" id="kErr"></div>
-    <button class="btn pri" id="kGo">فتح</button>
-    <button class="btn ghost" id="kOut" style="margin-top:8px">مش انت؟ خروج</button>`);
-}
-function wireLock(){
-  const go = async () => {
-    const pin = digits($('#kPin').value);
-    if (await sha(S.user.id + ':' + pin) === store.get('pinHash', '')) {
-      store.set('lockFails', 0); S.unlocked = true; render(); refreshMe(); flushLog(); return;
-    }
-    const f = store.get('lockFails', 0) + 1; store.set('lockFails', f);
-    if (f >= 5) { signOut('محاولات غلط كتير. سجّل دخول تاني'); return; }
-    $('#kErr').textContent = `الرقم السري غلط (فاضل ${5 - f} محاولات)`;
-  };
-  $('#kGo').onclick = go;
-  $('#kPin').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
-  $('#kOut').onclick = () => { api('logout'); signOut(); };
-  setTimeout(() => { const k = $('#kPin'); if (k) k.focus(); }, 50);
 }
 
 function installView(){
@@ -476,7 +479,7 @@ function shell(){
   return `
   <header class="top">
     <div class="avatar">${esc(u.name.trim().charAt(0))}</div>
-    <div class="ttl"><b>${titleFor()}</b><small>${esc(u.name)} · ${(ROLES[u.role]||{}).name || ''}</small></div>
+    <div class="ttl"><b>${titleFor()}</b><small>${esc(dn(u))}</small></div>
     ${isBoss() ? `<button class="ibtn" id="eyeBtn" aria-label="إخفاء الأرقام">${ic(S.masked ? 'eyeoff' : 'eye')}</button>` : ''}
     <button class="ibtn" id="searchBtn" aria-label="بحث">${ic('search')}</button>
     <button class="ibtn" id="bellBtn" aria-label="الإشعارات">${ic('bell')}</button>
@@ -505,7 +508,7 @@ async function loadProjects(force){
   loadingProjects = false;
   if (r.ok) {
     S.projects = r.items; S.projectsAt = Date.now(); store.set('projects', r.items);
-    if (S.user && S.unlocked && !$('#sheet').classList.contains('on')) { const y = scrollY; render(); scrollTo(0, y); }
+    if (S.user && !$('#sheet').classList.contains('on')) { const y = scrollY; render(); scrollTo(0, y); }
   } else if (['session','disabled','locked'].includes(r.error)) signOut(errMsg(r));
 }
 async function loadTeam(){
@@ -545,8 +548,8 @@ function homeView(){
     const locked = team.filter(u => u.status === 'locked');
     const recent = team.filter(u => u.last).sort((a, b) => b.last.localeCompare(a.last)).slice(0, 4);
     const act = [
-      ...locked.map(u => `<button class="li" data-team="1"><span class="ico">${ic('shield')}</span><span class="t"><b>حساب ${esc(u.name)} اتقفل</b><small>محاولات رقم سري غلط. افتحه من الفريق</small></span><span class="pill p-bad">مقفول</span></button>`),
-      ...waiting.map(u => `<button class="li" data-team="1"><span class="ico">${ic('users')}</span><span class="t"><b>${esc(u.name)} لسه ما فعّلش حسابه</b><small>ابعتله لينك جديد لو اللي معاه ضاع</small></span><span class="pill p-warn">مستني</span></button>`)
+      ...locked.map(u => `<button class="li" data-team="1"><span class="ico">${ic('shield')}</span><span class="t"><b>حساب ${esc(dn(u))} اتقفل</b><small>محاولات رقم سري غلط. افتحه من الفريق</small></span><span class="pill p-bad">مقفول</span></button>`),
+      ...waiting.map(u => `<button class="li" data-team="1"><span class="ico">${ic('users')}</span><span class="t"><b>${esc(dn(u))} لسه ما فعّلش حسابه</b><small>ابعتله لينك جديد لو اللي معاه ضاع</small></span><span class="pill p-warn">مستني</span></button>`)
     ].join('');
     return news + `
     <h2 class="sec">المشاريع <button class="more" data-t2="projects">الكل</button></h2>
@@ -554,7 +557,7 @@ function homeView(){
     ${act ? `<h2 class="sec">${ic('alert')} محتاج تتصرف فيه</h2>${act}` : ''}
     ${S.projects.length ? `<h2 class="sec">آخر المشاريع اللي اتعدلت</h2>${S.projects.slice(0, 3).map(projectCard).join('')}` : ''}
     ${recent.length ? `<h2 class="sec">آخر دخول <button class="more" id="openLog">سجل النشاط</button></h2>
-      <div class="card" style="padding:4px 14px">${recent.map(u => `<div class="mi" style="font-weight:400"><span style="flex:1"><b style="font-weight:600">${esc(u.name)}</b> <small class="muted">· ${(ROLES[u.role]||{}).name || ''}</small></span><small class="muted">${ago(u.last)}</small></div>`).join('')}</div>` : ''}`;
+      <div class="card" style="padding:4px 14px">${recent.map(u => `<div class="mi" style="font-weight:400"><span style="flex:1"><b style="font-weight:600">${esc(dn(u))}</b></span><small class="muted">${ago(u.last)}</small></div>`).join('')}</div>` : ''}`;
   }
   return news + `
     <h2 class="sec">مشاريعي</h2>
@@ -567,7 +570,7 @@ const emptyBox = (i, t) => `<div class="empty">${ic(i)}<div>${esc(t)}</div></div
 
 function projectCard(p, asDiv){
   const tag = asDiv ? 'div' : 'button';
-  const meta = [p.code, p.client, p.type, p.engName ? 'م. المسؤول: ' + p.engName : ''].filter(Boolean).map(esc).join(' · ');
+  const meta = [p.code, p.client, p.type, p.engName ? 'المهندس: ' + p.engName : ''].filter(Boolean).map(esc).join(' · ');
   return `<${tag} class="pc" ${asDiv ? '' : `data-open="${esc(p.code)}"`}>
     <div class="head"><b>${esc(p.name)}</b><span class="pill ${STATUS_PILL[p.status] || 'p-info'}">${esc(p.status)}</span></div>
     <div class="meta">${meta}</div>
@@ -595,7 +598,7 @@ function projectView(){
     p.client && ['العميل', esc(p.client)],
     p.clientPhone && ['تليفون العميل', `<a href="tel:${esc(p.clientPhone)}" dir="ltr" style="color:var(--navy2)">${esc(p.clientPhone)}</a>`],
     p.address && ['العنوان', esc(p.address)],
-    ['المهندس المسؤول', esc(p.engName || 'لسه')],
+    ['المهندس', esc(p.engName || 'لسه')],
     ['المشرف', esc(p.supName || 'لسه')],
     p.start && ['تاريخ البداية', esc(fmtDate(p.start))],
     p.notes && ['ملاحظات', esc(p.notes)]
@@ -662,7 +665,7 @@ async function projectForm(code){
   const team = await loadTeam();
   if (!$('#fEng')) return;
   const people = (roles, cur) => `<option value="">من غير</option>` + team.filter(u => roles.includes(u.role) && u.status !== 'disabled')
-    .map(u => `<option value="${esc(u.id)}" ${u.id === cur ? 'selected' : ''}>${esc(u.name)} · ${(ROLES[u.role]||{}).name}</option>`).join('');
+    .map(u => `<option value="${esc(u.id)}" ${u.id === cur ? 'selected' : ''}>${esc(dn(u))}${u.id === S.user.id ? ' (انت)' : ''}</option>`).join('');
   const draftEng = store.get('ak.' + k + 'eng', null), draftSup = store.get('ak.' + k + 'sup', null);
   $('#fEng').innerHTML = people(['engineer','manager','owner'], draftEng !== null ? draftEng : (p ? p.engId : ''));
   $('#fSup').innerHTML = people(['supervisor','engineer'], draftSup !== null ? draftSup : (p ? p.supId : ''));
@@ -713,7 +716,7 @@ function shareInvite(name, phone, code){
   $('#cpLink').onclick = async () => { try { await navigator.clipboard.writeText(link); toast('اتنسخ ✓'); } catch (e) { toast('انسخه بإيدك من فوق'); } };
 }
 async function teamSheet(){
-  openSheet(`<h3>الفريق والصلاحيات</h3><div id="tList" class="muted">بيحمّل…</div>
+  openSheet(`<h3>الفريق والصلاحيات</h3><p class="muted" style="font-size:12.5px;margin:0 0 8px">الصلاحيات بتظهر هنا بس جوه «تعديل»، ومحدش في الفريق بيشوفها.</p><div id="tList" class="muted">بيحمّل…</div>
     ${canManage() ? `<button class="btn pri" id="tAdd" style="margin-top:12px">${ic('plus')} ضيف شخص</button>` : ''}`);
   if (canManage()) $('#tAdd').onclick = addUserSheet;
   const r = await api('users');
@@ -722,12 +725,15 @@ async function teamSheet(){
   const st = u => u.status === 'disabled' ? '<span class="pill p-bad">متوقف</span>' : u.status === 'locked' ? '<span class="pill p-bad">مقفول</span>' : u.status === 'invited' ? '<span class="pill p-warn">لسه ما فعّلش</span>' : '<span class="pill p-ok">شغال</span>';
   $('#tList').innerHTML = r.items.map(u => `<div class="li" style="flex-wrap:wrap">
       <span class="ico">${ic('users')}</span>
-      <span class="t"><b>${esc(u.name)}</b><small>${(ROLES[u.role]||{}).name || u.role} · <span dir="ltr">${esc(u.phone)}</span>${u.last ? ' · آخر دخول ' + new Date(u.last).toLocaleDateString('ar-EG') : ''}</small></span>${st(u)}
-      ${canManage() && u.role !== 'owner' && u.id !== S.user.id ? `<div class="row" style="width:100%;gap:6px;margin-top:8px">
-        <button class="btn ghost" style="padding:8px;font-size:13px" data-re="${esc(u.id)}" data-nm="${esc(u.name)}" data-ph="${esc(u.phone)}">لينك جديد</button>
+      <span class="t"><b>${esc(dn(u))}</b><small><span dir="ltr">${esc(u.phone)}</span>${u.last ? ' · آخر دخول ' + new Date(u.last).toLocaleDateString('ar-EG') : ''}</small></span>${st(u)}
+      ${canManage() && (u.role !== 'owner' || isOwner()) ? `<div class="row" style="width:100%;gap:6px;margin-top:8px">
+        <button class="btn ghost" style="padding:8px;font-size:13px" data-ed="${esc(u.id)}">تعديل</button>` : ''}
+      ${canManage() && u.role !== 'owner' && u.id !== S.user.id ? `
+        <button class="btn ghost" style="padding:8px;font-size:13px" data-re="${esc(u.id)}" data-nm="${esc(dn(u))}" data-ph="${esc(u.phone)}">لينك جديد</button>
         <button class="btn ghost" style="padding:8px;font-size:13px;color:${u.status==='disabled'||u.status==='locked'?'var(--ok)':'var(--bad)'}" data-st="${esc(u.id)}" data-to="${u.status==='disabled'||u.status==='locked'?'active':'disabled'}">${u.status==='disabled'||u.status==='locked'?'فتح الحساب':'إيقاف الحساب'}</button>
-      </div>` : ''}
+      ` : ''}${canManage() && (u.role !== 'owner' || isOwner()) ? '</div>' : ''}
     </div>`).join('') || emptyBox('users','مفيش حد لسه');
+  document.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => editUserSheet(r.items.find(x => x.id === b.dataset.ed)));
   document.querySelectorAll('[data-re]').forEach(b => b.onclick = async () => {
     if (!confirmBox(`لينك جديد لـ ${b.dataset.nm}؟ الرقم السري القديم بتاعه هيتلغي ويعمل واحد جديد.`)) return;
     const x = await api('reinvite', {id: b.dataset.re});
@@ -741,25 +747,43 @@ async function teamSheet(){
 function confirmBox(msg){ return window.confirm(msg); }
 function addUserSheet(){
   openSheet(`<h3>ضيف شخص للفريق</h3>
-    <label class="f">الاسم زي ما هيظهر</label><input class="in" id="aName" data-ak="add.name">
+    <label class="f">اللقب</label>${titleSelect('aTitle', '', 'add.title')}
+    <label class="f">الاسم</label><input class="in" id="aName" data-ak="add.name" placeholder="أحمد نجيب">
     <label class="f">رقم الموبايل</label><input class="in" id="aPhone" type="tel" dir="ltr" placeholder="01xxxxxxxxx" data-ak="add.phone">
-    <label class="f">الدور</label>
-    <select class="in" id="aRole" data-ak="add.role">
-      <option value="engineer">مهندس: مشاريعه، ويقدر يعمل شغل المشرف</option>
-      <option value="supervisor">مشرف: الحضور والخامات والحصر ومهامه في مشروعه</option>
-      <option value="manager">مدير: نفس صلاحيات المالك</option>
-      <option value="contractor">مقاول: مهامه وصور شغله وحسابه</option>
-    </select>
+    <label class="f">الصلاحية (محدش يشوفها غيرك)</label>${roleSelect('aRole', 'engineer', 'add.role')}
     <label class="f">المشاريع (اختياري)</label><input class="in" id="aProj" placeholder="أكواد المشاريع، أو سيبها لحد ما المشاريع تتسجل" data-ak="add.proj">
     <div class="err" id="aErr"></div>
     <button class="btn gold" id="aGo">ضيفه واعمل لينك الدعوة</button>`);
   $('#aGo').onclick = async () => {
     busy($('#aGo'), true);
-    const r = await api('addUser', {name: $('#aName').value, phone: digits($('#aPhone').value), role: $('#aRole').value, projects: $('#aProj').value});
+    const r = await api('addUser', {name: $('#aName').value, title: $('#aTitle').value, phone: digits($('#aPhone').value), role: $('#aRole').value, projects: $('#aProj').value});
     busy($('#aGo'), false);
     if (!r.ok) { $('#aErr').textContent = errMsg(r); return; }
-    ['name','phone','role','proj'].forEach(k => store.del('ak.add.' + k));
-    shareInvite(r.user.name, r.user.phone, r.code);
+    ['name','title','phone','role','proj'].forEach(k => store.del('ak.add.' + k));
+    shareInvite(dn(r.user), r.user.phone, r.code);
+  };
+}
+const titleSelect = (id, cur, ak) => `<select class="in" id="${id}"${ak ? ` data-ak="${ak}"` : ''}>${[['م.','م. (مهندس)'],['أ.','أ.'],['','من غير لقب']].map(([v, n]) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${n}</option>`).join('')}</select>`;
+const roleSelect = (id, cur, ak) => `<select class="in" id="${id}"${ak ? ` data-ak="${ak}"` : ''}>${[
+  ['engineer','مهندس: مشاريعه، ويقدر يعمل شغل المشرف'], ['supervisor','مشرف: الحضور والخامات والحصر ومهامه في مشروعه'],
+  ['manager','مدير: نفس صلاحيات المالك'], ['contractor','مقاول: مهامه وصور شغله وحسابه']
+].map(([v, n]) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${n}</option>`).join('')}</select>`;
+function editUserSheet(u){
+  if (!u) return;
+  const own = u.role === 'owner' || u.id === S.user.id; /* محدش يغيّر صلاحيته بنفسه */
+  openSheet(`<h3>تعديل ${esc(dn(u))}</h3>
+    <label class="f">اللقب</label>${titleSelect('eTitle', u.title || '')}
+    <label class="f">الاسم</label><input class="in" id="eName" value="${esc(u.name)}">
+    ${own ? '' : `<label class="f">الصلاحية (محدش يشوفها غيرك)</label>${roleSelect('eRole', u.role)}`}
+    <div class="err" id="eErr"></div>
+    <button class="btn gold" id="eGo">حفظ</button>`);
+  $('#eGo').onclick = async () => {
+    if (!$('#eName').value.trim()) { $('#eErr').textContent = 'اكتب الاسم'; return; }
+    busy($('#eGo'), true);
+    const r = await api('updateUser', {id: u.id, name: $('#eName').value, title: $('#eTitle').value, role: own ? '' : $('#eRole').value});
+    busy($('#eGo'), false);
+    if (!r.ok) { $('#eErr').textContent = errMsg(r); return; }
+    toast('اتحفظ ✓'); if (u.id === S.user.id) refreshMe(); loadTeam(); teamSheet();
   };
 }
 
@@ -768,12 +792,12 @@ async function logSheet(){
   openSheet(`<h3>سجل النشاط</h3><select class="in" id="logWho"><option value="">الكل</option></select><div id="logList" class="muted" style="margin-top:10px">بيحمّل…</div>`);
   const [u, l] = await Promise.all([api('users'), api('logs', {limit: 200})]);
   if (!$('#logList')) return;
-  if (u.ok) $('#logWho').innerHTML = '<option value="">الكل</option>' + u.items.map(x => `<option>${esc(x.name)}</option>`).join('');
+  if (u.ok) $('#logWho').innerHTML = '<option value="">الكل</option>' + u.items.map(x => `<option value="${esc(dn(x))}" data-alt="${esc(x.name)}">${esc(dn(x))}</option>`).join('');
   const draw = items => items.map(x => { const d = new Date(x.at);
     return `<div class="mi" style="font-weight:400"><span class="ico">${ic('clock')}</span><span style="flex:1;min-width:0"><b style="display:block;font-weight:600">${esc(x.action)}${x.project ? ' · ' + esc(x.project) : ''}</b><small class="muted">${esc(x.user)} · ${d.toLocaleDateString('ar-EG')} ${d.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'})}</small></span></div>`; }).join('') || emptyBox('clock','مفيش نشاط');
   if (!l.ok) { $('#logList').innerHTML = `<span style="color:var(--bad)">${esc(errMsg(l))}</span>`; return; }
   $('#logList').innerHTML = draw(l.items);
-  $('#logWho').onchange = async e => { $('#logList').textContent = 'بيحمّل…'; const r = await api('logs', {user: e.target.value, limit: 200}); $('#logList').innerHTML = r.ok ? draw(r.items) : esc(errMsg(r)); };
+  $('#logWho').onchange = async e => { $('#logList').textContent = 'بيحمّل…'; const o = e.target.selectedOptions[0]; const r = await api('logs', {user: e.target.value, alt: o ? o.dataset.alt || '' : '', limit: 200}); $('#logList').innerHTML = r.ok ? draw(r.items) : esc(errMsg(r)); };
 }
 
 function settingsSheet(){
