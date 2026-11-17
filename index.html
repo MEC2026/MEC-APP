@@ -141,6 +141,11 @@ textarea.in{min-height:88px;resize:vertical}
 .empty{text-align:center;color:var(--muted);padding:28px 10px}
 .empty svg{width:40px;height:40px;stroke-width:1.2;color:#AAB2C0}
 .news{background:linear-gradient(0deg,#fff,#fff);border:1px solid #F3DFA6;background:var(--gold-soft)}
+.bdg{position:absolute;top:3px;left:3px;min-width:17px;height:17px;border-radius:9px;background:var(--gold);color:var(--navy);font-size:10.5px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+.bar{height:6px;border-radius:4px;background:#EEF0F4;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;border-radius:4px}
+.tl{margin-top:10px;font-size:12.5px;color:var(--muted)}
+.nt{display:flex;gap:10px;padding:11px 2px;border-bottom:1px solid #F0F2F5}.nt:last-child{border-bottom:0}.nt.un b{color:var(--ink)}.nt .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);flex:none;margin-top:7px}.nt.rd .dot{background:transparent}
+.grp{font-size:12.5px;font-weight:700;color:var(--navy2);margin:14px 2px 4px}
 </style>
 </head>
 <body>
@@ -190,8 +195,8 @@ textarea.in{min-height:88px;resize:vertical}
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.5.1';
-const APP_NOTES = ['الدخول بقى شغال من أي موبايل (كانت مشكلة في الصفر اللي في أول الرقم)', 'الرقم السري مرة واحدة بس على كل موبايل، وبعدها التطبيق يفتح على طول', 'مفيش مسميات جنب الأسامي: اللقب قبل الاسم (م. أحمد)، والصلاحية بيحددها المالك بس', 'نسيت الرقم السري؟ في صفحة الدخول بقى فيه شرح، واسترجاع حساب المالك بالكلمة السرية'];
+const APP_VERSION = '0.6';
+const APP_NOTES = ['بيانات العقد في المشروع: قيمة العقد، والمقدم، والمحتجز، وطريقة الحساب (Cost Plus أو نسبة)، وتاريخ النهاية، واسم مختصر', 'كارت المشروع بيوري الوقت: فات كام يوم من المدة، وبيحمرّ لو متأخر', 'بنود الشركة بكود موحد في المزيد (لمقايسات التشطيب بتاعتنا)', 'الجرس شغال، و«الإبلاغ عن مشكلة» بقى يتبعت جوه التطبيق ومعاه صورة', 'للمالك: النسخ الاحتياطي كل يوم على Drive وكل جمعة على الإيميل التاني، وزرار «نسخة دلوقتي»'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
 
@@ -208,7 +213,7 @@ const ERR = {
   badInvite:'لينك الدعوة ده مش شغال أو اتستخدم قبل كده. اطلب لينك جديد', pinFormat:'الرقم السري لازم يكون من 4 لـ 8 أرقام',
   token:'الكلمة السرية غلط', ownerExists:'حساب المالك موجود بالفعل', missing:'كمّل الخانات الناقصة',
   phoneExists:'الرقم ده متسجل لحد تاني', role:'الصلاحية دي مش مسموحة', wrongPhone:'ده مش رقم موبايل المالك', denied:'مش من صلاحيتك', session:'سجّل دخول تاني',
-  net:'مفيش اتصال بجوجل دلوقتي. جرّب تاني', server:'حصلت مشكلة عند جوجل. جرّب تاني', self:'مينفعش تعمل كده على حسابك', badUser:'الشخص ده مش في الفريق أو صلاحيته مش مناسبة', notfound:'مش لاقي ده. اعمل تحديث'
+  net:'مفيش اتصال بجوجل دلوقتي. جرّب تاني', server:'حصلت مشكلة عند جوجل. جرّب تاني', self:'مينفعش تعمل كده على حسابك', badUser:'الشخص ده مش في الفريق أو صلاحيته مش مناسبة', bigPhoto:'الصورة كبيرة قوي، جرّب صورة تانية', itemExists:'البند ده موجود قبل كده بنفس الاسم', badDates:'تاريخ النهاية لازم يبقى بعد البداية', badPercent:'النسبة لازم تبقى من 0 لـ 100', badNumber:'الرقم مش مظبوط', badAdvance:'الدفعة المقدمة أكبر من قيمة العقد', backup:'النسخة ما اتعملتش. جرّب تاني', notfound:'مش لاقي ده. اعمل تحديث'
 };
 const SECTIONS = [
   {k:'takeoff', n:'الحصر', i:'ruler', live:true},
@@ -242,7 +247,8 @@ const S = {
   installEvt: null,
   invite: store.get('pendingInvite', ''),
   hasOwner: null,
-  projects: store.get('projects', []), projectsAt: 0, pFilter: 'all', team: null
+  projects: store.get('projects', []), projectsAt: 0, pFilter: 'all', team: null,
+  notes: store.get('notes', []), notesAt: 0, items: store.get('items', null)
 };
 
 /* ================= أدوات صغيرة ================= */
@@ -482,7 +488,7 @@ function shell(){
     <div class="ttl"><b>${titleFor()}</b><small>${esc(dn(u))}</small></div>
     ${isBoss() ? `<button class="ibtn" id="eyeBtn" aria-label="إخفاء الأرقام">${ic(S.masked ? 'eyeoff' : 'eye')}</button>` : ''}
     <button class="ibtn" id="searchBtn" aria-label="بحث">${ic('search')}</button>
-    <button class="ibtn" id="bellBtn" aria-label="الإشعارات">${ic('bell')}</button>
+    <button class="ibtn" id="bellBtn" aria-label="الإشعارات">${ic('bell')}${unreadCount() ? `<span class="bdg">${unreadCount() > 9 ? '9+' : unreadCount()}</span>` : ''}</button>
   </header>
   <main id="view" class="money ${S.masked ? 'masked' : ''}">${view()}</main>
   <nav class="bn">
@@ -566,19 +572,35 @@ function homeView(){
     <div class="card"><textarea class="in" data-ak="quicknote.${esc(S.user.id)}" placeholder="اكتب أي حاجة… بتتحفظ لوحدها حتى لو قفلت التطبيق"></textarea><div class="saved" data-saved="quicknote.${esc(S.user.id)}"></div></div>`;
 }
 
+/* شريط الوقت: فات كام يوم من مدة المشروع (أخضر، أصفر من 80%، أحمر لو عدّى النهاية وهو لسه شغال) */
+const dayMs = 864e5, today0 = () => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); };
+const pDay = d => new Date(d + 'T00:00:00').getTime();
+function timeBar(p){
+  if (!p.start || !p.end) return '';
+  const s = pDay(p.start), e = pDay(p.end), t = today0(), total = Math.max(1, Math.round((e - s) / dayMs));
+  if (t < s) return `<div class="tl">يبدأ بعد ${Math.round((s - t) / dayMs)} يوم · المدة ${total} يوم</div>`;
+  const gone = Math.round((t - s) / dayMs), pct = Math.min(100, Math.round(gone / total * 100));
+  const late = t > e && p.status === 'جاري', col = late ? 'var(--bad)' : pct >= 80 ? 'var(--warn)' : 'var(--ok)';
+  const txt = late ? `<b style="color:var(--bad)">متأخر ${Math.round((t - e) / dayMs)} يوم عن النهاية</b> · المدة ${total} يوم`
+    : p.status === 'انتهى' ? `المدة ${total} يوم` : `فات ${gone} يوم من ${total} · <b>${pct}%</b> من الوقت`;
+  return `<div class="tl">${txt}<div class="bar"><i style="width:${late ? 100 : pct}%;background:${col}"></i></div></div>`;
+}
+const pct = (a, b) => (a !== '' && b) ? Math.round(a / b * 100) : null;
+
 const emptyBox = (i, t) => `<div class="empty">${ic(i)}<div>${esc(t)}</div></div>`;
 
 function projectCard(p, asDiv){
   const tag = asDiv ? 'div' : 'button';
-  const meta = [p.code, p.client, p.type, p.engName ? 'المهندس: ' + p.engName : ''].filter(Boolean).map(esc).join(' · ');
+  const meta = [p.code, p.short && p.short !== p.name ? p.short : '', p.client, p.type, p.engName ? 'المهندس: ' + p.engName : ''].filter(Boolean).map(esc).join(' · ');
   return `<${tag} class="pc" ${asDiv ? '' : `data-open="${esc(p.code)}"`}>
     <div class="head"><b>${esc(p.name)}</b><span class="pill ${STATUS_PILL[p.status] || 'p-info'}">${esc(p.status)}</span></div>
     <div class="meta">${meta}</div>
     <div class="facts" style="margin-top:10px">
       <span class="pill" style="background:#F1F3F6;color:var(--muted)">الإنجاز: لسه</span>
       <span class="pill" style="background:#F1F3F6;color:var(--muted)">المستخلص: لسه</span>
-      ${p.start ? `<span class="pill p-info">بدأ ${esc(fmtDate(p.start))}</span>` : ''}
+      ${p.start && !p.end ? `<span class="pill p-info">بدأ ${esc(fmtDate(p.start))}</span>` : ''}
     </div>
+    ${timeBar(p)}
   </${tag}>`;
 }
 
@@ -600,7 +622,13 @@ function projectView(){
     p.address && ['العنوان', esc(p.address)],
     ['المهندس', esc(p.engName || 'لسه')],
     ['المشرف', esc(p.supName || 'لسه')],
+    p.short && ['الاسم المختصر', esc(p.short)],
+    p.value !== undefined && p.value !== '' && ['قيمة العقد', money(p.value)],
+    p.advance !== undefined && p.advance !== '' && ['الدفعة المقدمة', money(p.advance) + (pct(p.advance, p.value) !== null ? ` <span class="pill p-info">${pct(p.advance, p.value)}% من العقد</span>` : '')],
+    p.retention !== undefined && p.retention !== '' && ['المحتجز', esc(p.retention) + '%'],
+    p.calc && ['طريقة الحساب', esc(p.calc) + (p.supPct !== '' && p.supPct !== undefined ? ` · <b>${esc(p.supPct)}%</b>` : '')],
     p.start && ['تاريخ البداية', esc(fmtDate(p.start))],
+    p.end && ['تاريخ النهاية', esc(fmtDate(p.end))],
     p.notes && ['ملاحظات', esc(p.notes)]
   ].filter(Boolean);
   return `
@@ -624,12 +652,13 @@ function tasksView(){
 function moreView(){
   return `<div class="card" style="padding:4px 14px">
     ${isBoss() ? `<button class="mi" id="team">${ic('shield')}الفريق والصلاحيات</button>` : ''}
+    <button class="mi" id="items">${ic('doc')}بنود الشركة</button>
     ${MORE.map(m => `<button class="mi" data-soon="${esc(m.n)}">${ic(m.i)}${esc(m.n)}<span class="soon">قريبًا</span></button>`).join('')}
   </div>
   <h2 class="sec">النظام</h2>
   <div class="card" style="padding:4px 14px">
     ${isBoss() ? `<button class="mi" id="actLog">${ic('clock')}سجل النشاط</button>` : ''}
-    ${isOwner() ? `<button class="mi" data-soon="النسخ الاحتياطي">${ic('cloud')}النسخ الاحتياطي<span class="soon">قريبًا</span></button>` : ''}
+    ${isOwner() ? `<button class="mi" id="backups">${ic('cloud')}النسخ الاحتياطي</button><button class="mi" id="reports">${ic('alert')}البلاغات</button>` : ''}
     <button class="mi" id="settings">${ic('gear')}الإعدادات والاتصال</button>
     <button class="mi" id="report">${ic('alert')}الإبلاغ عن مشكلة</button>
     <button class="mi" id="install">${ic('download')}حمّل تطبيق MEC</button>
@@ -646,22 +675,37 @@ async function projectForm(code){
   openSheet(`<h3>${p ? 'تعديل ' + esc(p.name) : 'مشروع جديد'}</h3>
     ${p ? `<p class="muted" style="margin:-6px 0 6px">${esc(p.code)}</p>` : '<p class="muted" style="margin:-6px 0 6px;font-size:12.5px">الكود بيطلع لوحده</p>'}
     <label class="f">اسم المشروع *</label><input class="in" id="fName" data-ak="${k}name" placeholder="مثلا: شقة التجمع الخامس - عمارة 12">
-    <label class="f">النوع *</label><select class="in" id="fType" data-ak="${k}type">${['تشطيب عميل','مقاولة'].map(v => opt(v, p ? p.type : 'تشطيب عميل')).join('')}</select>
+    <label class="f">النوع *</label><select class="in" id="fType" data-ak="${k}type">${['تشطيب عميل','مقاولة بمقايسة'].map(v => opt(v, p ? p.type : 'تشطيب عميل')).join('')}</select>
+    <div id="fCalcBox"><label class="f">طريقة الحساب</label><select class="in" id="fCalc" data-ak="${k}calc">${['من غير إشراف','Cost Plus','نسبة على المشروع'].map(v => opt(v, p && p.calc ? p.calc : 'من غير إشراف')).join('')}<option disabled>باكدجات (قريبًا)</option></select>
+    <div id="fPctBox"><label class="f">نسبة الإشراف %</label><input class="in" id="fPct" inputmode="decimal" dir="ltr" data-ak="${k}pct" placeholder="مثلا 15"></div></div>
+    <p class="muted" id="fBoqNote" style="font-size:12.5px;margin:6px 0 0">البنود هتتاخد من مقايسة العقد زي ما هي، وكل بند بتكلفته المباشرة (مع المقايسات).</p>
+    <label class="f">اسم مختصر (للإيصالات والكروت)</label><input class="in" id="fShort" maxlength="20" data-ak="${k}short" placeholder="مثلا: التجمع">
     <label class="f">العميل</label><input class="in" id="fClient" data-ak="${k}client">
     <label class="f">تليفون العميل</label><input class="in" id="fCPhone" type="tel" dir="ltr" data-ak="${k}cphone" placeholder="01xxxxxxxxx">
     <label class="f">العنوان</label><input class="in" id="fAddr" data-ak="${k}addr">
     <label class="f">المهندس المسؤول</label><select class="in" id="fEng" data-ak="${k}eng"><option value="">بيحمّل الفريق…</option></select>
     <label class="f">المشرف</label><select class="in" id="fSup" data-ak="${k}sup"><option value="">بيحمّل الفريق…</option></select>
+    <h4 style="margin:16px 0 0;font-size:14px">العقد <small class="muted" style="font-weight:400">· للمالك والمدير بس</small></h4>
+    <label class="f">قيمة العقد (ج)</label><input class="in" id="fValue" inputmode="decimal" dir="ltr" data-ak="${k}value">
+    <label class="f">الدفعة المقدمة (ج)</label><input class="in" id="fAdv" inputmode="decimal" dir="ltr" data-ak="${k}adv">
+    <label class="f">نسبة المحتجز %</label><input class="in" id="fRet" inputmode="decimal" dir="ltr" data-ak="${k}ret" placeholder="سيبها فاضية لو مفيش">
     <label class="f">تاريخ البداية</label><input class="in" id="fStart" type="date" data-ak="${k}start">
+    <label class="f">تاريخ النهاية المخطط</label><input class="in" id="fEnd" type="date" data-ak="${k}end">
     <label class="f">الحالة</label><select class="in" id="fStatus" data-ak="${k}status">${['جاري','متوقف','انتهى'].map(v => opt(v, p ? p.status : 'جاري')).join('')}</select>
     <label class="f">ملاحظات</label><textarea class="in" id="fNotes" data-ak="${k}notes"></textarea>
     <div class="err" id="fErr"></div>
     <button class="btn gold" id="fSave">${p ? 'حفظ التعديل' : 'عمل المشروع'}</button>`);
   /* لو مفيش مسودة متحفظة، املى من بيانات المشروع */
-  if (p) [['fName','name'],['fClient','client'],['fCPhone','clientPhone'],['fAddr','address'],['fStart','start'],['fNotes','notes']].forEach(([id, f]) => {
-    const key = k + {fName:'name',fClient:'client',fCPhone:'cphone',fAddr:'addr',fStart:'start',fNotes:'notes'}[id];
+  if (p) [['fName','name'],['fClient','client'],['fCPhone','clientPhone'],['fAddr','address'],['fStart','start'],['fNotes','notes'],['fShort','short'],['fPct','supPct'],['fValue','value'],['fAdv','advance'],['fRet','retention'],['fEnd','end']].forEach(([id, f]) => {
+    const key = k + {fName:'name',fClient:'client',fCPhone:'cphone',fAddr:'addr',fStart:'start',fNotes:'notes',fShort:'short',fPct:'pct',fValue:'value',fAdv:'adv',fRet:'ret',fEnd:'end'}[id];
     if (store.get('ak.' + key, null) === null) $('#' + id).value = p[f] || '';
   });
+  const syncCalc = () => {
+    const client = $('#fType').value === 'تشطيب عميل';
+    $('#fCalcBox').classList.toggle('hidden', !client); $('#fBoqNote').classList.toggle('hidden', client);
+    $('#fPctBox').classList.toggle('hidden', $('#fCalc').value === 'من غير إشراف');
+  };
+  $('#fType').onchange = $('#fCalc').onchange = syncCalc; syncCalc();
   const team = await loadTeam();
   if (!$('#fEng')) return;
   const people = (roles, cur) => `<option value="">من غير</option>` + team.filter(u => roles.includes(u.role) && u.status !== 'disabled')
@@ -672,13 +716,15 @@ async function projectForm(code){
   $('#fSave').onclick = async () => {
     const data = {code: p ? p.code : '', name: $('#fName').value, type: $('#fType').value, client: $('#fClient').value,
       clientPhone: digits($('#fCPhone').value), address: $('#fAddr').value, engId: $('#fEng').value, supId: $('#fSup').value,
-      start: $('#fStart').value, status: $('#fStatus').value, notes: $('#fNotes').value};
+      start: $('#fStart').value, status: $('#fStatus').value, notes: $('#fNotes').value,
+      short: $('#fShort').value, calc: $('#fCalc').value, supPct: digits($('#fPct').value), value: digits($('#fValue').value),
+      advance: digits($('#fAdv').value), retention: digits($('#fRet').value), end: $('#fEnd').value};
     if (!data.name.trim()) { $('#fErr').textContent = 'اكتب اسم المشروع'; return; }
     busy($('#fSave'), true);
     const r = await api('saveProject', {project: data});
     busy($('#fSave'), false);
     if (!r.ok) { $('#fErr').textContent = errMsg(r); return; }
-    ['name','type','client','cphone','addr','eng','sup','start','status','notes'].forEach(f => store.del('ak.' + k + f));
+    ['name','type','client','cphone','addr','eng','sup','start','status','notes','short','calc','pct','value','adv','ret','end'].forEach(f => store.del('ak.' + k + f));
     const i = S.projects.findIndex(x => x.code === r.project.code);
     if (i >= 0) S.projects.splice(i, 1);
     S.projects.unshift(r.project); store.set('projects', S.projects);
@@ -815,15 +861,135 @@ function settingsSheet(){
 }
 
 function reportSheet(){
-  const info = `نسخة ${APP_VERSION} · ${navigator.userAgent}`;
   openSheet(`<h3>الإبلاغ عن مشكلة</h3>
-    <textarea class="in" data-ak="report" placeholder="حصل إيه؟ كنت بتعمل إيه وقتها؟"></textarea><div class="saved" data-saved="report"></div>
-    <p class="muted" style="font-size:12px;direction:ltr;text-align:left;word-break:break-all">${esc(info)}</p>
-    <button class="btn gold" id="rSend">ابعتها على واتساب</button>`);
-  $('#rSend').onclick = () => {
-    const txt = (store.get('ak.report','') || '') + '\n\n' + info;
-    window.open('https://wa.me/?text=' + encodeURIComponent('مشكلة في MEC-APP:\n' + txt), '_blank');
-    logAct('بعت بلاغ عن مشكلة');
+    <textarea class="in" id="rpText" data-ak="report" placeholder="حصل إيه؟ كنت بتعمل إيه وقتها؟"></textarea><div class="saved" data-saved="report"></div>
+    <label class="btn ghost" style="margin-top:10px;display:flex;justify-content:center;gap:8px">${ic('camera')} صورة للمشكلة (اختياري)<input type="file" id="rpPhoto" accept="image/*" hidden></label>
+    <img id="rpPrev" alt="" style="display:none;max-width:100%;border-radius:10px;margin-top:8px">
+    <p class="muted" style="font-size:12px">بيتبعت معاها لوحده: النسخة ${APP_VERSION}، والشاشة اللي كنت فيها، ونوع الموبايل.</p>
+    <div class="err" id="rpErr"></div>
+    <button class="btn gold" id="rSend">ابعت البلاغ</button>`);
+  let photo = '';
+  $('#rpPhoto').onchange = async e => { const f = e.target.files[0]; if (!f) return; photo = await shrinkImage(f); $('#rpPrev').src = photo; $('#rpPrev').style.display = 'block'; };
+  $('#rSend').onclick = async () => {
+    const text = $('#rpText').value.trim();
+    if (!text) { $('#rpErr').textContent = 'اكتب المشكلة الأول'; return; }
+    busy($('#rSend'), true);
+    const r = await api('report', {text, photo, version: APP_VERSION, screen: S.project ? 'مشروع ' + S.project : S.tab, device: navigator.userAgent.slice(0, 120)});
+    busy($('#rSend'), false);
+    if (!r.ok) { $('#rpErr').textContent = errMsg(r); return; }
+    store.del('ak.report'); closeSheet(); toast('البلاغ وصل ✓ شكرا');
+  };
+}
+/* الصورة بتتصغّر على الموبايل قبل ما تتبعت عشان النت */
+function shrinkImage(file, max = 1280){
+  return new Promise(res => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => { const k = Math.min(1, max / Math.max(img.width, img.height)); const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', 0.72)); };
+    img.onerror = () => { URL.revokeObjectURL(url); res(''); };
+    img.src = url;
+  });
+}
+
+/* ---------- الجرس ---------- */
+const unreadCount = () => (S.notes || []).filter(n => !n.read).length;
+async function loadNotes(force){
+  if (!S.session || (!force && S.notesAt && Date.now() - S.notesAt < 60000)) return;
+  S.notesAt = Date.now();
+  const r = await api('notes');
+  if (!r.ok) return;
+  const before = unreadCount(); S.notes = r.items; store.set('notes', r.items);
+  if (unreadCount() !== before && $('#bellBtn')) $('#bellBtn').outerHTML = `<button class="ibtn" id="bellBtn" aria-label="الإشعارات">${ic('bell')}${unreadCount() ? `<span class="bdg">${unreadCount() > 9 ? '9+' : unreadCount()}</span>` : ''}</button>`, $('#bellBtn').onclick = notesSheet;
+}
+function notesSheet(){
+  const list = S.notes || [];
+  const icon = t => ({'نسخ':'cloud','بلاغ':'alert','حساب':'users'}[t] || 'bell');
+  openSheet(`<h3>الإشعارات</h3>
+    ${list.length ? `<div class="card" style="padding:2px 14px">${list.map(n => `<div class="nt ${n.read ? 'rd' : 'un'}"><span class="dot"></span><span style="flex:1;min-width:0"><b style="font-weight:600;display:block">${esc(n.text)}</b><small class="muted">${ago(n.at)}</small></span>${n.type === 'بلاغ' ? `<button class="pill p-info" data-rep="1">افتح</button>` : n.type === 'حساب' ? `<button class="pill p-info" data-tm="1">الفريق</button>` : ''}</div>`).join('')}</div>`
+      : emptyBox('bell', isOwner() ? 'مفيش إشعارات' : 'إشعارات شغلك هتظهر هنا مع الأقسام الجاية')}`);
+  document.querySelectorAll('[data-rep]').forEach(b => b.onclick = reportsSheet);
+  document.querySelectorAll('[data-tm]').forEach(b => b.onclick = teamSheet);
+  if (unreadCount()) { api('notesRead'); S.notes = list.map(n => Object.assign({}, n, {read: true})); store.set('notes', S.notes); const bb = $('#bellBtn .bdg'); if (bb) bb.remove(); }
+}
+
+/* ---------- البلاغات (المالك) ---------- */
+async function reportsSheet(){
+  openSheet(`<h3>البلاغات</h3><div id="rpList" class="muted">بيحمّل…</div>`);
+  const r = await api('reports');
+  if (!$('#rpList')) return;
+  if (!r.ok) { $('#rpList').innerHTML = esc(errMsg(r)); return; }
+  $('#rpList').innerHTML = r.items.map(x => `<div class="card" style="margin-bottom:8px">
+      <div class="row"><b style="flex:1">${esc(x.by)}</b><span class="pill ${x.status === 'اتحل' ? 'p-ok' : 'p-warn'}">${esc(x.status)}</span></div>
+      <div style="margin:6px 0;white-space:pre-wrap">${esc(x.text)}</div>
+      <small class="muted">${ago(x.at)} · نسخة ${esc(x.version)} · ${esc(x.screen)}</small>
+      <div class="row" style="gap:6px;margin-top:8px">${x.photo.startsWith('http') ? `<a class="btn ghost" style="padding:8px;font-size:13px;text-decoration:none" href="${esc(x.photo)}" target="_blank" rel="noopener">الصورة</a>` : ''}
+      <button class="btn ghost" style="padding:8px;font-size:13px" data-rs="${esc(x.id)}" data-to="${x.status === 'اتحل' ? 'جديد' : 'اتحل'}">${x.status === 'اتحل' ? 'رجّعه جديد' : 'اتحل ✓'}</button></div>
+    </div>`).join('') || emptyBox('alert','مفيش بلاغات');
+  document.querySelectorAll('[data-rs]').forEach(b => b.onclick = async () => { const x = await api('reportStatus', {id: b.dataset.rs, status: b.dataset.to}); if (x.ok) reportsSheet(); else toast(errMsg(x)); });
+}
+
+/* ---------- النسخ الاحتياطي (المالك) ---------- */
+async function backupSheet(){
+  openSheet(`<h3>النسخ الاحتياطي</h3>
+    <div class="card" style="font-size:13.5px;line-height:1.8">نسخة كاملة كل يوم الساعة 2 بالليل على Drive (بنحتفظ بآخر 30)، ونسخة Excel كل جمعة على الإيميل التاني <span id="bkMail" dir="ltr"></span>.</div>
+    <button class="btn gold" id="bkNow" style="margin-top:10px">${ic('cloud')} نسخة دلوقتي</button>
+    <div class="err" id="bkMsg" style="color:var(--muted)"></div>
+    <h4 style="margin:14px 0 6px">النسخ</h4><div id="bkList" class="muted">بيحمّل…</div>`);
+  const draw = async () => { const r = await api('backups'); if (!$('#bkList')) return;
+    if (!r.ok) { $('#bkList').innerHTML = esc(errMsg(r)); return; }
+    $('#bkMail').textContent = r.email || '';
+    $('#bkList').innerHTML = r.items.length ? `<div class="card" style="padding:2px 14px">${r.items.map(x => `<a class="mi" style="font-weight:400;text-decoration:none;color:inherit" href="${esc(x.url)}" target="_blank" rel="noopener">${ic('cloud')}<span style="flex:1">${esc(new Date(x.at).toLocaleString('ar-EG', {dateStyle:'medium', timeStyle:'short'}))}</span><small class="muted">افتح</small></a>`).join('')}</div>` : emptyBox('cloud','لسه مفيش نسخ. شغّل setupBackup مرة من Apps Script'); };
+  draw();
+  $('#bkNow').onclick = async () => {
+    busy($('#bkNow'), true); $('#bkMsg').textContent = 'بيعمل النسخة… ممكن ياخد دقيقة';
+    const r = await api('backupNow');
+    busy($('#bkNow'), false);
+    if (!r.ok) { $('#bkMsg').style.color = 'var(--bad)'; $('#bkMsg').textContent = errMsg(r); return; }
+    const bin = atob(r.xlsx), arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([arr], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})); a.download = r.xlsxName; a.click();
+    $('#bkMsg').style.color = 'var(--ok)'; $('#bkMsg').textContent = 'اتعملت ✓ على Drive' + (r.mailed ? ' واتبعتت على الإيميل التاني' : '') + '، والملف نزل على موبايلك';
+    draw();
+  };
+}
+
+/* ---------- بنود الشركة ---------- */
+const normAr = s => String(s || '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[ً-ْ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+async function itemsSheet(){
+  openSheet(`<h3>بنود الشركة</h3>
+    <p class="muted" style="font-size:12.5px;margin:-4px 0 8px">كود موحد لمقايسات التشطيب بتاعتنا. مقايسات الشركات اللي بره بنودها بتتاخد من مقايسة العقد زي ما هي.</p>
+    <input class="in" id="itQ" placeholder="دوّر باسم البند أو الكود">
+    ${canManage() ? `<button class="btn pri" id="itAdd" style="margin-top:8px">${ic('plus')} بند جديد</button>` : ''}
+    <div id="itList" class="muted" style="margin-top:6px">بيحمّل…</div>`);
+  if (!S.items) { const r = await api('items'); if (r.ok) { S.items = r; store.set('items', r); } }
+  if (!$('#itList')) return;
+  if (!S.items) { $('#itList').innerHTML = esc(ERR.net); return; }
+  const draw = () => { const q = normAr($('#itQ').value);
+    const list = S.items.items.filter(x => (x.active || canManage()) && (!q || normAr(x.name + ' ' + x.code + ' ' + x.sec).includes(q)));
+    const secs = [...new Set(list.map(x => x.sec))];
+    $('#itList').innerHTML = secs.map(sec => `<div class="grp">${esc(sec)}</div><div class="card" style="padding:2px 14px">${list.filter(x => x.sec === sec).map(x => `<button class="mi" style="font-weight:400" ${canManage() ? `data-it="${esc(x.code)}"` : ''}><span class="pill p-info" dir="ltr" style="min-width:56px;justify-content:center">${esc(x.code)}</span><span style="flex:1;${x.active ? '' : 'text-decoration:line-through;color:var(--muted)'}">${esc(x.name)}</span><small class="muted">${esc(x.unit)}</small></button>`).join('')}</div>`).join('') || emptyBox('search','مفيش بند بالاسم ده'); 
+    document.querySelectorAll('[data-it]').forEach(b => b.onclick = () => itemForm(S.items.items.find(x => x.code === b.dataset.it))); };
+  $('#itQ').oninput = draw; draw();
+  if ($('#itAdd')) $('#itAdd').onclick = () => itemForm(null);
+  api('items').then(r => { if (r.ok) { S.items = r; store.set('items', r); if ($('#itList')) draw(); } });
+}
+function itemForm(it){
+  const o = S.items, opt = (v, cur) => `<option ${v === cur ? 'selected' : ''}>${esc(v)}</option>`;
+  openSheet(`<h3>${it ? 'تعديل ' + esc(it.code) : 'بند جديد'}</h3>
+    ${it ? '' : '<p class="muted" style="font-size:12.5px;margin:-6px 0 6px">الكود بيطلع لوحده من القسم</p>'}
+    <label class="f">القسم</label><select class="in" id="iSec">${o.sections.map(([p, n]) => opt(n, it ? it.sec : '')).join('')}</select>
+    <label class="f">اسم البند</label><input class="in" id="iName" value="${esc(it ? it.name : '')}">
+    <label class="f">الوحدة</label><select class="in" id="iUnit">${o.units.map(u => opt(u, it ? it.unit : 'م2')).join('')}</select>
+    <label class="f">ملاحظات</label><input class="in" id="iNotes" value="${esc(it ? it.notes : '')}">
+    ${it ? `<label class="row" style="margin-top:12px;gap:8px"><input type="checkbox" id="iAct" ${it.active ? 'checked' : ''}> البند شغال (لو شلته مش هيظهر في الاختيارات)</label>` : ''}
+    <div class="err" id="iErr"></div>
+    <button class="btn gold" id="iSave">${it ? 'حفظ' : 'ضيف البند'}</button>`);
+  $('#iSave').onclick = async () => {
+    busy($('#iSave'), true);
+    const r = await api('saveItem', {item: {code: it ? it.code : '', sec: $('#iSec').value, name: $('#iName').value, unit: $('#iUnit').value, notes: $('#iNotes').value, active: it ? $('#iAct').checked : true}});
+    busy($('#iSave'), false);
+    if (!r.ok) { $('#iErr').textContent = errMsg(r); return; }
+    S.items = null; toast(it ? 'اتحفظ ✓' : `اتضاف ${r.item.code} ✓`); itemsSheet();
   };
 }
 
@@ -836,7 +1002,7 @@ function wireShell(){
   document.querySelectorAll('nav.bn [data-t]').forEach(b => b.onclick = () => { S.tab = b.dataset.t; S.project = null; render(); scrollTo(0,0); });
   $('#fab').onclick = fabSheet;
   $('#searchBtn').onclick = () => { S.tab = 'projects'; S.project = null; render(); setTimeout(() => { const s = $('#pSearch'); if (s) s.focus(); }, 50); };
-  $('#bellBtn').onclick = () => openSheet(`<h3>الإشعارات</h3>${emptyBox('bell','الإشعارات هتشتغل مع المصروفات والمهام')}`);
+  $('#bellBtn').onclick = notesSheet;
   const eye = $('#eyeBtn');
   if (eye) eye.onclick = () => { S.masked = !S.masked; store.set('masked', S.masked); render(); };
   const openP = b => b.onclick = () => { S.project = b.dataset.open; logAct('فتح مشروع', S.project); render(); scrollTo(0,0); };
@@ -865,8 +1031,11 @@ function wireShell(){
   if (id('report')) id('report').onclick = reportSheet;
   if (id('install')) id('install').onclick = () => { if (isStandalone()) toast('التطبيق متثبت عندك بالفعل ✓'); else { store.set('skipInstall', false); render(); } };
   if (id('logout')) id('logout').onclick = () => { api('logout'); signOut(); };
+  if (id('items')) id('items').onclick = itemsSheet;
+  if (id('backups')) id('backups').onclick = backupSheet;
+  if (id('reports')) id('reports').onclick = reportsSheet;
   /* تحديث من جوجل في الخلفية */
-  loadProjects();
+  loadProjects(); loadNotes();
   if (isBoss() && S.tab === 'home' && !S.project && !S.teamLoaded) { S.teamLoaded = true; loadTeam().then(() => { if (S.tab === 'home' && !S.project && !$('#sheet').classList.contains('on')) render(); }); }
 }
 
