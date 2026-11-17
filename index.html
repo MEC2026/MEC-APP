@@ -71,6 +71,10 @@ h2.sec .more{margin-inline-start:auto;font-size:13px;font-weight:600;color:var(-
 .pc{display:block;width:100%;text-align:start;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
 .pc+.pc{margin-top:10px}
 .pc .head{display:flex;align-items:flex-start;gap:8px}
+.pact{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#F7F8FA;display:inline-flex;align-items:center;justify-content:center;color:var(--navy2)}
+.pact svg{width:18px;height:18px}
+.pvData summary{list-style:none;font-weight:600}.pvData summary::-webkit-details-marker{display:none}.pvData summary::after{content:'▾';margin-inline-start:auto;color:var(--muted)}.pvData[open] summary::after{content:'▴'}
+.pc .head{align-items:center}
 .pc .head b{flex:1;font-size:15.5px;font-weight:700;line-height:1.4}
 .pc .meta{font-size:12.5px;color:var(--muted);margin-top:2px}
 .bar{height:6px;background:#EDF0F4;border-radius:6px;overflow:hidden;margin:12px 0 4px}
@@ -176,6 +180,8 @@ body.sun{font-size:17.5px}body.sun .muted,body.sun small{color:#2b2f36!important
   <symbol id="i-box" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></symbol>
   <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></symbol>
   <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></symbol>
   <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
   <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
   <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V4M4 20h16"/><path d="M8 16v-4M12 16V8M16 16v-6"/></symbol>
@@ -205,8 +211,8 @@ body.sun{font-size:17.5px}body.sun .muted,body.sun small{color:#2b2f36!important
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.9';
-const APP_NOTES = ['الرئيسية فيها أزرار التسجيل السريع، والحضور فيه «زي امبارح» و«الكل كامل» و«الموقع واقف النهارده» وملاحظة اليوم بالصوت، وتسجيل اليوميات بصوتك', 'المستحقات وكشف القبض: «جمّع المستحقات» في أي وقت، والمطلوب واللي في العهدة واللي يتبعت، و«صفّيت للكل»، وحاسبة الفكة، وكشف للطباعة', 'العهدة: تعزيز وكشف حساب لكل مهندس، والتحويل من تابات أسامي اللي على الموقع', '«حسابي»: صورتك ولينك إنستاباي بتاعك. وصورة اختيارية لأي عامل', 'وضع الشمس، وتنبيه لما تنزل نسخة جديدة، وتصدير كشف اليوميات إكسيل، وتقفيل الفترة'];
+const APP_VERSION = '0.9.1';
+const APP_NOTES = ['صفحة المشروع اتظبطت: الكارت فوق، والأقسام على طول تحته وعليها حالة النهارده، وكارت العامل الملخص فوق والبيانات في سطر بيفتح', 'الرئيسية فيها أزرار التسجيل السريع، والحضور فيه «زي امبارح» و«الكل كامل» و«الموقع واقف النهارده» وملاحظة اليوم بالصوت، وتسجيل اليوميات بصوتك', 'المستحقات وكشف القبض: «جمّع المستحقات» في أي وقت، والمطلوب واللي في العهدة واللي يتبعت، و«صفّيت للكل»، وحاسبة الفكة، وكشف للطباعة', 'العهدة: تعزيز وكشف حساب لكل مهندس، والتحويل من تابات أسامي اللي على الموقع', '«حسابي»: صورتك ولينك إنستاباي بتاعك. وصورة اختيارية لأي عامل', 'وضع الشمس، وتنبيه لما تنزل نسخة جديدة، وتصدير كشف اليوميات إكسيل، وتقفيل الفترة'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
 
@@ -602,11 +608,11 @@ const pct = (a, b) => (a !== '' && b) ? Math.round(a / b * 100) : null;
 
 const emptyBox = (i, t) => `<div class="empty">${ic(i)}<div>${esc(t)}</div></div>`;
 
-function projectCard(p, asDiv){
+function projectCard(p, asDiv, acts){
   const tag = asDiv ? 'div' : 'button';
   const meta = [p.code, p.short && p.short !== p.name ? p.short : '', p.client, p.type, p.engName ? 'المهندس: ' + p.engName : ''].filter(Boolean).map(esc).join(' · ');
   return `<${tag} class="pc" ${asDiv ? '' : `data-open="${esc(p.code)}"`}>
-    <div class="head"><b>${esc(p.name)}</b><span class="pill ${STATUS_PILL[p.status] || 'p-info'}">${esc(p.status)}</span></div>
+    <div class="head"><b>${esc(p.name)}</b>${acts || ''}<span class="pill ${STATUS_PILL[p.status] || 'p-info'}">${esc(p.status)}</span></div>
     <div class="meta">${meta}</div>
     <div class="facts" style="margin-top:10px">
       <span class="pill" style="background:#F1F3F6;color:var(--muted)">الإنجاز: لسه</span>
@@ -619,44 +625,45 @@ function projectCard(p, asDiv){
 
 function projectsView(){
   const f = S.pFilter;
-  const list = S.projects.filter(p => f === 'all' || p.status === f);
+  const last = store.get('lastProj', '');
+  const list = S.projects.filter(p => f === 'all' || p.status === f).sort((x, y) => (y.code === last) - (x.code === last));
   return `<div class="card" style="padding:10px 12px;margin-bottom:10px"><div class="row">${ic('search')}<input class="in" style="border:0;padding:4px" id="pSearch" placeholder="دوّر باسم المشروع أو الكود أو العميل"></div></div>
   <div class="tabs">${[['all','الكل'],['جاري','جاري'],['متوقف','متوقف'],['انتهى','انتهى']].map(([k,n]) => `<button class="tab ${f===k?'on':''}" data-flt="${k}">${n}</button>`).join('')}</div>
   ${canManage() ? `<button class="btn gold" id="newProj" style="margin-bottom:12px">${ic('plus')} مشروع جديد</button>` : ''}
   <div id="pList">${list.map(p => projectCard(p)).join('') || emptyBox('folder', S.projects.length ? 'مفيش مشاريع بالحالة دي' : (canManage() ? 'مفيش مشاريع لسه. اعمل أول مشروع' : 'مفيش مشاريع متسجلة عليك لسه'))}</div>`;
 }
 
+const located = p => p && p.lat !== '' && p.lat !== undefined && p.lat !== null;
+const canSetLoc = p => canManage() || (role() === 'engineer' && p.engId === S.user.id);
 function projectView(){
   const p = findProject(S.project);
   if (!p) return `<button class="row muted" id="back" style="margin-bottom:10px">${ic('arrowR')} المشاريع</button>${emptyBox('folder','المشروع ده مش موجود أو اتشال من عليك')}`;
-  const info = [
-    p.client && ['العميل', esc(p.client)],
-    p.clientPhone && ['تليفون العميل', `<a href="tel:${esc(p.clientPhone)}" dir="ltr" style="color:var(--navy2)">${esc(p.clientPhone)}</a>`],
-    p.address && ['العنوان', esc(p.address)],
-    ['المهندس', esc(p.engName || 'لسه')],
-    ['المشرف', esc(p.supName || 'لسه')],
-    p.short && ['الاسم المختصر', esc(p.short)],
-    p.value !== undefined && p.value !== '' && ['قيمة العقد', money(p.value)],
-    p.advance !== undefined && p.advance !== '' && ['الدفعة المقدمة', money(p.advance) + (pct(p.advance, p.value) !== null ? ` <span class="pill p-info">${pct(p.advance, p.value)}% من العقد</span>` : '')],
-    p.retention !== undefined && p.retention !== '' && ['المحتجز', esc(p.retention) + '%'],
-    p.calc && ['طريقة الحساب', esc(p.calc) + (p.supPct !== '' && p.supPct !== undefined ? ` · <b>${esc(p.supPct)}%</b>` : '')],
-    p.start && ['تاريخ البداية', esc(fmtDate(p.start))],
-    p.end && ['تاريخ النهاية', esc(fmtDate(p.end))],
-    ['مكان الموقع', p.lat !== '' && p.lat !== undefined ? `<a href="${esc(p.map)}" target="_blank" rel="noopener" style="color:var(--navy2)">${ic('link')} افتح على الخريطة</a>` : '<span class="muted">لسه ما اتحددش</span>'],
-    p.notes && ['ملاحظات', esc(p.notes)]
-  ].filter(Boolean);
+  const needLoc = !located(p) && canSetLoc(p);
+  const acts = (p.clientPhone ? `<a class="pact" href="tel:${esc(p.clientPhone)}" aria-label="كلّم العميل" title="كلّم العميل">${ic('phone')}</a>` : '')
+    + (needLoc ? `<button class="pact" id="hereTop" aria-label="سجّل مكان المشروع" title="أنا في الموقع: سجّل مكان المشروع">${ic('pin')}</button>` : '');
+  const st = (S.secStat || {})[p.code] || {};
+  const badge = s => s.k === 'att' && st.att ? `<span class="soon" style="${st.att === 'done' ? 'background:var(--ok-bg);color:var(--ok)' : 'background:var(--warn-bg);color:var(--warn)'}">${st.att === 'done' ? '✓ اتسجل' : 'لسه'}</span>` : (s.live ? '' : '<span class="soon">قريبًا</span>');
   return `
   <button class="row muted" id="back" style="margin-bottom:10px">${ic('arrowR')} المشاريع</button>
-  ${projectCard(p, true)}
-  <div class="card" style="margin-top:10px;padding:4px 14px">
-    ${info.map(([k, v]) => `<div class="mi" style="font-weight:400"><small class="muted" style="width:110px;flex:none">${k}</small><span style="flex:1;min-width:0">${v}</span></div>`).join('')}
-  </div>
-  ${canManage() || (role() === 'engineer' && p.engId === S.user.id) ? `<button class="btn ghost" id="hereBtn" style="margin-top:10px">${ic('link')} أنا في الموقع دلوقتي: سجّل مكان المشروع</button>` : ''}
-  ${canManage() ? `<button class="btn ghost" id="editProj" style="margin-top:10px">تعديل بيانات المشروع</button>` : ''}
+  ${projectCard(p, true, acts)}
   <h2 class="sec">أقسام المشروع</h2>
-  <div class="grid">${SECTIONS.filter(s => !(s.k === 'takeoff' && role() === 'supervisor2') && !(s.k === 'att' && role() === 'contractor')).map(s => `<button class="tile ${s.live?'live':''}" data-sec="${s.k}" data-n="${esc(s.n)}">${s.live?'':'<span class="soon">قريبًا</span>'}<span class="ico">${ic(s.i)}</span>${esc(s.n)}</button>`).join('')}</div>
+  <div class="grid">${SECTIONS.filter(s => !(s.k === 'takeoff' && role() === 'supervisor2') && !(s.k === 'att' && role() === 'contractor')).map(s => `<button class="tile ${s.live?'live':''}" data-sec="${s.k}" data-n="${esc(s.n)}">${badge(s)}<span class="ico">${ic(s.i)}</span>${esc(s.n)}</button>`).join('')}</div>
+  ${needLoc ? `<button class="btn ghost" id="hereBtn" style="margin-top:14px">${ic('pin')} أنا في الموقع دلوقتي: سجّل مكان المشروع</button>` : ''}
+  ${canManage() ? `<button class="btn ghost" id="editProj" style="margin-top:10px">تعديل بيانات المشروع</button>` : ''}
   <h2 class="sec">ملاحظات سريعة</h2>
-  <div class="card"><textarea class="in" data-ak="pnote.${esc(p.code)}" placeholder="ملاحظاتك على المشروع… بتتحفظ على موبايلك"></textarea><div class="saved" data-saved="pnote.${esc(p.code)}"></div></div>`;
+  <div class="card"><textarea class="in" data-ak="pnote.${esc(p.code)}" placeholder="ملاحظاتك على المشروع… بتتحفظ على موبايلك"></textarea><div class="saved" data-saved="pnote.${esc(p.code)}"></div></div>
+  ${located(p) && isOwner() ? `<button class="row muted" id="hereChange" style="margin:14px auto 0;font-size:12.5px;gap:4px">${ic('pin')} مكان الموقع متسجل · تغيير</button>` : ''}`;
+}
+/* حالة النهارده على مربعات الأقسام */
+async function loadSecStat(code){
+  if (!(canRecord() || canMoney())) return;
+  S.secStat = S.secStat || {};
+  const old = S.secStat[code]; if (old && Date.now() - old.at < 120000) return;
+  S.secStat[code] = Object.assign({}, old, {at: Date.now()});
+  const r = await api('attDay', {project: code});
+  if (!r.ok) return;
+  S.secStat[code] = {at: Date.now(), att: r.rows.length ? 'done' : (r.workers.length ? 'todo' : '')};
+  if (S.project === code && !$('#sheet').classList.contains('on')) render();
 }
 
 function tasksView(){
@@ -703,7 +710,7 @@ async function projectForm(code){
     <label class="f">العميل</label><input class="in" id="fClient" data-ak="${k}client">
     <label class="f">تليفون العميل</label><input class="in" id="fCPhone" type="tel" dir="ltr" data-ak="${k}cphone" placeholder="01xxxxxxxxx">
     <label class="f">العنوان</label><input class="in" id="fAddr" data-ak="${k}addr">
-    <label class="f">لينك الموقع على خرايط جوجل (اختياري)</label><input class="in" id="fMap" dir="ltr" data-ak="${k}map" placeholder="https://maps.app.goo.gl/…">
+    <label class="f">لينك الموقع على خرايط جوجل (اختياري)</label><input class="in" id="fMap" dir="ltr" data-ak="${k}map" placeholder="https://maps.app.goo.gl/…" ${p && located(p) && !isOwner() ? 'readonly' : ''}>${p && located(p) && !isOwner() ? '<p class="muted" style="font-size:12px;margin:4px 0 0">مكان الموقع متسجل، وتغييره عند المالك بس.</p>' : ''}
     <label class="f">المهندس المسؤول</label><select class="in" id="fEng" data-ak="${k}eng"><option value="">بيحمّل الفريق…</option></select>
     <label class="f">المشرف</label><select class="in" id="fSup" data-ak="${k}sup"><option value="">بيحمّل الفريق…</option></select>
     <h4 style="margin:16px 0 0;font-size:14px">العقد <small class="muted" style="font-weight:400">· للمالك والمدير بس</small></h4>
@@ -760,7 +767,7 @@ function openSheet(html){
   $('#sheet').classList.add('on'); $('#scrim').classList.add('on'); bindAutosave($('#sheetBody'));
   $('#sheetX').onclick = closeSheet;
 }
-function closeSheet(){ $('#sheet').classList.remove('on'); $('#scrim').classList.remove('on'); }
+function closeSheet(){ $('#sheet').classList.remove('on'); $('#scrim').classList.remove('on'); if (S.redraw) { S.redraw = false; const y = scrollY; render(); scrollTo(0, y); } }
 $('#scrim').onclick = closeSheet;
 
 function fabSheet(){
@@ -1031,17 +1038,31 @@ function personView(t, p){
     p.files && ['المرفقات', p.files.split('\n').map(l => { const [n, u] = l.split(' | '); return u ? `<a href="${esc(u)}" target="_blank" rel="noopener" style="color:var(--navy2)">${esc(n)}</a>` : ''; }).join('<br>')],
     p.notes && ['ملاحظات', esc(p.notes)], p.by && ['ضافه', esc(p.by)]
   ].filter(Boolean);
-  openSheet(`<h3 class="row" style="gap:10px">${avatar(p, 44)}<span>${esc(p.name)}</span></h3>
-    ${p.status === 'مستني تأكيد' ? `<div class="card" style="background:var(--warn-bg);color:var(--warn);font-size:13.5px">مستني تأكيد من المالك أو المدير. الشغل معاه ماشي عادي.</div>` : ''}
-    <div class="card money ${S.masked ? 'masked' : ''}" style="padding:4px 14px">${rows.map(([k, v]) => `<div class="mi" style="font-weight:400"><small class="muted" style="width:105px;flex:none">${k}</small><span style="flex:1;min-width:0">${v}</span></div>`).join('')}</div>
-    <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:10px">
+  const ph = (p.phones || '').split('، ')[0];
+  const sub = [p.trade || p.goods || '', p.kind || '', t === 'L' && p.project ? p.project : ''].filter(Boolean).map(esc).join(' · ');
+  openSheet(`<div class="card" style="margin:34px 0 10px">
+      <div class="row" style="gap:10px;align-items:center">${avatar(p, 48)}<div style="flex:1;min-width:0"><b style="font-size:16px">${esc(p.name)}</b>
+        <small class="muted" style="display:block"><span dir="ltr">${esc(p.code)}</span>${sub ? ' · ' + sub : ''}</small></div>
+        ${ph ? `<a class="pact" href="tel:${esc(ph)}" aria-label="اتصل">${ic('phone')}</a>` : ''}</div>
+      ${p.status === 'مستني تأكيد' ? `<div style="background:var(--warn-bg);color:var(--warn);font-size:13px;border-radius:8px;padding:6px 10px;margin-top:10px">مستني تأكيد من المالك أو المدير. الشغل معاه ماشي عادي.</div>` : ''}
+      ${t === 'L' && canPay() ? `<div class="row money ${S.masked ? 'masked' : ''}" id="pvSum" style="gap:8px;margin-top:10px"><div style="flex:1;text-align:center;background:#F7F8FA;border-radius:8px;padding:6px"><small class="muted">الباقي له</small><div id="pvBal" style="font-weight:700;font-size:18px">…</div></div><div style="flex:1;text-align:center;background:#F7F8FA;border-radius:8px;padding:6px"><small class="muted">آخر يوم شغل</small><div id="pvLast" style="font-weight:700;font-size:15px;padding-top:2px">…</div></div></div>` : ''}
+    </div>
+    <div class="row" style="flex-wrap:wrap;gap:6px">
       ${canEditP() ? `<button class="btn ghost" style="flex:1" id="pvEdit">تعديل</button>` : ''}
       ${isBoss() && p.status === 'مستني تأكيد' ? `<button class="btn gold" style="flex:1" id="pvOk">اعتماد</button>` : ''}
       ${isBoss() ? `<button class="btn ghost" style="flex:1" id="pvMerge">دمج مع…</button>` : ''}
       ${t === 'L' && canMoney() ? `<button class="btn ghost" style="flex:1" id="pvWage">تاريخ اليومية</button>` : ''}
       ${t === 'L' && canPay() ? `<button class="btn gold" style="flex:1 1 100%" id="pvAcc">${ic('wallet')} الحساب والدفع</button>` : ''}
       ${t === 'C' && canPay() ? `<label class="btn ghost" style="flex:1;text-align:center">${ic('camera')} مرفق<input type="file" id="pvFile" accept="image/*" hidden></label>` : ''}
-    </div><div id="pvMore"></div>`);
+    </div>
+    <details class="card pvData" style="margin-top:10px;padding:4px 14px"><summary class="mi" style="cursor:pointer">البيانات</summary>
+      <div class="money ${S.masked ? 'masked' : ''}">${rows.map(([k, v]) => `<div class="mi" style="font-weight:400"><small class="muted" style="width:105px;flex:none">${k}</small><span style="flex:1;min-width:0">${v}</span></div>`).join('')}</div></details>
+    <div id="pvMore"></div>`);
+  if ($('#pvSum')) api('workerAccount', {code: p.code}).then(r => { if (!$('#pvBal')) return;
+    if (!r.ok || !r.account) { $('#pvBal').textContent = '—'; $('#pvLast').textContent = '—'; return; }
+    const b = r.account.total.balance, wd = r.account.days.filter(d => d.st !== 'غياب').map(d => d.date).sort().pop();
+    $('#pvBal').innerHTML = `<span class="mv">${nf(b)}</span> ج`; $('#pvBal').style.color = b > 0 ? 'var(--navy)' : 'var(--ok)';
+    $('#pvLast').textContent = wd ? fmtDate(wd) : 'لسه'; });
   if ($('#pvEdit')) $('#pvEdit').onclick = () => personForm(t, p);
   if ($('#pvAcc')) $('#pvAcc').onclick = () => accountSheet(p.code);
   if ($('#pvOk')) $('#pvOk').onclick = async () => { const r = await api('approvePerson', {type: t, code: p.code}); if (r.ok) { toast('اتعتمد ✓'); peopleSheet(t); } else toast(errMsg(r)); };
@@ -1120,7 +1141,7 @@ function getLoc(ms = 9000){
 }
 async function setHere(){
   const p = findProject(S.project); if (!p) return;
-  if (!confirmBox(`تسجّل مكانك دلوقتي على إنه مكان «${p.name}»؟ اعمل كده وانت واقف في الموقع.`)) return;
+  if (!confirmBox(located(p) ? `تغيّر مكان «${p.name}» لمكانك دلوقتي؟ المكان القديم هيتشال. اعمل كده وانت واقف في الموقع.` : `تسجّل مكانك دلوقتي على إنه مكان «${p.name}»؟ اعمل كده وانت واقف في الموقع.`)) return;
   toast('بيجيب مكانك…');
   const loc = await getLoc(15000);
   if (!loc) { toast('الموبايل ما ادّاش المكان. شغّل الـ GPS واسمح للتطبيق'); return; }
@@ -1222,6 +1243,7 @@ async function attendanceSheet(code, date){
       if (!x.ok && x.error === 'net') { const q = store.get('attq', []); q.push(body); store.set('attq', q); toast('مفيش نت: اليوميات اتحفظت على الموبايل وهتتبعت لوحدها'); closeSheet(); return; }
       if (!x.ok) { $('#atErr').textContent = errMsg(x); $('#atSave').textContent = 'سجّل اليوميات'; return; }
       const msg = [x.saved ? `اتسجل ${x.saved}` : '', x.requests ? `${x.requests} طلب تعديل اتبعت` : '', x.locked ? `${x.locked} متأكدة قبل كده ما اتغيرتش` : '', x.state === 'مبدئي' && x.saved ? 'مبدئي لحد ما يتأكد' : ''].filter(Boolean).join(' · ') || 'مفيش تغيير';
+      if (r.date === ymd(new Date()) && x.saved) { S.secStat = S.secStat || {}; S.secStat[code] = {at: Date.now(), att: 'done'}; S.quickAt = 0; S.redraw = true; }
       toast(msg + ' ✓'); if (x.warnings && x.warnings.length) setTimeout(() => toast(x.warnings[0]), 2700);
       attendanceSheet(code, r.date);
     };
@@ -1875,7 +1897,7 @@ function wireShell(){
   $('#bellBtn').onclick = notesSheet;
   const eye = $('#eyeBtn');
   if (eye) eye.onclick = () => { S.masked = !S.masked; store.set('masked', S.masked); render(); };
-  const openP = b => b.onclick = () => { S.project = b.dataset.open; logAct('فتح مشروع', S.project); render(); scrollTo(0,0); };
+  const openP = b => b.onclick = () => { S.project = b.dataset.open; store.set('lastProj', S.project); logAct('فتح مشروع', S.project); render(); scrollTo(0,0); };
   v.querySelectorAll('[data-open]').forEach(openP);
   v.querySelectorAll('[data-t2]').forEach(b => b.onclick = () => { S.tab = b.dataset.t2; render(); });
   v.querySelectorAll('[data-soon]').forEach(b => b.onclick = () => soon(b.dataset.soon));
@@ -1887,12 +1909,14 @@ function wireShell(){
   const ps = $('#pSearch');
   if (ps) ps.oninput = () => {
     const q = ps.value.trim();
-    const list = S.projects.filter(p => (S.pFilter === 'all' || p.status === S.pFilter) && (!q || (p.name + p.code + p.client).includes(q)));
+    const last = store.get('lastProj', '');
+    const list = S.projects.filter(p => (S.pFilter === 'all' || p.status === S.pFilter) && (!q || (p.name + p.code + p.client).includes(q))).sort((x, y) => (y.code === last) - (x.code === last));
     $('#pList').innerHTML = list.map(p => projectCard(p)).join('') || emptyBox('search','مفيش نتايج');
     $('#pList').querySelectorAll('[data-open]').forEach(openP);
   };
   const id = x => document.getElementById(x);
-  if (id('hereBtn')) id('hereBtn').onclick = setHere;
+  ['hereBtn','hereTop','hereChange'].forEach(x => { if (id(x)) id(x).onclick = setHere; });
+  if (S.project) loadSecStat(S.project);
   if (id('newProj')) id('newProj').onclick = () => projectForm('');
   if (id('editProj')) id('editProj').onclick = () => projectForm(S.project);
   if (id('openLog')) id('openLog').onclick = logSheet;
