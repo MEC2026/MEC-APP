@@ -1,5 +1,5 @@
 // MEC-APP service worker: الصفحة نفسها دايما من النت لو متاح (عشان التحديث يوصل)، والباقي من الكاش
-const CACHE = 'mec-app-v0.8';
+const CACHE = 'mec-app-v0.9';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './logo-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
