@@ -214,7 +214,7 @@ body.sun{font-size:17.5px}body.sun .muted,body.sun small{color:#2b2f36!important
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.10.2';
+const APP_VERSION = '0.10.3';
 const APP_NOTES = ['التوريدة والمعدات بيتحفظوا على الموبايل لو مفيش نت، ويتبعتوا لوحدهم أول ما النت يرجع', 'رقم العربية بيملى الحمولة، والمورد بيقترح «آخر مرة كانت مع فلان» بزرار تأكيد', 'بعد التوريدة: «صوّر البون؟»، وتنبيه لو السعر أعلى من التحليل ولو بجنيه', '«زي اللي فاتت» في الحضور والمعدات، والمنطقة في المشروع، وتصدير إكسيل منسّق باللوجو ومعاه PDF'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
@@ -234,7 +234,7 @@ const ERR = {
   badInvite:'لينك الدعوة ده مش شغال أو اتستخدم قبل كده. اطلب لينك جديد', pinFormat:'الرقم السري لازم يكون من 4 لـ 8 أرقام',
   token:'الكلمة السرية غلط', ownerExists:'حساب المالك موجود بالفعل', missing:'كمّل الخانات الناقصة',
   phoneExists:'الرقم ده متسجل لحد تاني', role:'الصلاحية دي مش مسموحة', wrongPhone:'ده مش رقم موبايل المالك', denied:'مش من صلاحيتك', session:'سجّل دخول تاني',
-  net:'مفيش اتصال بجوجل دلوقتي. جرّب تاني', slow:'السيرفر اتأخر قوي. جرّب تاني كمان شوية', server:'حصلت مشكلة عند جوجل. جرّب تاني', self:'مينفعش تعمل كده على حسابك', badUser:'الشخص ده مش في الفريق أو صلاحيته مش مناسبة', bigPhoto:'الصورة كبيرة قوي، جرّب صورة تانية', itemExists:'البند ده موجود قبل كده بنفس الاسم', badDates:'تاريخ النهاية لازم يبقى بعد البداية', badPercent:'النسبة لازم تبقى من 0 لـ 100', badNumber:'الرقم مش مظبوط', badAdvance:'الدفعة المقدمة أكبر من قيمة العقد', badIpn:'لينك إنستاباي لازم يبدأ بـ https://ipn.eg/S/ (انسخه زي ما هو من تطبيق إنستاباي)', payType:'اختار نوع الرقم: إنستاباي ولا محفظة', badPhone:'رقم الموبايل مش مظبوط', future:'مينفعش تسجل يوم لسه ما جاش', todayOnly:'تقدر تسجل يوميات النهارده بس', reason:'اكتب سبب الخصم', pendingWorker:'العامل ده لسه مستني تأكيد. اعتمده الأول وبعدين ادفع له', badMap:'اللينك ده مش لينك موقع على خرايط جوجل، أو الموقع مش واضح فيه', backup:'النسخة ما اتعملتش. جرّب تاني', notfound:'مش لاقي ده. اعمل تحديث', pickSupplier:'اختار المورد', truckCap:'العربية دي جديدة: اكتب حمولة النقلة بالمتر المكعب', truckLoads:'اكتب عدد النقلات', truckMissing:'ضيف عربية واحدة على الأقل'
+  net:'مفيش اتصال بجوجل دلوقتي. جرّب تاني', full:'مساحة الموبايل مش كفاية للحفظ من غير نت. امسح حاجات من الموبايل أو استنى النت', slow:'السيرفر اتأخر قوي. جرّب تاني كمان شوية', server:'حصلت مشكلة عند جوجل. جرّب تاني', self:'مينفعش تعمل كده على حسابك', badUser:'الشخص ده مش في الفريق أو صلاحيته مش مناسبة', bigPhoto:'الصورة كبيرة قوي، جرّب صورة تانية', itemExists:'البند ده موجود قبل كده بنفس الاسم', badDates:'تاريخ النهاية لازم يبقى بعد البداية', badPercent:'النسبة لازم تبقى من 0 لـ 100', badNumber:'الرقم مش مظبوط', badAdvance:'الدفعة المقدمة أكبر من قيمة العقد', badIpn:'لينك إنستاباي لازم يبدأ بـ https://ipn.eg/S/ (انسخه زي ما هو من تطبيق إنستاباي)', payType:'اختار نوع الرقم: إنستاباي ولا محفظة', badPhone:'رقم الموبايل مش مظبوط', future:'مينفعش تسجل يوم لسه ما جاش', todayOnly:'تقدر تسجل يوميات النهارده بس', reason:'اكتب سبب الخصم', pendingWorker:'العامل ده لسه مستني تأكيد. اعتمده الأول وبعدين ادفع له', badMap:'اللينك ده مش لينك موقع على خرايط جوجل، أو الموقع مش واضح فيه', backup:'النسخة ما اتعملتش. جرّب تاني', notfound:'مش لاقي ده. اعمل تحديث', pickSupplier:'اختار المورد', truckCap:'العربية دي جديدة: اكتب حمولة النقلة بالمتر المكعب', truckLoads:'اكتب عدد النقلات', truckMissing:'ضيف عربية واحدة على الأقل'
 };
 const SECTIONS = [
   {k:'att', n:'الحضور', i:'users', live:true},
@@ -515,6 +515,7 @@ function shell(){
     ${canMoney() ? `<button class="ibtn" id="eyeBtn" aria-label="إخفاء الأرقام">${ic(S.masked ? 'eyeoff' : 'eye')}</button>` : ''}
     <button class="ibtn" id="sunTop" aria-label="وضع الشمس" title="وضع الشمس">${ic(store.get('sun', false) ? 'sunOn' : 'sun')}</button>
     <button class="ibtn" id="searchBtn" aria-label="بحث">${ic('search')}</button>
+    ${S.qn + S.qbad ? `<button class="ibtn" id="qBtn" aria-label="مستني النت" style="width:auto;padding:0 8px;font-size:13px;font-weight:700;color:${S.qbad ? 'var(--bad)' : 'var(--gold)'}">⏳ ${S.qn + S.qbad}</button>` : ''}
     <button class="ibtn" id="bellBtn" aria-label="الإشعارات">${ic('bell')}${unreadCount() ? `<span class="bdg">${unreadCount() > 9 ? '9+' : unreadCount()}</span>` : ''}</button>
   </header>
   <main id="view" class="money ${S.masked ? 'masked' : ''}">${view()}</main>
@@ -767,8 +768,11 @@ async function projectForm(code){
       advance: digits($('#fAdv').value), retention: digits($('#fRet').value), end: $('#fEnd').value, map: $('#fMap').value.trim(), region};
     if (!data.name.trim()) { $('#fErr').textContent = 'اكتب اسم المشروع'; return; }
     busy($('#fSave'), true);
-    const r = await api('saveProject', {project: data});
+    if (!p && !navigator.onLine) { busy($('#fSave'), false); $('#fErr').textContent = 'المشروع الجديد محتاج نت عشان ياخد كوده. البيانات متحفظة هنا، جرّب لما النت يرجع.'; return; }
+    const r = p ? await qSave('saveProject', {project: data}, 'تعديل مشروع ' + data.name.trim()) : await api('saveProject', {project: data});
     busy($('#fSave'), false);
+    if (r.queued) { const i = S.projects.findIndex(x => x.code === p.code); if (i >= 0) { S.projects[i] = Object.assign({}, S.projects[i], data); store.set('projects', S.projects); }
+      toast(QMSG); closeSheet(); render(); return; }
     if (!r.ok) { $('#fErr').textContent = errMsg(r); return; }
     ['name','type','client','cphone','addr','eng','sup','start','status','notes','short','calc','pct','value','adv','ret','end','map'].forEach(f => store.del('ak.' + k + f));
     const i = S.projects.findIndex(x => x.code === r.project.code);
@@ -923,8 +927,9 @@ function reportSheet(){
     const text = $('#rpText').value.trim();
     if (!text) { $('#rpErr').textContent = 'اكتب المشكلة الأول'; return; }
     busy($('#rSend'), true);
-    const r = await api('report', {text, photo, version: APP_VERSION, screen: S.project ? 'مشروع ' + S.project : S.tab, device: navigator.userAgent.slice(0, 120)});
+    const r = await qSave('report', {text, photo, version: APP_VERSION, screen: S.project ? 'مشروع ' + S.project : S.tab, device: navigator.userAgent.slice(0, 120)}, 'بلاغ مشكلة');
     busy($('#rSend'), false);
+    if (r.queued) { store.del('ak.report'); closeSheet(); toast(QMSG); return; }
     if (!r.ok) { $('#rpErr').textContent = errMsg(r); return; }
     store.del('ak.report'); closeSheet(); toast('البلاغ وصل ✓ شكرا');
   };
@@ -1165,8 +1170,9 @@ function personForm(t, p, force, preset){
       terms: val('xTerms'), termDays: val('xTermDays') === undefined ? undefined : digits(val('xTermDays'))};
     if (!person.name.trim()) { $('#xErr').textContent = 'اكتب الاسم'; return; }
     busy($('#xSave'), true); $('#xErr').textContent = '';
-    const r = await api('savePerson', {type: t, person, force: !!force});
+    const r = await qSave('savePerson', {type: t, person, force: !!force}, (p ? 'تعديل ' : 'إضافة ') + PPL[t].one + ': ' + person.name.trim());
     busy($('#xSave'), false);
+    if (r.queued) { toast(QMSG + (p ? '' : ' · هيظهر في القايمة بعد ما يتبعت')); closeSheet(); return; }
     if (r.error === 'similar') {
       $('#xSim').innerHTML = `<div class="card" style="margin:8px 0;border-color:var(--warn)"><b>فيه اسم قريب، هو ده؟</b>
         ${r.matches.map(m => `<button class="mi" data-same="${esc(m.code)}" style="font-weight:400"><span class="pill p-info" dir="ltr">${esc(m.code)}</span><span style="flex:1">${esc(m.name)}<small class="muted" style="display:block">${esc(m.phones || '')}</small></span><small style="color:var(--navy2)">هو ده</small></button>`).join('')}
@@ -1269,7 +1275,7 @@ async function attendanceSheet(code, date){
     const hz = (c, d) => { state[c].hours = Math.max(0, Math.min(16, state[c].hours + d)); $('#h_' + c).textContent = state[c].hours; };
     document.querySelectorAll('[data-hm]').forEach(b => b.onclick = () => hz(b.dataset.hm, -1));
     document.querySelectorAll('[data-hp]').forEach(b => b.onclick = () => hz(b.dataset.hp, 1));
-    if ($('#atConf')) $('#atConf').onclick = async () => { const x = await api('confirmAttendance', {project: code, ids: prov.map(y => y.id)}); if (x.ok) { toast(`اتأكد ${x.confirmed} ✓`); attendanceSheet(code, r.date); } else toast(errMsg(x)); };
+    if ($('#atConf')) $('#atConf').onclick = async () => { const x = await qSave('confirmAttendance', {project: code, ids: prov.map(y => y.id)}, 'تأكيد يوميات مبدئية'); if (x.queued) { toast(QMSG); return; } if (x.ok) { toast(`اتأكد ${x.confirmed} ✓`); attendanceSheet(code, r.date); } else toast(errMsg(x)); };
     if ($('#atReq')) $('#atReq').onclick = requestsSheet;
     if ($('#atExp')) $('#atExp').onclick = () => exportAttendance(code);
     wireMics($('#atBody'));
@@ -1293,10 +1299,10 @@ async function attendanceSheet(code, date){
       const loc = await getLoc();
       const body = {project: code, date: r.date, rows: send, loc, at: new Date().toISOString()};
       const noteTxt = $('#atNote') ? $('#atNote').value.trim() : '';
-      if (noteTxt && navigator.onLine) api('dayNote', {project: code, date: r.date, text: noteTxt});
+      if (noteTxt) qSave('dayNote', {project: code, date: r.date, text: noteTxt}, 'ملاحظة اليوم ' + r.date);
       const x = navigator.onLine ? await api('saveAttendance', body) : {ok: false, error: 'net'};
       busy($('#atSave'), false);
-      if (!x.ok && x.error === 'net') { const q = store.get('attq', []); q.push(body); store.set('attq', q); toast('مفيش نت: اليوميات اتحفظت على الموبايل وهتتبعت لوحدها'); closeSheet(); return; }
+      if (!x.ok && x.error === 'net') { const q = store.get('attq', []); q.push(body); store.set('attq', q); qCount(); toast('مفيش نت: اليوميات اتحفظت على الموبايل وهتتبعت لوحدها'); closeSheet(); return; }
       if (!x.ok) { $('#atErr').textContent = errMsg(x); $('#atSave').textContent = 'سجّل اليوميات'; return; }
       const msg = [x.saved ? `اتسجل ${x.saved}` : '', x.requests ? `${x.requests} طلب تعديل اتبعت` : '', x.locked ? `${x.locked} متأكدة قبل كده ما اتغيرتش` : '', x.state === 'مبدئي' && x.saved ? 'مبدئي لحد ما يتأكد' : ''].filter(Boolean).join(' · ') || 'مفيش تغيير';
       if (r.date === ymd(new Date()) && x.saved) { S.secStat = S.secStat || {}; S.secStat[code] = {at: Date.now(), att: 'done'}; S.quickAt = 0; S.redraw = true; }
@@ -1306,20 +1312,85 @@ async function attendanceSheet(code, date){
   };
   draw();
 }
-/* ---------- صندوق الصادر: أي تسجيل من غير نت بيتحفظ على الموبايل ويتبعت لوحده (0.10.1) ---------- */
-function outPush(a, body, label){ const q = store.get('outq', []); q.push({a, body, label, at: Date.now()}); return store.set('outq', q); }
+/* ---------- الطابور: أي تسجيل من غير نت بيتحفظ على الموبايل ويتبعت لوحده (0.10.3) ----------
+   في IndexedDB (بيشيل صور كتير، مش زي localStorage)، وكل تسجيل ليه رقم (qid) والسيرفر بيرفض نفس الرقم مرتين. */
+const QDB = {
+  db: null,
+  open(){ if (this.db) return Promise.resolve(this.db);
+    return new Promise(res => { try { const r = indexedDB.open('mecq', 1);
+      r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains('q')) d.createObjectStore('q', {keyPath: 'id'}); if (!d.objectStoreNames.contains('bad')) d.createObjectStore('bad', {keyPath: 'id'}); };
+      r.onsuccess = () => { this.db = r.result; res(this.db); }; r.onerror = () => res(null); } catch (e) { res(null); } }); },
+  async tx(st, mode, fn){ const d = await this.open(); if (!d) return null;
+    return new Promise(res => { try { const t = d.transaction(st, mode), o = t.objectStore(st), r = fn(o); t.oncomplete = () => res(r && 'result' in r ? r.result : true); t.onerror = () => res(null); t.onabort = () => res(null); } catch (e) { res(null); } }); },
+  all(st = 'q'){ return this.tx(st, 'readonly', o => o.getAll()).then(x => (x || []).sort((a, b) => a.at - b.at)); },
+  put(it, st = 'q'){ return this.tx(st, 'readwrite', o => o.put(it)); },
+  del(id, st = 'q'){ return this.tx(st, 'readwrite', o => o.delete(id)); }
+};
+const qid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+S.qn = 0; S.qbad = 0;
+async function qCount(){ const [a, b] = await Promise.all([QDB.all(), QDB.all('bad')]); S.qn = a.length + store.get('attq', []).length; S.qbad = b.length; qBadge(); }
+function qBadge(){ const el = $('#qBtn'); const n = S.qn + S.qbad;
+  if (!n) { if (el) el.remove(); return; }
+  const html = `<button class="ibtn" id="qBtn" aria-label="مستني النت" title="مستني النت" style="width:auto;padding:0 8px;font-size:13px;font-weight:700;color:${S.qbad ? 'var(--bad)' : 'var(--gold)'}">⏳ ${n}</button>`;
+  if (el) el.outerHTML = html; else if ($('#bellBtn')) $('#bellBtn').insertAdjacentHTML('beforebegin', html);
+  $('#qBtn').onclick = queueSheet; }
+// الحفظ: لو فيه نت بيتبعت على طول، ولو مفيش (أو النت قطع) بيتحفظ في الطابور ويرجع {ok, queued}
+async function qSave(action, body, label){
+  body = Object.assign({}, body, {qid: body.qid || qid(), qat: body.qat || new Date().toISOString()});
+  if (navigator.onLine) { const x = await api(action, body); if (x.ok || x.error !== 'net') return x; }
+  const ok = await QDB.put({id: body.qid, a: action, body, label: label || action, at: Date.now()});
+  if (!ok) return {ok: false, error: 'full'};
+  qCount(); return {ok: true, queued: true, qid: body.qid};
+}
+const QMSG = 'مفيش نت: اتحفظ على الموبايل وهيتبعت لوحده أول ما النت يرجع ⏳';
+// إيصال مؤقت للدفع من غير نت: الرقم الرسمي (P-…) بييجي لما يتبعت
+function tempReceipt(x){
+  openSheet(`<h3>إيصال مؤقت ⏳</h3>
+    <div class="card" style="border-color:var(--gold);line-height:2">
+      <b>${esc(x.name)}</b><br>دفع <b>${nf(x.amount)} ج</b> ${esc(x.method || 'كاش')}<br>
+      ${x.left !== undefined && !isNaN(x.left) ? `الباقي له: <b>${nf(x.left)} ج</b><br>` : ''}
+      ${esc(new Date().toLocaleString('ar-EG', {dateStyle: 'medium', timeStyle: 'short'}))}<br>
+      <span class="pill p-warn">مستني النت</span></div>
+    <p class="muted" style="font-size:12.5px">الدفع اتحفظ على الموبايل. أول ما النت يرجع هيتسجل، ورقم الإيصال الرسمي وصورته هيبقوا في حساب العامل.</p>
+    <button class="btn gold" id="trOk">تمام</button>`);
+  $('#trOk').onclick = closeSheet;
+}
+// للتوافق مع كود 0.10.1 (التوريدة والمعدات)
+function outPush(a, body, label){ QDB.put({id: body.qid || (body.qid = qid()), a, body: Object.assign({qat: new Date().toISOString()}, body), label, at: Date.now()}).then(qCount); return true; }
 let flushingOut = false;
 async function flushOut(){
   if (flushingOut || !navigator.onLine || !S.session) return;
-  const q = store.get('outq', []); if (!q.length) return;
-  flushingOut = true; const left = [], done = [], bad = [];
+  const old = store.get('outq', []);   // اللي اتحفظ في 0.10.1 بيتنقل للطابور الجديد
+  if (old.length) { for (const it of old) await QDB.put({id: (it.body.qid = it.body.qid || qid()), a: it.a, body: it.body, label: it.label, at: it.at}); store.del('outq'); }
+  const q = await QDB.all(); if (!q.length) { qCount(); return; }
+  flushingOut = true; const done = [], bad = [];
   for (const it of q) { const x = await api(it.a, it.body);
-    if (x.ok) { done.push(it.label); (x.warnings || []).forEach(w => bad.push(w)); } else if (x.error === 'net') left.push(it); else bad.push(it.label + ': ' + errMsg(x)); }
-  store.set('outq', left); flushingOut = false;
-  if (done.length) { toast('اتبعت اللي كان مستني النت ✓ (' + done.join('، ') + ')'); S.supDay = null; S.secStat = null; S.quickAt = 0; }
+    if (x.ok) { done.push(it.label); await QDB.del(it.id); (x.warnings || []).forEach(w => bad.push(w)); }
+    else if (x.error === 'net' || x.error === 'slow' || x.error === 'session') break;   // النت قطع تاني: نكمل بعدين بنفس الترتيب
+    else { await QDB.put(Object.assign({}, it, {err: errMsg(x), error: x.error, failedAt: Date.now()}), 'bad'); await QDB.del(it.id); bad.push(it.label + ': ' + errMsg(x)); } }
+  flushingOut = false; qCount();
+  if (done.length) { toast('اتبعت اللي كان مستني النت ✓ (' + done.slice(0, 4).join('، ') + (done.length > 4 ? ' و' + (done.length - 4) + ' كمان' : '') + ')'); S.supDay = null; S.secStat = null; S.quickAt = 0; S.duesAt = 0; }
   bad.forEach((w, i) => setTimeout(() => toast(w), 2600 * (i + 1)));
 }
 addEventListener('online', () => flushOut());
+setInterval(() => { if (navigator.onLine) flushOut(); }, 60000);
+// قايمة «مستني النت» واللي ما اتبعتش
+async function queueSheet(){
+  const [q, bad] = await Promise.all([QDB.all(), QDB.all('bad')]), att = store.get('attq', []);
+  const t = ts => new Date(ts).toLocaleString('ar-EG', {dateStyle: 'short', timeStyle: 'short'});
+  openSheet(`<h3>مستني النت</h3>
+    ${q.length || att.length ? `<div class="card" style="padding:2px 14px">${q.map(x => `<div class="mi" style="font-weight:400"><span style="flex:1">⏳ ${esc(x.label)}<small class="muted" style="display:block">${t(x.at)}</small></span><button class="ibtn" data-qdel="${esc(x.id)}" aria-label="امسح">✕</button></div>`).join('')}
+      ${att.map(a => `<div class="mi" style="font-weight:400"><span style="flex:1">⏳ يوميات ${esc(a.project)} ${esc(a.date)}</span></div>`).join('')}</div>
+      <button class="btn gold" id="qGo" style="margin-top:10px">ابعت دلوقتي</button>` : '<p class="muted">مفيش حاجة مستنية النت ✓</p>'}
+    ${bad.length ? `<h4 style="margin:16px 0 6px;color:var(--bad)">ما اتبعتش (${bad.length})</h4><div class="card" style="padding:2px 14px">${bad.map(x => `<div class="mi" style="font-weight:400;flex-wrap:wrap"><span style="flex:1">✗ ${esc(x.label)}<small style="display:block;color:var(--bad)">${esc(x.err || '')}</small></span>
+      <button class="btn ghost" data-qre="${esc(x.id)}" style="width:auto;padding:4px 10px;font-size:12.5px">${x.error === 'similar' ? 'ضيفه برضه' : 'ابعت تاني'}</button><button class="ibtn" data-qbd="${esc(x.id)}" aria-label="امسح">✕</button></div>`).join('')}</div>` : ''}`);
+  if ($('#qGo')) $('#qGo').onclick = async () => { if (!navigator.onLine) { toast('لسه مفيش نت'); return; } busy($('#qGo'), true); await flushOut(); await flushAtt(); queueSheet(); };
+  document.querySelectorAll('[data-qdel]').forEach(b => b.onclick = async () => { if (!confirmBox('تمسح التسجيل ده؟ مش هيتبعت.')) return; await QDB.del(b.dataset.qdel); await qCount(); queueSheet(); });
+  document.querySelectorAll('[data-qbd]').forEach(b => b.onclick = async () => { await QDB.del(b.dataset.qbd, 'bad'); await qCount(); queueSheet(); });
+  document.querySelectorAll('[data-qre]').forEach(b => b.onclick = async () => { const it = bad.find(x => x.id === b.dataset.qre); if (!it) return;
+    const body = Object.assign({}, it.body, it.error === 'similar' ? {force: true} : {}, {qid: qid()});
+    await QDB.del(it.id, 'bad'); await QDB.put({id: body.qid, a: it.a, body, label: it.label, at: Date.now()}); await flushOut(); queueSheet(); });
+}
 /* «صوّر البون؟» بعد ما التوريدة اتسجلت من غير صورة */
 function askBon(id, then){
   openSheet(`<h3>صوّر البون؟</h3><p class="muted" style="margin:-4px 0 10px">التوريدة اتسجلت. لو معاك البون صوّره دلوقتي عشان يتحفظ معاها.</p>
@@ -1327,7 +1398,7 @@ function askBon(id, then){
     <button class="btn ghost" id="abNo" style="margin-top:8px">لأ، مش دلوقتي</button><div class="err" id="abErr"></div>`);
   $('#abNo').onclick = () => then();
   $('#abPic').onchange = async e => { const fl = e.target.files[0]; if (!fl) return; const bon = await shrinkImage(fl, 1400);
-    const x = await api('deliveryBon', {id, bon}); if (!x.ok) { $('#abErr').textContent = errMsg(x); return; } toast('صورة البون اتحفظت ✓'); then(); };
+    const x = await qSave('deliveryBon', {id, bon}, 'صورة بون توريدة'); if (x.queued) { toast(QMSG); then(); return; } if (!x.ok) { $('#abErr').textContent = errMsg(x); return; } toast('صورة البون اتحفظت ✓'); then(); };
 }
 let flushingAtt = false;
 async function flushAtt(){
@@ -1336,7 +1407,7 @@ async function flushAtt(){
   flushingAtt = true;
   const left = [];
   for (const b of q) { const x = await api('saveAttendance', b); if (!x.ok && x.error === 'net') left.push(b); }
-  store.set('attq', left); flushingAtt = false;
+  store.set('attq', left); flushingAtt = false; qCount();
   if (q.length > left.length) toast('اليوميات اللي كانت مستنية النت اتبعتت ✓');
 }
 addEventListener('online', () => flushAtt());
@@ -1457,8 +1528,9 @@ function moveForm(type){
     if (!(Number(amount) > 0)) { $('#mvErr').textContent = 'اكتب المبلغ'; return; }
     if (!confirmBox(`تسجّل ${type} ${nf(amount)} ج لـ ${w.name}؟`)) return;
     busy($('#mvGo'), true);
-    const r = await api('saveMove', {move: {code: w.code, type, amount, note: $('#mvNote').value, date: $('#mvDate').value, method: 'كاش', source: srcVal()}});
+    const r = await qSave('saveMove', {move: {code: w.code, type, amount, note: $('#mvNote').value, date: $('#mvDate').value, method: 'كاش', source: srcVal()}}, type + ' ' + nf(amount) + ' ج لـ ' + w.name);
     busy($('#mvGo'), false);
+    if (r.queued) { toast(QMSG); closeSheet(); return; }
     if (!r.ok) { $('#mvErr').textContent = errMsg(r); return; }
     toast(`اتسجلت ال${type} ✓`); openSheet('<h3></h3><div id="acBody"></div>'); S.acc = r.account; drawAccount();
   };
@@ -1517,8 +1589,9 @@ function payAmount(pp){
     $('#paConf').innerHTML = `<div class="card" style="border-color:var(--gold)">هتسجل <b>${nf(amt)} ج</b> لـ <b>${esc(S.acc.worker.name)}</b> ${esc(pp.method)}${pp.source && role() !== 'engineer' ? ' من ' + esc(pp.source) : role() === 'engineer' ? ' من عهدتك' : ''}.<br>الباقي له بعدها: <b>${nf(left)} ج</b></div>`;
     $('#paNext').textContent = 'تأكيد'; $('#paNext').onclick = async () => {
       busy($('#paNext'), true);
-      const r = await api('saveMove', {move: {code: pp.code, type: 'دفع', amount: amt, method: pp.method, source: pp.source, photo}});
+      const r = await qSave('saveMove', {move: {code: pp.code, type: 'دفع', amount: amt, method: pp.method, source: pp.source, photo, date: ymd(new Date())}}, 'دفع ' + nf(amt) + ' ج لـ ' + (S.acc ? S.acc.worker.name : pp.code));
       busy($('#paNext'), false);
+      if (r.queued) { tempReceipt({name: S.acc ? S.acc.worker.name : pp.code, amount: amt, method: pp.method, left}); return; }
       if (!r.ok) { $('#paErr').textContent = errMsg(r); return; }
       S.acc = r.account; toast(`اتسجل الدفع ✓ إيصال ${r.receipt}`);
       showReceipt(S.acc, S.acc.moves.find(m => m.id === r.id));
@@ -1700,8 +1773,9 @@ async function myAccountSheet(){
     <div class="err" id="myErr"></div><button class="btn gold" id="mySave">حفظ</button>
     ${hasCust ? `<h4 style="margin:18px 0 6px">عهدتي</h4><div id="myCust" class="muted">بيحمّل…</div>` : ''}`);
   $('#mySave').onclick = async () => { busy($('#mySave'), true);
-    const r = await api('myProfile', {pay: payVal('my'), photo: PHOTO.myPhoto});
+    const pv = payVal('my'), r = await qSave('myProfile', {pay: pv, photo: PHOTO.myPhoto}, 'بيانات حسابي');
     busy($('#mySave'), false);
+    if (r.queued) { S.user = Object.assign({}, S.user, pv); store.set('user', S.user); toast(QMSG); closeSheet(); return; }
     if (!r.ok) { $('#myErr').textContent = errMsg(r); return; }
     S.user = r.user; store.set('user', r.user); toast('اتحفظ ✓'); closeSheet(); render(); };
   if (hasCust) custodyDetail(u.id, $('#myCust'));
@@ -1737,7 +1811,8 @@ function topupForm(x, amount, project){
     <div class="err" id="tuErr"></div><button class="btn gold" id="tuGo">سجّل التعزيز</button>
     ${x.ipn || x.payNo ? `<button class="btn ghost" id="tuSend" style="margin-top:8px">${ic('link')} حوّل على إنستاباي ${esc(x.dn)} الأول</button>` : ''}`);
   $('#tuGo').onclick = async () => { const a = digits($('#tuAmt').value); if (!(Number(a) > 0)) { $('#tuErr').textContent = 'اكتب المبلغ'; return; }
-    busy($('#tuGo'), true); const r = await api('custodyTopup', {userId: x.id, amount: a, method: $('#tuM').value, note: $('#tuNote').value, project}); busy($('#tuGo'), false);
+    busy($('#tuGo'), true); const r = await qSave('custodyTopup', {userId: x.id, amount: a, method: $('#tuM').value, note: $('#tuNote').value, project, date: ymd(new Date())}, 'تعزيز عهدة ' + x.dn + ' ' + nf(a) + ' ج'); busy($('#tuGo'), false);
+    if (r.queued) { toast(QMSG); closeSheet(); return; }
     if (!r.ok) { $('#tuErr').textContent = errMsg(r); return; } toast(`اتسجل ✓ رصيد عهدة ${x.dn}: ${nf(r.balance.balance)} ج`); closeSheet(); };
   if ($('#tuSend')) $('#tuSend').onclick = () => sendToStaff(x, Number(digits($('#tuAmt').value)) || amount, project);
 }
@@ -1758,7 +1833,8 @@ function resumeTopup(){
   $('#trNo').onclick = () => { store.del('topupPending'); closeSheet(); };
   $('#trYes').onclick = async () => { const a = digits($('#trAmt').value); if (!(Number(a) > 0)) { $('#trErr').textContent = 'اكتب المبلغ'; return; }
     if (!confirmBox(`هتسجل تعزيز ${nf(a)} ج لعهدة ${t.dn}. تأكيد؟`)) return;
-    const r = await api('custodyTopup', {userId: t.id, amount: a, method: t.method, project: t.project, note: 'تحويل من المستحقات'});
+    const r = await qSave('custodyTopup', {userId: t.id, amount: a, method: t.method, project: t.project, note: 'تحويل من المستحقات', date: ymd(new Date())}, 'تعزيز عهدة ' + t.dn + ' ' + nf(a) + ' ج');
+    if (r.queued) { store.del('topupPending'); toast(QMSG); closeSheet(); return; }
     if (!r.ok) { $('#trErr').textContent = errMsg(r); return; } store.del('topupPending'); toast(`اتسجل ✓ رصيد عهدة ${t.dn}: ${nf(r.balance.balance)} ج`); closeSheet(); };
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(resumeTopup, 500); });
@@ -1859,7 +1935,8 @@ function payrollSheet(p){
       const sum = list.reduce((s, x) => s + x.amount, 0);
       if (!confirmBox(`هتسجل دفع لـ ${list.length} عامل بإجمالي ${nf(sum)} ج ${role() === 'engineer' ? 'من عهدتك' : ''}. تأكيد؟`)) return;
       busy($('#prGo'), true);
-      const r = await api('payBatch', {project: p.code, items: list, method: 'كاش', source: srcVal()});
+      const r = await qSave('payBatch', {project: p.code, items: list, method: 'كاش', source: srcVal(), date: ymd(new Date())}, 'كشف قبض ' + (p.short || p.name) + ': ' + list.length + ' عامل · ' + nf(sum) + ' ج');
+      if (r.queued) { list.forEach(x => done[x.code] = 'مستني النت ⏳'); busy($('#prGo'), false); toast(QMSG); draw(); return; }
       if (!r.ok) { busy($('#prGo'), false); $('#prErr').textContent = errMsg(r); return; }
       r.done.forEach(x => done[x.code] = x.receipt);
       toast(`اتدفع لـ ${r.done.length} ✓` + (r.errors.length ? ` · ${r.errors.length} ما اتدفعش` : '')); S.duesAt = 0; draw();
@@ -1990,7 +2067,7 @@ async function supplySheet(code, date){
   if ($('#spNew')) $('#spNew').onclick = () => deliveryForm(code, r.date, null);
   document.querySelectorAll('[data-rec]').forEach(b => b.onclick = () => deliveryForm(code, r.date, r.recent[Number(b.dataset.rec)]));
   document.querySelectorAll('[data-fix]').forEach(b => b.onclick = () => fixDelivery(r.rows.find(x => x.id === b.dataset.fix), () => supplySheet(code, r.date)));
-  if ($('#spConf')) $('#spConf').onclick = async () => { const x = await api('confirmSupply', {project: code, kind: 'del', ids: prov.map(y => y.id)}); if (x.ok) { toast(`اتأكد ${x.confirmed} ✓`); supplySheet(code, r.date); } else toast(errMsg(x)); };
+  if ($('#spConf')) $('#spConf').onclick = async () => { const x = await qSave('confirmSupply', {project: code, kind: 'del', ids: prov.map(y => y.id)}, 'تأكيد توريدات مبدئية'); if (x.queued) { toast(QMSG); return; } if (x.ok) { toast(`اتأكد ${x.confirmed} ✓`); supplySheet(code, r.date); } else toast(errMsg(x)); };
   if ($('#spPend')) $('#spPend').onclick = pendingSupplySheet;
 }
 
@@ -2108,7 +2185,7 @@ async function deliveryForm(code, date, preset){
       busy($('#dlSave'), true);
       const loc = await getLoc();
       const body = {project: code, date, del, loc, at: new Date().toISOString()};
-      const x = navigator.onLine ? await api('saveDelivery', body) : {ok: false, error: 'net'};
+      body.qid = body.qid || qid(); const x = navigator.onLine ? await api('saveDelivery', body) : {ok: false, error: 'net'};
       busy($('#dlSave'), false);
       if (!x.ok && x.error === 'net') {   // من غير نت: تتحفظ على الموبايل وتتبعت لوحدها
         if (!outPush('saveDelivery', body, 'توريدة ' + f.mat)) { $('#dlErr').textContent = 'مفيش نت، والموبايل مش قادر يحفظ الصور دي. شيل صورة وجرّب تاني'; return; }
@@ -2163,7 +2240,8 @@ function fixDelivery(x, back){
     if ($('#fxSize')) body.size = numIn($('#fxSize').value);
     const caps = [...document.querySelectorAll('[data-fc]')].map(i => numIn(i.value)); if (caps.length) body.caps = caps;
     if ($('#fxPrice')) { body.price = numIn($('#fxPrice').value); body.priceOn = $('#fxOn').value; }
-    busy($('#fxGo'), true); const r = await api('updateDelivery', body); busy($('#fxGo'), false);
+    busy($('#fxGo'), true); const r = await qSave('updateDelivery', body, 'تعديل توريدة'); busy($('#fxGo'), false);
+    if (r.queued) { toast(QMSG); back(); return; }
     if (!r.ok) { $('#fxErr').textContent = errMsg(r); return; }
     toast('اتحفظ ✓'); S.supDay = null; back();
   };
@@ -2216,7 +2294,7 @@ async function eqSheet(code, date){
     wirePins($('#eqBody'));
     const sync = () => document.querySelectorAll('[data-eq]').forEach(i => st[i.dataset.eq].qty = i.value);
     document.querySelectorAll('[data-m1],[data-m2]').forEach(i => i.onchange = async e => { const fl = e.target.files[0]; if (!fl) return; sync(); const k = i.dataset.m1 ? 'm1' : 'm2'; st[i.dataset.m1 || i.dataset.m2][k] = await shrinkImage(fl, 1000); draw(); });
-    if ($('#eqConf')) $('#eqConf').onclick = async () => { const x = await api('confirmSupply', {project: code, kind: 'eq', ids: prov.map(z => z.id)}); if (x.ok) { toast(`اتأكد ${x.confirmed} ✓`); eqSheet(code, r.date); } else toast(errMsg(x)); };
+    if ($('#eqConf')) $('#eqConf').onclick = async () => { const x = await qSave('confirmSupply', {project: code, kind: 'eq', ids: prov.map(z => z.id)}, 'تأكيد ساعات معدات مبدئية'); if (x.queued) { toast(QMSG); return; } if (x.ok) { toast(`اتأكد ${x.confirmed} ✓`); eqSheet(code, r.date); } else toast(errMsg(x)); };
     if ($('#eqLike')) $('#eqLike').onclick = () => { sync(); r.last.forEach(l => { if (st[l.code]) st[l.code].qty = String(l.qty); }); draw(); toast('اتملى زي آخر يوم. عدّل الفرق وسجّل'); };
     if ($('#eqVoice')) $('#eqVoice').onclick = () => { sync(); $('#eqVoice').classList.add('on'); listen(t => { const v = parseEqVoice(t, codes.map(byCode)); let n = 0;
         Object.entries(v).forEach(([c, q]) => { st[c].qty = String(q); n++; }); draw(); toast(n ? `فهمت ${n} معدة: راجع وسجّل` : 'ما فهمتش أسامي المعدات، جرّب تاني'); }, () => { const b = $('#eqVoice'); if (b) b.classList.remove('on'); }); };
@@ -2233,7 +2311,7 @@ async function eqSheet(code, date){
       if (!rows.length) { $('#eqErr').textContent = 'اكتب ساعات معدة واحدة على الأقل'; return; }
       busy($('#eqSave'), true); const loc = await getLoc();
       const eqBody = {project: code, date: r.date, rows, loc, at: new Date().toISOString()};
-      const x = navigator.onLine ? await api('saveEq', eqBody) : {ok: false, error: 'net'}; busy($('#eqSave'), false);
+      eqBody.qid = eqBody.qid || qid(); const x = navigator.onLine ? await api('saveEq', eqBody) : {ok: false, error: 'net'}; busy($('#eqSave'), false);
       if (!x.ok && x.error === 'net') { if (!outPush('saveEq', eqBody, 'ساعات المعدات')) { $('#eqErr').textContent = 'مفيش نت، والموبايل مش قادر يحفظ الصور دي'; return; }
         toast('مفيش نت: الساعات اتحفظت على الموبايل وهتتبعت أول ما النت يرجع 📶'); closeSheet(); return; }
       if (!x.ok) { $('#eqErr').textContent = errMsg(x); return; }
@@ -2274,7 +2352,7 @@ function wireSupplyCards(v){
   const done = id => { const l = store.get('supSeen', []); l.push(id); store.set('supSeen', l.slice(-50)); api('notesRead', {ids: [id]}); const n = (S.notes || []).find(x => x.id === id); if (n) n.read = true; };
   v.querySelectorAll('[data-scx]').forEach(b => b.onclick = () => { done(b.dataset.scx); render(); });
   v.querySelectorAll('[data-scgo]').forEach(b => b.onclick = () => { done(b.dataset.scgo); render(); supplyChoice(b.dataset.pc); });
-  v.querySelectorAll('[data-scclose]').forEach(b => b.onclick = async () => { const x = await api('supplyClose', {project: b.dataset.pc}); if (x.ok) { done(b.dataset.scclose); toast('اتقفل: مفيش توريدات ولا معدات النهارده ✓'); render(); } else toast(errMsg(x)); });
+  v.querySelectorAll('[data-scclose]').forEach(b => b.onclick = async () => { const x = await qSave('supplyClose', {project: b.dataset.pc}, '«مفيش توريدات النهارده»'); if (x.ok) { done(b.dataset.scclose); toast('اتقفل: مفيش توريدات ولا معدات النهارده ✓'); render(); } else toast(errMsg(x)); });
 }
 function supplyChoice(code){
   openSheet(`<h3>تسجّل إيه؟</h3><div class="qa">
@@ -2348,8 +2426,8 @@ function stopDayForm(code, date){
     <div class="err" id="sdErr"></div><button class="btn gold" id="sdGo">سجّل إن الموقع واقف</button>`);
   wireMics($('#sheetBody'));
   $('#sdGo').onclick = async () => { busy($('#sdGo'), true); const loc = await getLoc(6000);
-    const r = await api('dayNote', {project: code, date, stop: true, reason: $('#sdR').value, text: $('#sdT').value, loc, at: new Date().toISOString()});
-    busy($('#sdGo'), false); if (!r.ok) { $('#sdErr').textContent = errMsg(r); return; } toast('اتسجل ✓'); attendanceSheet(code, date); };
+    const r = await qSave('dayNote', {project: code, date, stop: true, reason: $('#sdR').value, text: $('#sdT').value, loc, at: new Date().toISOString()}, 'الموقع واقف ' + date);
+    busy($('#sdGo'), false); if (r.queued) { toast(QMSG); closeSheet(); return; } if (!r.ok) { $('#sdErr').textContent = errMsg(r); return; } toast('اتسجل ✓'); attendanceSheet(code, date); };
 }
 
 /* ---------- تصدير أي جدول: إكسيل منسّق باللوجو + PDF A4 (0.10.1) ---------- */
@@ -2444,6 +2522,7 @@ function wireShell(){
   $('#fab').onclick = fabSheet;
   $('#searchBtn').onclick = () => { S.tab = 'projects'; S.project = null; render(); setTimeout(() => { const s = $('#pSearch'); if (s) s.focus(); }, 50); };
   $('#bellBtn').onclick = notesSheet;
+  if ($('#qBtn')) $('#qBtn').onclick = queueSheet;
   const eye = $('#eyeBtn');
   if (eye) eye.onclick = () => { S.masked = !S.masked; store.set('masked', S.masked); render(); };
   const openP = b => b.onclick = () => { S.project = b.dataset.open; store.set('lastProj', S.project); logAct('فتح مشروع', S.project); render(); scrollTo(0,0); };
@@ -2491,7 +2570,7 @@ function wireShell(){
   if (id('backups')) id('backups').onclick = backupSheet;
   if (id('reports')) id('reports').onclick = reportsSheet;
   /* تحديث من جوجل في الخلفية */
-  loadProjects(); loadNotes().then(() => { bigNote(); if (S.tab === 'home' && !S.project && (S.notes || []).some(n => !n.read && n.type === 'توريدات') && !$('[data-scx],[data-scgo]') && !$('#sheet').classList.contains('on')) render(); }); flushAtt(); flushOut(); setTimeout(sunHint, 1500); resumePay(); resumeTopup(); if (isBoss()) loadDuesHome(); if (S.tab === 'home' && !S.project && ['engineer','supervisor','supervisor2'].includes(role())) quickStatus();
+  loadProjects(); loadNotes().then(() => { bigNote(); if (S.tab === 'home' && !S.project && (S.notes || []).some(n => !n.read && n.type === 'توريدات') && !$('[data-scx],[data-scgo]') && !$('#sheet').classList.contains('on')) render(); }); flushAtt(); flushOut(); qCount(); setTimeout(sunHint, 1500); resumePay(); resumeTopup(); if (isBoss()) loadDuesHome(); if (S.tab === 'home' && !S.project && ['engineer','supervisor','supervisor2'].includes(role())) quickStatus();
   if (isBoss() && S.tab === 'home' && !S.project && !S.teamLoaded) { S.teamLoaded = true; loadTeam().then(() => { if (S.tab === 'home' && !S.project && !$('#sheet').classList.contains('on')) render(); }); }
 }
 
