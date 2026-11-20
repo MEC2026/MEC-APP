@@ -1,5 +1,5 @@
 // MEC-APP service worker: الصفحة نفسها دايما من النت لو متاح (عشان التحديث يوصل)، والباقي من الكاش
-const CACHE = 'mec-app-v0.10.3';
+const CACHE = 'mec-app-v0.10.4';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './logo-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
@@ -12,8 +12,10 @@ self.addEventListener('fetch', e => {
   const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
   if (url.origin !== location.origin && !isFont) return;
   if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).then(r => { const c = r.clone(); caches.open(CACHE).then(x => x.put('./index.html', c)); return r; })
-      .catch(() => caches.match('./index.html')));
+    // النت الضعيف في الموقع: لو الصفحة ما جاتش في 4 ثواني تفتح من الموبايل، والجديدة بتتحفظ للمرة الجاية
+    const net = fetch(req).then(r => { if (r.ok) { const c = r.clone(); caches.open(CACHE).then(x => x.put('./index.html', c)); } return r; });
+    e.respondWith(Promise.race([net, new Promise(res => setTimeout(() => caches.match('./index.html').then(h => h && res(h)), 4000))])
+      .catch(() => caches.match('./index.html')).then(r => r || caches.match('./index.html')));
     return;
   }
   e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(r => {
