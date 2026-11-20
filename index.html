@@ -214,7 +214,7 @@ body.sun{font-size:17.5px}body.sun .muted,body.sun small{color:#2b2f36!important
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.10.1';
+const APP_VERSION = '0.10.2';
 const APP_NOTES = ['التوريدة والمعدات بيتحفظوا على الموبايل لو مفيش نت، ويتبعتوا لوحدهم أول ما النت يرجع', 'رقم العربية بيملى الحمولة، والمورد بيقترح «آخر مرة كانت مع فلان» بزرار تأكيد', 'بعد التوريدة: «صوّر البون؟»، وتنبيه لو السعر أعلى من التحليل ولو بجنيه', '«زي اللي فاتت» في الحضور والمعدات، والمنطقة في المشروع، وتصدير إكسيل منسّق باللوجو ومعاه PDF'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
@@ -234,7 +234,7 @@ const ERR = {
   badInvite:'لينك الدعوة ده مش شغال أو اتستخدم قبل كده. اطلب لينك جديد', pinFormat:'الرقم السري لازم يكون من 4 لـ 8 أرقام',
   token:'الكلمة السرية غلط', ownerExists:'حساب المالك موجود بالفعل', missing:'كمّل الخانات الناقصة',
   phoneExists:'الرقم ده متسجل لحد تاني', role:'الصلاحية دي مش مسموحة', wrongPhone:'ده مش رقم موبايل المالك', denied:'مش من صلاحيتك', session:'سجّل دخول تاني',
-  net:'مفيش اتصال بجوجل دلوقتي. جرّب تاني', server:'حصلت مشكلة عند جوجل. جرّب تاني', self:'مينفعش تعمل كده على حسابك', badUser:'الشخص ده مش في الفريق أو صلاحيته مش مناسبة', bigPhoto:'الصورة كبيرة قوي، جرّب صورة تانية', itemExists:'البند ده موجود قبل كده بنفس الاسم', badDates:'تاريخ النهاية لازم يبقى بعد البداية', badPercent:'النسبة لازم تبقى من 0 لـ 100', badNumber:'الرقم مش مظبوط', badAdvance:'الدفعة المقدمة أكبر من قيمة العقد', badIpn:'لينك إنستاباي لازم يبدأ بـ https://ipn.eg/S/ (انسخه زي ما هو من تطبيق إنستاباي)', payType:'اختار نوع الرقم: إنستاباي ولا محفظة', badPhone:'رقم الموبايل مش مظبوط', future:'مينفعش تسجل يوم لسه ما جاش', todayOnly:'تقدر تسجل يوميات النهارده بس', reason:'اكتب سبب الخصم', pendingWorker:'العامل ده لسه مستني تأكيد. اعتمده الأول وبعدين ادفع له', badMap:'اللينك ده مش لينك موقع على خرايط جوجل، أو الموقع مش واضح فيه', backup:'النسخة ما اتعملتش. جرّب تاني', notfound:'مش لاقي ده. اعمل تحديث', pickSupplier:'اختار المورد', truckCap:'العربية دي جديدة: اكتب حمولة النقلة بالمتر المكعب', truckLoads:'اكتب عدد النقلات', truckMissing:'ضيف عربية واحدة على الأقل'
+  net:'مفيش اتصال بجوجل دلوقتي. جرّب تاني', slow:'السيرفر اتأخر قوي. جرّب تاني كمان شوية', server:'حصلت مشكلة عند جوجل. جرّب تاني', self:'مينفعش تعمل كده على حسابك', badUser:'الشخص ده مش في الفريق أو صلاحيته مش مناسبة', bigPhoto:'الصورة كبيرة قوي، جرّب صورة تانية', itemExists:'البند ده موجود قبل كده بنفس الاسم', badDates:'تاريخ النهاية لازم يبقى بعد البداية', badPercent:'النسبة لازم تبقى من 0 لـ 100', badNumber:'الرقم مش مظبوط', badAdvance:'الدفعة المقدمة أكبر من قيمة العقد', badIpn:'لينك إنستاباي لازم يبدأ بـ https://ipn.eg/S/ (انسخه زي ما هو من تطبيق إنستاباي)', payType:'اختار نوع الرقم: إنستاباي ولا محفظة', badPhone:'رقم الموبايل مش مظبوط', future:'مينفعش تسجل يوم لسه ما جاش', todayOnly:'تقدر تسجل يوميات النهارده بس', reason:'اكتب سبب الخصم', pendingWorker:'العامل ده لسه مستني تأكيد. اعتمده الأول وبعدين ادفع له', badMap:'اللينك ده مش لينك موقع على خرايط جوجل، أو الموقع مش واضح فيه', backup:'النسخة ما اتعملتش. جرّب تاني', notfound:'مش لاقي ده. اعمل تحديث', pickSupplier:'اختار المورد', truckCap:'العربية دي جديدة: اكتب حمولة النقلة بالمتر المكعب', truckLoads:'اكتب عدد النقلات', truckMissing:'ضيف عربية واحدة على الأقل'
 };
 const SECTIONS = [
   {k:'att', n:'الحضور', i:'users', live:true},
@@ -292,14 +292,17 @@ const digits = s => String(s || '').replace(/[٠-٩]/g, c => String(c.charCodeAt
 async function sha(s){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,'0')).join(''); }
 
 /* ================= الكلام مع جوجل ================= */
+// الحاجات التقيلة (النسخة الاحتياطية والتصدير) بتستنى لحد 3 دقايق، والباقي 25 ثانية
+const SLOW = {backupNow: 180000, exportTable: 180000};
 async function api(action, data = {}){
   const body = Object.assign({action, device: device()}, data);
   if (S.session && !body.session) body.session = S.session;
-  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 25000);
+  const ms = SLOW[action] || 25000, ctl = new AbortController(); let late = false;
+  const t = setTimeout(() => { late = true; ctl.abort(); }, ms);
   try {
     const r = await fetch(execUrl(), {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(body), signal: ctl.signal});
     return await r.json();
-  } catch (e) { return {ok:false, error:'net'}; }
+  } catch (e) { return {ok:false, error: late && SLOW[action] ? 'slow' : 'net'}; }   // الباقي يفضل 'net' عشان يتحفظ على الموبايل
   finally { clearTimeout(t); }
 }
 
@@ -998,14 +1001,26 @@ async function backupSheet(){
     $('#bkMail').textContent = r.email || '';
     $('#bkList').innerHTML = r.items.length ? `<div class="card" style="padding:2px 14px">${r.items.map(x => `<a class="mi" style="font-weight:400;text-decoration:none;color:inherit" href="${esc(x.url)}" target="_blank" rel="noopener">${ic('cloud')}<span style="flex:1">${esc(new Date(x.at).toLocaleString('ar-EG', {dateStyle:'medium', timeStyle:'short'}))}</span><small class="muted">افتح</small></a>`).join('')}</div>` : emptyBox('cloud','لسه مفيش نسخ. شغّل setupBackup مرة من Apps Script'); };
   draw();
+  // خطوة خطوة: Drive ← إكسيل ← إيميل، وكل خطوة بتقول نجحت ولا لأ
   $('#bkNow').onclick = async () => {
-    busy($('#bkNow'), true); $('#bkMsg').textContent = 'بيعمل النسخة… ممكن ياخد دقيقة';
-    const r = await api('backupNow');
+    const box = $('#bkMsg'); busy($('#bkNow'), true); box.style.color = 'var(--muted)';
+    const lines = [], show = () => { box.innerHTML = lines.join('<br>'); };
+    const step = (t) => { lines.push('⏳ ' + t); show(); return (ok, msg) => { lines[lines.length - 1] = (ok ? '✓ ' : '✗ ') + msg; show(); }; };
+    const why = r => r.error === 'slow' ? 'السيرفر اتأخر أكتر من 3 دقايق' : r.error === 'net' ? 'مفيش نت' : (r.detail || errMsg(r));
+    let done = step('بيعمل النسخة على Drive…');
+    const c = await api('backupNow', {step: 'copy'});
+    done(c.ok, c.ok ? 'النسخة اتعملت على Drive' : 'النسخة على Drive فشلت: ' + why(c));
+    done = step('بيجهّز ملف الإكسيل… (ممكن ياخد دقيقة)');
+    const x = await api('backupNow', {step: 'xlsx'});
+    if (x.ok) {
+      if (x.xlsx) dl64(x.xlsx, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', x.name);
+      done(true, `ملف الإكسيل جاهز (${x.mb || "أقل من 0.1"} ميجا)${x.xlsx ? ' ونزل على موبايلك' : ''} · <a href="${esc(x.url)}" target="_blank" rel="noopener">افتحه من Drive</a>`);
+    } else done(false, 'ملف الإكسيل فشل: ' + esc(why(x)));
+    done = step('بيبعت على الإيميل التاني…');
+    const m = await api('backupNow', {step: 'mail', id: x.ok ? x.id : ''});
+    done(m.ok, m.ok ? (m.mode === 'link' ? 'اتبعت على الإيميل التاني بلينك (الملف أكبر من 20 ميجا)' : 'اتبعت على الإيميل التاني بالمرفق') : 'الإيميل التاني فشل: ' + esc(why(m)));
     busy($('#bkNow'), false);
-    if (!r.ok) { $('#bkMsg').style.color = 'var(--bad)'; $('#bkMsg').textContent = errMsg(r); return; }
-    const bin = atob(r.xlsx), arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([arr], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})); a.download = r.xlsxName; a.click();
-    $('#bkMsg').style.color = 'var(--ok)'; $('#bkMsg').textContent = 'اتعملت ✓ على Drive' + (r.mailed ? ' واتبعتت على الإيميل التاني' : '') + '، والملف نزل على موبايلك';
+    box.style.color = c.ok && x.ok && m.ok ? 'var(--ok)' : 'var(--bad)';
     draw();
   };
 }
