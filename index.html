@@ -214,8 +214,8 @@ body.sun{font-size:17.5px}body.sun .muted,body.sun small{color:#2b2f36!important
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.10';
-const APP_NOTES = ['التوريدات: «استلام توريدة» بالعربيات (رقم العربية وحمولتها) أو بالشكاير والكراتين، وصورة البون، والسعر من آخر مرة', 'المعدات: تسجيل الساعات اليومي وصورة العداد، وحساب ودفع وإيصال لكل معدة ومورد', 'كارت الساعة 1 الضهر و7 بالليل: اتسجل إيه النهارده، و«مفيش النهارده»', 'زرار ☀️ فوق لوضع الشمس، وعلامة 📍 في كارت المشروع بتفتح الطريق للموقع'];
+const APP_VERSION = '0.10.1';
+const APP_NOTES = ['التوريدة والمعدات بيتحفظوا على الموبايل لو مفيش نت، ويتبعتوا لوحدهم أول ما النت يرجع', 'رقم العربية بيملى الحمولة، والمورد بيقترح «آخر مرة كانت مع فلان» بزرار تأكيد', 'بعد التوريدة: «صوّر البون؟»، وتنبيه لو السعر أعلى من التحليل ولو بجنيه', '«زي اللي فاتت» في الحضور والمعدات، والمنطقة في المشروع، وتصدير إكسيل منسّق باللوجو ومعاه PDF'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
 
@@ -722,6 +722,7 @@ async function projectForm(code){
     <label class="f">العميل</label><input class="in" id="fClient" data-ak="${k}client">
     <label class="f">تليفون العميل</label><input class="in" id="fCPhone" type="tel" dir="ltr" data-ak="${k}cphone" placeholder="01xxxxxxxxx">
     <label class="f">العنوان</label><input class="in" id="fAddr" data-ak="${k}addr">
+    <label class="f">المنطقة (أسعار المشروع بتتسجل بيها)</label><div class="chips" id="fRegion">${['القاهرة','إسكندرية','الساحل'].map(v => `<button class="chip ${((p && p.region) || 'القاهرة') === v ? 'on' : ''}" data-reg="${v}" style="${((p && p.region) || 'القاهرة') === v ? 'background:var(--navy);color:#fff' : ''}">${v}</button>`).join('')}</div>
     <label class="f">لينك الموقع على خرايط جوجل (اختياري)</label><input class="in" id="fMap" dir="ltr" data-ak="${k}map" placeholder="https://maps.app.goo.gl/…" ${p && located(p) && !isOwner() ? 'readonly' : ''}>${p && located(p) && !isOwner() ? '<p class="muted" style="font-size:12px;margin:4px 0 0">مكان الموقع متسجل، وتغييره عند المالك بس.</p>' : ''}
     <label class="f">المهندس المسؤول</label><select class="in" id="fEng" data-ak="${k}eng"><option value="">بيحمّل الفريق…</option></select>
     <label class="f">المشرف</label><select class="in" id="fSup" data-ak="${k}sup"><option value="">بيحمّل الفريق…</option></select>
@@ -746,6 +747,8 @@ async function projectForm(code){
     $('#fPctBox').classList.toggle('hidden', $('#fCalc').value === 'من غير إشراف');
   };
   $('#fType').onchange = $('#fCalc').onchange = syncCalc; syncCalc();
+  let region = (p && p.region) || 'القاهرة';
+  document.querySelectorAll('[data-reg]').forEach(b => b.onclick = () => { region = b.dataset.reg; document.querySelectorAll('[data-reg]').forEach(x => { const on = x.dataset.reg === region; x.classList.toggle('on', on); x.style.background = on ? 'var(--navy)' : ''; x.style.color = on ? '#fff' : ''; }); });
   const team = await loadTeam();
   if (!$('#fEng')) return;
   const people = (roles, cur) => `<option value="">من غير</option>` + team.filter(u => roles.includes(u.role) && u.status !== 'disabled')
@@ -758,7 +761,7 @@ async function projectForm(code){
       clientPhone: digits($('#fCPhone').value), address: $('#fAddr').value, engId: $('#fEng').value, supId: $('#fSup').value,
       start: $('#fStart').value, status: $('#fStatus').value, notes: $('#fNotes').value,
       short: $('#fShort').value, calc: $('#fCalc').value, supPct: digits($('#fPct').value), value: digits($('#fValue').value),
-      advance: digits($('#fAdv').value), retention: digits($('#fRet').value), end: $('#fEnd').value, map: $('#fMap').value.trim()};
+      advance: digits($('#fAdv').value), retention: digits($('#fRet').value), end: $('#fEnd').value, map: $('#fMap').value.trim(), region};
     if (!data.name.trim()) { $('#fErr').textContent = 'اكتب اسم المشروع'; return; }
     busy($('#fSave'), true);
     const r = await api('saveProject', {project: data});
@@ -1227,7 +1230,7 @@ async function attendanceSheet(code, date){
       ${prov.length && canConfirm(p) && canRecord() && role() !== 'supervisor2' ? `<button class="btn gold" id="atConf" style="margin-bottom:8px">أكد ${prov.length} يومية مبدئية</button>` : ''}
       ${r.note ? `<div class="card" style="font-size:13.5px;${r.note.type === 'الموقع واقف' ? 'background:var(--warn-bg);color:var(--warn)' : ''}"><b>${esc(r.note.type === 'الموقع واقف' ? 'الموقع واقف: ' + r.note.reason : 'ملاحظة اليوم')}</b>${r.note.text ? ' — ' + esc(r.note.text) : ''} <small class="muted">· ${esc(r.note.by)}</small></div>` : ''}
       ${canRecord() ? `<div class="chips" style="margin-bottom:10px">
-        ${r.last && r.last.length ? `<button class="chip" id="atLike">${ic('clock')} زي ${r.lastDate === yday(r.date) ? 'امبارح' : esc(dshort(r.lastDate))}</button>` : ''}
+        ${r.last && r.last.length ? `<button class="chip" id="atLike">${ic('clock')} زي اللي فاتت <small>(${r.lastDate === yday(r.date) ? 'امبارح' : esc(dshort(r.lastDate))})</small></button>` : ''}
         ${list.length ? `<button class="chip" id="atAll">${ic('check')} الكل كامل</button>` : ''}
         ${list.length && voiceOK() ? `<button class="chip" id="atVoice">${ic('mic')} سجّل بصوتك</button>` : ''}
         <button class="chip" id="atStop">${ic('alert')} الموقع واقف النهارده</button>
@@ -1270,7 +1273,7 @@ async function attendanceSheet(code, date){
     };
     if ($('#atSave')) $('#atSave').onclick = async () => {
       const send = list.filter(w => state[w.code].st).map(w => ({code: w.code, st: state[w.code].st, hours: state[w.code].hours}));
-      if (!send.length) { $('#atErr').textContent = 'علّم على عامل واحد على الأقل، أو استخدم «الكل كامل» أو «زي امبارح»'; return; }
+      if (!send.length) { $('#atErr').textContent = 'علّم على عامل واحد على الأقل، أو استخدم «الكل كامل» أو «زي اللي فاتت»'; return; }
       busy($('#atSave'), true); $('#atErr').textContent = ''; $('#atSave').textContent = 'بيجيب مكانك…';
       const loc = await getLoc();
       const body = {project: code, date: r.date, rows: send, loc, at: new Date().toISOString()};
@@ -1287,6 +1290,29 @@ async function attendanceSheet(code, date){
     };
   };
   draw();
+}
+/* ---------- صندوق الصادر: أي تسجيل من غير نت بيتحفظ على الموبايل ويتبعت لوحده (0.10.1) ---------- */
+function outPush(a, body, label){ const q = store.get('outq', []); q.push({a, body, label, at: Date.now()}); return store.set('outq', q); }
+let flushingOut = false;
+async function flushOut(){
+  if (flushingOut || !navigator.onLine || !S.session) return;
+  const q = store.get('outq', []); if (!q.length) return;
+  flushingOut = true; const left = [], done = [], bad = [];
+  for (const it of q) { const x = await api(it.a, it.body);
+    if (x.ok) { done.push(it.label); (x.warnings || []).forEach(w => bad.push(w)); } else if (x.error === 'net') left.push(it); else bad.push(it.label + ': ' + errMsg(x)); }
+  store.set('outq', left); flushingOut = false;
+  if (done.length) { toast('اتبعت اللي كان مستني النت ✓ (' + done.join('، ') + ')'); S.supDay = null; S.secStat = null; S.quickAt = 0; }
+  bad.forEach((w, i) => setTimeout(() => toast(w), 2600 * (i + 1)));
+}
+addEventListener('online', () => flushOut());
+/* «صوّر البون؟» بعد ما التوريدة اتسجلت من غير صورة */
+function askBon(id, then){
+  openSheet(`<h3>صوّر البون؟</h3><p class="muted" style="margin:-4px 0 10px">التوريدة اتسجلت. لو معاك البون صوّره دلوقتي عشان يتحفظ معاها.</p>
+    <label class="btn gold" style="display:flex;justify-content:center;gap:8px">${ic('camera')} صوّر البون<input type="file" id="abPic" accept="image/*" capture="environment" hidden></label>
+    <button class="btn ghost" id="abNo" style="margin-top:8px">لأ، مش دلوقتي</button><div class="err" id="abErr"></div>`);
+  $('#abNo').onclick = () => then();
+  $('#abPic').onchange = async e => { const fl = e.target.files[0]; if (!fl) return; const bon = await shrinkImage(fl, 1400);
+    const x = await api('deliveryBon', {id, bon}); if (!x.ok) { $('#abErr').textContent = errMsg(x); return; } toast('صورة البون اتحفظت ✓'); then(); };
 }
 let flushingAtt = false;
 async function flushAtt(){
@@ -1975,9 +2001,10 @@ async function deliveryForm(code, date, preset){
       ${voiceOK() ? `<button class="chip" id="dlVoice" style="margin-bottom:6px">${ic('mic')} قول التوريدة (مثلا: 3 نقلات رمل من الجوهرة)</button>` : ''}
       <label class="f">المورد *</label>
       ${f.sup ? `<div class="row" style="gap:6px"><span class="pill p-info" style="flex:1;justify-content:flex-start;padding:8px 10px">${esc(supName(f.sup))}</span><button class="pill p-info" id="dlSupX">غيّر</button></div>`
-        : `<input class="in" id="dlSupQ" placeholder="دوّر باسم المورد"><div id="dlSupL"></div>`}
+        : `<div id="dlSupSug"></div><input class="in" id="dlSupQ" placeholder="دوّر باسم المورد"><div id="dlSupL"></div>`}
       <label class="f">الخامة *</label><div class="row" style="gap:6px"><input class="in" id="dlMat" list="dlMats" value="${esc(f.mat)}" placeholder="رمل، سن، أسمنت، معجون…">${micBtn('dlMat')}</div>
       <datalist id="dlMats">${day.mats.map(m => `<option value="${esc(m)}">`).join('')}</datalist>
+      ${day.mats.length && day.mats.length <= 3 ? `<div class="chips" style="margin-top:6px">${day.mats.map(m => `<button class="chip ${normAr(m) === normAr(f.mat) ? 'on' : ''}" data-mt="${esc(m)}">${esc(m)}</button>`).join('')}</div>` : ''}
       <label class="f">الوحدة</label><div class="chips" style="flex-wrap:wrap">${SUP_UNITS.map(u => `<button class="chip ${f.unit === u ? 'on' : ''}" data-un="${u}" style="${f.unit === u ? 'background:var(--navy);color:#fff' : ''}">${u}${u === 'نقلة' ? ' (عربية)' : ''}</button>`).join('')}</div>
       ${U === 'نقلة' ? `<small class="muted" style="display:block;margin-top:8px">كل عربية في سطر. العربية اللي جت قبل كده حمولتها بتظهر لوحدها. الجديدة لازم تقيس حمولتها بالمتر المكعب.</small>
         ${f.trucks.map((t, i) => { const k = t.plate ? known(t.plate) : null; return `<div class="card" style="padding:10px 12px;margin:8px 0">
@@ -2007,6 +2034,17 @@ async function deliveryForm(code, date, preset){
       document.querySelectorAll('[data-tp]').forEach(i => f.trucks[i.dataset.tp].plate = i.value);
       document.querySelectorAll('[data-tl]').forEach(i => f.trucks[i.dataset.tl].loads = i.value);
       document.querySelectorAll('[data-tc]').forEach(i => f.trucks[i.dataset.tc].cap = i.value); };
+    // «آخر مرة كانت مع فلان»: من رقم العربية، أو من آخر توريدة لنفس الخامة — والمورد يفضل مفتوح لحد ما تأكد
+    const sugSup = () => { if (f.sup) return null;
+      for (const t of f.trucks) { const k = t.plate ? known(t.plate) : null; if (k && k.sup && supName(k.sup)) return {code: k.sup, why: 'العربية ' + t.plate}; }
+      if (f.mat) { const h = (day.prices || []).filter(x => normAr(x.mat) === normAr(f.mat)).sort((a, b) => b.date.localeCompare(a.date))[0] || (day.recent || []).find(x => normAr(x.mat) === normAr(f.mat));
+        if (h && supName(h.sup)) return {code: h.sup, why: f.mat}; }
+      return null; };
+    const drawSug = () => { const el = $('#dlSupSug'); if (!el) return; const g = sugSup();
+      el.innerHTML = g ? `<button class="chip" id="dlSupOk" style="margin-bottom:6px;background:#FFF4D6">آخر مرة (${esc(g.why)}) كانت مع <b>&nbsp;${esc(supName(g.code))}</b>&nbsp;· ✓ تأكيد</button>` : '';
+      if (g) $('#dlSupOk').onclick = () => { sync(); f.sup = g.code; f.price = ''; draw(); }; };
+    drawSug();
+    document.querySelectorAll('[data-mt]').forEach(b => b.onclick = () => { sync(); f.mat = b.dataset.mt; draw(); });
     if ($('#dlSupQ')) { const q = $('#dlSupQ'); const list = () => { const v = normAr(q.value);
         const l = sups.filter(s => s.status !== 'اتدمج' && (!v || normAr(s.name + ' ' + (s.goods || '')).includes(v))).slice(0, 6);
         $('#dlSupL').innerHTML = l.map(s => `<button class="li" data-sp="${esc(s.code)}"><span class="t"><b>${esc(s.name)}</b><small>${esc(s.goods || '')}</small></span></button>`).join('')
@@ -2020,13 +2058,15 @@ async function deliveryForm(code, date, preset){
     // تغيير الخامة ما بيعيدش رسم الفورمة (عشان الدوسة اللي بعدها ما تضيعش)
     if ($('#dlMat')) $('#dlMat').onchange = () => { sync();
       if (f.unit === 'شيكارة' && isCement(f.mat) && !f.size && $('#dlSize')) { f.size = '50'; $('#dlSize').value = '50'; }
-      if ($('#dlPrice') && !$('#dlPrice').value && f.sup) { const lp = lastPrice(f.sup, f.mat, f.priceOn); if (lp) { f.price = String(lp.price); $('#dlPrice').value = f.price; } } };
+      if ($('#dlPrice') && !$('#dlPrice').value && f.sup) { const lp = lastPrice(f.sup, f.mat, f.priceOn); if (lp) { f.price = String(lp.price); $('#dlPrice').value = f.price; } }
+      drawSug(); };
     if ($('#dlOn')) $('#dlOn').onchange = () => { sync(); f.price = ''; draw(); };
     // رقم العربية: لو معروفة الحمولة تتملى مكانها من غير ما الفورمة تترسم تاني
     document.querySelectorAll('[data-tp]').forEach(i => i.oninput = () => { const n = i.dataset.tp, k = known(i.value), c = document.querySelector(`[data-tc="${n}"]`), l = document.querySelector(`[data-tcl="${n}"]`);
       f.trucks[n].plate = i.value;
       if (k && k.cap !== '') { if (c && !c.value) c.value = k.cap; if (l) l.innerHTML = '<b style="color:var(--ok)">(معروفة)</b>'; }
-      else if (l) l.innerHTML = i.value ? '<b style="color:var(--warn)">(جديدة: لازم)</b>' : ''; });
+      else if (l) l.innerHTML = i.value ? '<b style="color:var(--warn)">(جديدة: لازم)</b>' : '';
+      drawSug(); });
     document.querySelectorAll('[data-tph]').forEach(i => i.onchange = async e => { const fl = e.target.files[0]; if (!fl) return; sync(); f.trucks[i.dataset.tph].photo = await shrinkImage(fl, 900); draw(); });
     document.querySelectorAll('[data-tx]').forEach(b => b.onclick = () => { sync(); f.trucks.splice(Number(b.dataset.tx), 1); draw(); });
     if ($('#dlAddT')) $('#dlAddT').onclick = () => { sync(); f.trucks.push({plate: '', loads: '1', cap: '', photo: ''}); draw(); };
@@ -2052,12 +2092,17 @@ async function deliveryForm(code, date, preset){
       if (canPay()) { del.price = numIn(f.price); del.priceOn = f.priceOn; }
       busy($('#dlSave'), true);
       const loc = await getLoc();
-      const x = await api('saveDelivery', {project: code, date, del, loc, at: new Date().toISOString()});
+      const body = {project: code, date, del, loc, at: new Date().toISOString()};
+      const x = navigator.onLine ? await api('saveDelivery', body) : {ok: false, error: 'net'};
       busy($('#dlSave'), false);
+      if (!x.ok && x.error === 'net') {   // من غير نت: تتحفظ على الموبايل وتتبعت لوحدها
+        if (!outPush('saveDelivery', body, 'توريدة ' + f.mat)) { $('#dlErr').textContent = 'مفيش نت، والموبايل مش قادر يحفظ الصور دي. شيل صورة وجرّب تاني'; return; }
+        toast('مفيش نت: التوريدة اتحفظت على الموبايل وهتتبعت أول ما النت يرجع 📶'); closeSheet(); S.redraw = true; return; }
       if (!x.ok) { $('#dlErr').textContent = errMsg(x) + (x.plate ? ` (${x.plate})` : ''); return; }
       S.supDay = null; toast('اتسجلت التوريدة ✓' + (x.state === 'مبدئي' ? ' (مبدئي)' : ''));
       if (S.secStat) delete S.secStat[code]; S.quickAt = 0; S.redraw = true;
-      if (x.warnings && x.warnings.length) setTimeout(() => toast(x.warnings[0]), 2600);
+      (x.warnings || []).forEach((w, i) => setTimeout(() => toast(w), 2600 * (i + 1)));
+      if (!del.bon && x.id) return askBon(x.id, () => supplySheet(code, date));
       supplySheet(code, date);
     };
   };
@@ -2138,7 +2183,7 @@ async function eqSheet(code, date){
     $('#eqBody').innerHTML = `
       ${prov.length && canConfirm(p) && !sup2 ? `<button class="btn gold" id="eqConf" style="margin-bottom:8px">أكد ${prov.length} تسجيل مبدئي</button>` : ''}
       ${canRecord() ? `<div class="chips" style="margin-bottom:10px">
-        ${r.last.length ? `<button class="chip" id="eqLike">${ic('clock')} زي ${r.lastDate === yday(r.date) ? 'امبارح' : esc(dshort(r.lastDate))}</button>` : ''}
+        ${r.last.length ? `<button class="chip" id="eqLike">${ic('clock')} زي اللي فاتت <small>(${r.lastDate === yday(r.date) ? 'امبارح' : esc(dshort(r.lastDate))})</small></button>` : ''}
         ${codes.length && voiceOK() ? `<button class="chip" id="eqVoice">${ic('mic')} قول الساعات</button>` : ''}</div>` : ''}
       ${codes.map(c => { const e = byCode(c), s = st[c], x = s.row;
         return `<div class="card" style="padding:10px 12px;margin-bottom:8px">
@@ -2172,7 +2217,10 @@ async function eqSheet(code, date){
       const rows = codes.filter(c => st[c].qty !== '' || st[c].m1 || st[c].m2).map(c => ({code: c, qty: numIn(st[c].qty) || '0', m1: st[c].m1, m2: st[c].m2}));
       if (!rows.length) { $('#eqErr').textContent = 'اكتب ساعات معدة واحدة على الأقل'; return; }
       busy($('#eqSave'), true); const loc = await getLoc();
-      const x = await api('saveEq', {project: code, date: r.date, rows, loc, at: new Date().toISOString()}); busy($('#eqSave'), false);
+      const eqBody = {project: code, date: r.date, rows, loc, at: new Date().toISOString()};
+      const x = navigator.onLine ? await api('saveEq', eqBody) : {ok: false, error: 'net'}; busy($('#eqSave'), false);
+      if (!x.ok && x.error === 'net') { if (!outPush('saveEq', eqBody, 'ساعات المعدات')) { $('#eqErr').textContent = 'مفيش نت، والموبايل مش قادر يحفظ الصور دي'; return; }
+        toast('مفيش نت: الساعات اتحفظت على الموبايل وهتتبعت أول ما النت يرجع 📶'); closeSheet(); return; }
       if (!x.ok) { $('#eqErr').textContent = errMsg(x); return; }
       toast(`اتسجل ${x.saved} ✓` + (x.state === 'مبدئي' ? ' (مبدئي)' : '') + (x.locked ? ` · ${x.locked} متأكدة ما اتغيرتش` : ''));
       if (S.secStat) delete S.secStat[code]; S.quickAt = 0; S.redraw = true; eqSheet(code, r.date); };
@@ -2289,17 +2337,38 @@ function stopDayForm(code, date){
     busy($('#sdGo'), false); if (!r.ok) { $('#sdErr').textContent = errMsg(r); return; } toast('اتسجل ✓'); attendanceSheet(code, date); };
 }
 
+/* ---------- تصدير أي جدول: إكسيل منسّق باللوجو + PDF A4 (0.10.1) ---------- */
+let logoData = null;
+async function logoURL(){ if (logoData !== null) return logoData; try { const b = await (await fetch('icon-192.png')).blob(); logoData = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => res(''); fr.readAsDataURL(b); }); } catch (e) { logoData = ''; } return logoData; }
+function dl64(b64, type, name){ const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([u], {type})); a.download = name; a.click(); }
+async function exportFile(title, sub, head, rows, name){
+  if (!navigator.onLine) return false;
+  const x = await api('exportTable', {title, sub, head, rows, name, logo: await logoURL()});
+  if (!x.ok || !x.xlsx) return false;
+  dl64(x.xlsx, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', name + '.xlsx');
+  if (x.pdf) setTimeout(() => dl64(x.pdf, 'application/pdf', name + '.pdf'), 600);
+  toast('نزل الإكسيل' + (x.pdf ? ' والـ PDF' : '') + ' ✓'); return true;
+}
 /* ---------- تصدير كشف اليوميات ---------- */
 async function exportAttendance(code){
   const now = new Date(), first = ymd(new Date(now.getFullYear(), now.getMonth(), 1));
   openSheet(`<h3>تصدير كشف اليوميات</h3>
     <div class="row" style="gap:8px"><div style="flex:1"><label class="f">من</label><input class="in" type="date" id="exF" value="${first}"></div><div style="flex:1"><label class="f">لحد</label><input class="in" type="date" id="exT" value="${ymd(now)}"></div></div>
-    <div class="err" id="exErr"></div><button class="btn gold" id="exGo" style="margin-top:10px">${ic('download')} نزّل ملف إكسيل</button>`);
+    <div class="err" id="exErr"></div><button class="btn gold" id="exGo" style="margin-top:10px">${ic('download')} نزّل إكسيل + PDF</button>`);
   $('#exGo').onclick = async () => { busy($('#exGo'), true); const r = await api('projectAttendance', {project: code, from: $('#exF').value, to: $('#exT').value}); busy($('#exGo'), false);
     if (!r.ok) { $('#exErr').textContent = errMsg(r); return; }
     const dates = [...new Set(r.workers.flatMap(w => w.days.map(d => d.date)))].sort();
     const q = v => `"${String(v).replace(/"/g, '""')}"`;
     const head = ['التاريخ', 'اليوم', ...r.workers.flatMap(w => [w.name + ' (يومية)', w.name + ' (ساعات)'])];
+    // إكسيل منسّق باللوجو + PDF A4 من السيرفر، ولو ما نجحش: ملف CSV زي الأول
+    const rowsT = dates.map(dt => [dt, new Date(dt + 'T00:00:00').toLocaleDateString('ar-EG', {weekday: 'long'}), ...r.workers.flatMap(w => { const d = w.days.find(x => x.date === dt); return d ? [({'كامل':1,'نص':0.5,'غياب':0})[d.st], d.hours || ''] : ['', '']; })]);
+    rowsT.push(['إجمالي الأيام', '', ...r.workers.flatMap(w => [w.days.reduce((s, d) => s + ({'كامل':1,'نص':0.5}[d.st] || 0), 0), w.days.reduce((s, d) => s + (d.hours || 0), 0)])]);
+    rowsT.push(['المستحق', '', ...r.workers.flatMap(w => [w.days.reduce((s, d) => s + d.amount, 0), ''])]);
+    busy($('#exGo'), true);
+    const okX = await exportFile('كشف يوميات العمال — ' + (r.project.short || r.project.name), 'من ' + r.from + ' لحد ' + r.to, head, rowsT, `${r.project.code}-yawmeyat-${r.from}-${r.to}`);
+    busy($('#exGo'), false);
+    if (okX) return;
     const lines = [[q('كشف يوميات العمال — ' + (r.project.short || r.project.name))], [q('من ' + r.from + ' لحد ' + r.to)], [], head.map(q)];
     dates.forEach(dt => lines.push([dt, q(new Date(dt + 'T00:00:00').toLocaleDateString('ar-EG', {weekday: 'long'})), ...r.workers.flatMap(w => { const d = w.days.find(x => x.date === dt); return d ? [({'كامل':1,'نص':0.5,'غياب':0})[d.st], d.hours || ''] : ['', '']; })]));
     lines.push([q('إجمالي الأيام'), '', ...r.workers.flatMap(w => [w.days.reduce((s, d) => s + ({'كامل':1,'نص':0.5}[d.st] || 0), 0), w.days.reduce((s, d) => s + (d.hours || 0), 0)])]);
@@ -2407,7 +2476,7 @@ function wireShell(){
   if (id('backups')) id('backups').onclick = backupSheet;
   if (id('reports')) id('reports').onclick = reportsSheet;
   /* تحديث من جوجل في الخلفية */
-  loadProjects(); loadNotes().then(() => { bigNote(); if (S.tab === 'home' && !S.project && (S.notes || []).some(n => !n.read && n.type === 'توريدات') && !$('[data-scx],[data-scgo]') && !$('#sheet').classList.contains('on')) render(); }); flushAtt(); setTimeout(sunHint, 1500); resumePay(); resumeTopup(); if (isBoss()) loadDuesHome(); if (S.tab === 'home' && !S.project && ['engineer','supervisor','supervisor2'].includes(role())) quickStatus();
+  loadProjects(); loadNotes().then(() => { bigNote(); if (S.tab === 'home' && !S.project && (S.notes || []).some(n => !n.read && n.type === 'توريدات') && !$('[data-scx],[data-scgo]') && !$('#sheet').classList.contains('on')) render(); }); flushAtt(); flushOut(); setTimeout(sunHint, 1500); resumePay(); resumeTopup(); if (isBoss()) loadDuesHome(); if (S.tab === 'home' && !S.project && ['engineer','supervisor','supervisor2'].includes(role())) quickStatus();
   if (isBoss() && S.tab === 'home' && !S.project && !S.teamLoaded) { S.teamLoaded = true; loadTeam().then(() => { if (S.tab === 'home' && !S.project && !$('#sheet').classList.contains('on')) render(); }); }
 }
 
