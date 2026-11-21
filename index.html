@@ -214,7 +214,7 @@ body.sun{font-size:17.5px}body.sun .muted,body.sun small{color:#2b2f36!important
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.10.4';
+const APP_VERSION = '0.10.5';
 const APP_NOTES = ['التوريدة والمعدات بيتحفظوا على الموبايل لو مفيش نت، ويتبعتوا لوحدهم أول ما النت يرجع', 'رقم العربية بيملى الحمولة، والمورد بيقترح «آخر مرة كانت مع فلان» بزرار تأكيد', 'بعد التوريدة: «صوّر البون؟»، وتنبيه لو السعر أعلى من التحليل ولو بجنيه', '«زي اللي فاتت» في الحضور والمعدات، والمنطقة في المشروع، وتصدير إكسيل منسّق باللوجو ومعاه PDF'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
@@ -285,7 +285,10 @@ const isOwner = () => S.user && S.user.role === 'owner';
 const canManage = () => isBoss(); /* المدير زي المالك، ماعدا حساب المالك ولينك جوجل والنسخ الاحتياطي */
 const device = () => (navigator.userAgent.match(/\(([^)]+)\)/) || ['', 'جهاز'])[1].slice(0, 60);
 const execUrl = () => store.get('exec', DEFAULT_EXEC);
-const errMsg = r => ERR[(r && r.error) || 'server'] + (r && r.left ? ` (فاضل ${r.left} محاولات)` : '');
+const errMsg = r => (r && r.error === 'offline' ? offMsg() : ERR[(r && r.error) || 'server']) + (r && r.left ? ` (فاضل ${r.left} محاولات)` : '');
+function offMsg(){ const at = store.get('syncAt', 0);
+  return at ? `مفيش نت، والشاشة دي ما نزلتش على الموبايل في آخر تحميل (${new Date(at).toLocaleString('ar-EG', {weekday: 'long', hour: 'numeric', minute: '2-digit'})}). هتنزل لوحدها أول ما يبقى فيه نت.`
+    : 'مفيش نت، والموبايل لسه ما نزّلش البيانات ولا مرة. افتح التطبيق مرة بالنت، ومن «الإعدادات» دوس «نزّل كل البيانات دلوقتي».'; }
 function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); }
 function soon(name){ toast(`«${name}» جاي في مرحلة جاية`); }
 const digits = s => String(s || '').replace(/[٠-٩]/g, c => String(c.charCodeAt(0) - 1632));
@@ -605,13 +608,13 @@ function homeView(){
     <h2 class="sec">المشاريع <button class="more" data-t2="projects">الكل</button></h2>
     ${S.projects.length ? statCards() : `<div class="card empty">${ic('folder')}<div>مفيش مشاريع لسه</div><button class="btn gold" id="newProj" style="margin-top:12px">${ic('plus')} مشروع جديد</button></div>`}
     ${act ? `<h2 class="sec">${ic('alert')} محتاج تتصرف فيه</h2>${act}` : ''}
-    ${S.projects.length ? `<h2 class="sec">آخر المشاريع اللي اتعدلت</h2>${S.projects.slice(0, 3).map(projectCard).join('')}` : ''}
+    ${S.projects.length ? `<h2 class="sec">آخر المشاريع اللي اتعدلت</h2>${S.projects.slice(0, 3).map(p => projectCard(p)).join('')}` : ''}
     ${recent.length ? `<h2 class="sec">آخر دخول <button class="more" id="openLog">سجل النشاط</button></h2>
       <div class="card" style="padding:4px 14px">${recent.map(u => `<div class="mi" style="font-weight:400"><span style="flex:1"><b style="font-weight:600">${esc(dn(u))}</b></span><small class="muted">${ago(u.last)}</small></div>`).join('')}</div>` : ''}`;
   }
   return news + supplyCards() + quickHome() + `
     <h2 class="sec">مشاريعي</h2>
-    ${S.projects.length ? S.projects.filter(p => p.status !== 'انتهى').map(projectCard).join('') : emptyBox('folder','مفيش مشاريع متسجلة عليك لسه')}
+    ${S.projects.length ? S.projects.filter(p => p.status !== 'انتهى').map(p => projectCard(p)).join('') : emptyBox('folder','مفيش مشاريع متسجلة عليك لسه')}
     <h2 class="sec">ملاحظة سريعة</h2>
     <div class="card"><textarea class="in" data-ak="quicknote.${esc(S.user.id)}" placeholder="اكتب أي حاجة… بتتحفظ لوحدها حتى لو قفلت التطبيق"></textarea><div class="saved" data-saved="quicknote.${esc(S.user.id)}"></div></div>`;
 }
@@ -919,7 +922,17 @@ function settingsSheet(){
   openSheet(`<h3>الإعدادات والاتصال</h3>
     ${isOwner() ? `<label class="f">لينك جوجل (/exec)</label><input class="in" id="sExec" dir="ltr" value="${esc(execUrl())}">` : ''}
     <div class="err" id="sMsg" style="color:var(--muted)"></div>
-    <div class="row" style="margin-top:6px"><button class="btn ghost" id="sTest">اختبار الاتصال</button>${isOwner() ? '<button class="btn pri" id="sSave">حفظ</button>' : ''}</div>`);
+    <div class="row" style="margin-top:6px"><button class="btn ghost" id="sTest">اختبار الاتصال</button>${isOwner() ? '<button class="btn pri" id="sSave">حفظ</button>' : ''}</div>
+    <div class="card" style="margin-top:14px"><b>البيانات على الموبايل (عشان يشتغل من غير نت)</b>
+      <div class="muted" id="sSyncInfo" style="font-size:13px;margin:6px 0 10px">${syncInfo()}</div>
+      <button class="btn gold" id="sSync">⬇️ نزّل كل البيانات دلوقتي</button></div>`);
+  $('#sSync').onclick = async () => { const b = $('#sSync'), info = $('#sSyncInfo');
+    if (!navigator.onLine) { info.textContent = 'مفيش نت دلوقتي. التحميل محتاج نت.'; return; }
+    if (syncing) { info.textContent = 'بينزّل دلوقتي في الخلفية… استنى دقيقة وافتح الإعدادات تاني.'; return; }
+    b.disabled = true; b.textContent = 'بينزّل… ⏳';
+    const n = await syncAll(true, k => { if ($('#sSync')) $('#sSync').textContent = `بينزّل… ${k} شاشة`; });
+    if (!$('#sSync')) return; b.disabled = false; b.textContent = '⬇️ نزّل كل البيانات دلوقتي';
+    info.innerHTML = n == null ? 'ما نزلش: النت أو الاتصال بجوجل وقع. جرّب تاني.' : syncInfo(); if (n != null) toast('البيانات نزلت على الموبايل ✓'); };
   if ($('#sSave')) $('#sSave').onclick = () => { store.set('exec', $('#sExec').value.trim()); logAct('غيّر لينك جوجل'); toast('اتحفظ ✓'); closeSheet(); };
   $('#sTest').onclick = async () => {
     const m = $('#sMsg'); m.style.color = 'var(--muted)'; m.textContent = 'بيختبر…';
@@ -1392,34 +1405,46 @@ addEventListener('online', () => flushOut());
 setInterval(() => { if (navigator.onLine) flushOut(); }, 60000);
 /* ---------- 0.10.4: الموبايل بينزّل كل بياناته لوحده (طلب واحد للسيرفر) عشان كل الشاشات تشتغل من غير نت ---------- */
 let syncing = false;
-async function syncAll(force){
-  if (syncing || !navigator.onLine || !S.session || !S.user) return;
-  if (!force && Date.now() - store.get('syncAt', 0) < 8 * 60000) return;
-  syncing = true;
+// بيرجع عدد الشاشات اللي نزلت، أو null لو ما اشتغلش (مفيش نت أو مش داخل)
+async function syncAll(force, prog){
+  if (syncing || !navigator.onLine || !S.session || !S.user) return null;
+  if (!force && Date.now() - store.get('syncAt', 0) < 8 * 60000) return null;
+  syncing = true; let n = 0, fail = 0, stop = false;
+  // طلب واحد لجوجل؛ ولو جوجل القديم رفضه (Auth.gs لسه ما اتركّبش) بيحمّل واحدة واحدة
+  const one = async it => { const {action, ...d} = it; const x = await api(action, d); if (x.ok && !x.offline) n++; else { fail++; if (x.error === 'net' || x.error === 'slow' || x.error === 'session') stop = true; } return x; };
+  const sendB = async items => { if (stop || !items.length) return [];
+    if (!S.noBundle) { const r = await api('bundle', {items});
+      if (r.ok && Array.isArray(r.results)) { r.results.forEach((x, i) => { if (x && x.ok) { cachePut(items[i].action, items[i], x); n++; } else fail++; }); if (prog) prog(n); return r.results; }
+      if (r.error === 'net' || r.error === 'slow' || r.error === 'session') { stop = true; return []; }
+      S.noBundle = true; }
+    const out = []; for (let i = 0; i < items.length && !stop; i += 4) { out.push(...await Promise.all(items.slice(i, i + 4).map(one))); if (prog) prog(n); }
+    return out; };
   try {
-    const sendB = async items => { const r = await api('bundle', {items}); if (!r.ok) return null;
-      r.results.forEach((x, i) => { if (x && x.ok) cachePut(items[i].action, items[i], x); }); return r.results; };
     const R = role(), money = ['owner','manager','accountant','engineer'].includes(R), T = ['L','C','S','E'];
-    const base = [{action: 'projects'}, {action: 'notes'}, {action: 'items'}].concat(T.map(type => ({action: 'people', type})));
-    if (money) base.push({action: 'custody'});
+    const base = [{action: 'projects'}, {action: 'notes'}, {action: 'items'}].concat(T.map(type => ({action: 'people', type})), [{action: 'custody'}]);
     if (isBoss()) base.push({action: 'collectDues', project: ''}, {action: 'supplyPending'}, {action: 'attRequests'}, {action: 'users'});
-    const r1 = await sendB(base); if (!r1) return;
+    const r1 = await sendB(base); if (stop || !r1.length) return n;
     if (r1[0] && r1[0].ok) { S.projects = r1[0].items; S.projectsAt = Date.now(); store.set('projects', r1[0].items); }
     T.forEach((t, i) => { const x = r1[3 + i]; if (x && x.ok) S.people[t] = x.items; });
-    // مشاريعه الجارية: يوميات وتوريدات النهارده، وحساب كل عامل ومعدة ومورد عليها
-    const projs = (S.projects || []).filter(p => p.status === 'جاري').slice(0, 15), codes = projs.map(p => p.code);
+    // كل المشاريع اللي ما خلصتش: يوميات وتوريدات ومعدات النهارده، وحساب كل عامل ومعدة ومورد عليها، وكشوف العهد
+    const projs = (S.projects || []).filter(p => p.status !== 'انتهى').slice(0, 25), codes = projs.map(p => p.code);
     const more = [];
     projs.forEach(p => { more.push({action: 'attDay', project: p.code}, {action: 'supplyDay', project: p.code}); if (isBoss()) more.push({action: 'collectDues', project: p.code}); });
+    const cu = r1[7]; ((cu && cu.ok && cu.items) || []).slice(0, 30).forEach(x => more.push({action: 'custodyLedger', userId: x.id}));
     if (money) ['L','E','S'].forEach(t => { const x = r1[3 + T.indexOf(t)];
-      ((x && x.ok && x.items) || []).filter(w => w.status !== 'مستني تأكيد' && (isBoss() || R === 'accountant' || !w.project || codes.some(c => String(w.project).indexOf(c) >= 0)))
-        .slice(0, 40).forEach(w => more.push({action: 'workerAccount', code: w.code})); });
-    for (let i = 0; i < more.length; i += 20) { if (!navigator.onLine) break; await sendB(more.slice(i, i + 20)); }
-    store.set('syncAt', Date.now()); offBar();
+      ((x && x.ok && x.items) || []).filter(w => w.status !== 'مستني تأكيد' && !w.mergedInto && (isBoss() || R === 'accountant' || !w.project || codes.some(c => String(w.project).indexOf(c) >= 0)))
+        .slice(0, 60).forEach(w => more.push({action: 'workerAccount', code: w.code})); });
+    for (let i = 0; i < more.length && !stop; i += 20) { if (!navigator.onLine) break; await sendB(more.slice(i, i + 20)); }
+    if (!stop) { store.set('syncAt', Date.now()); store.set('syncN', n); store.set('syncFail', fail); }
+    offBar(); return n;
   } finally { syncing = false; }
 }
 addEventListener('online', () => setTimeout(async () => { await flushOut(); syncAll(true); }, 1500));
 addEventListener('offline', () => offBar());
 setInterval(() => syncAll(false), 10 * 60000);
+function syncInfo(){ const at = store.get('syncAt', 0); if (!at) return 'لسه ما نزلش ولا مرة.';
+  const f = store.get('syncFail', 0);
+  return `آخر تحميل: ${esc(new Date(at).toLocaleString('ar-EG', {weekday: 'long', hour: 'numeric', minute: '2-digit'}))} · ${nf(store.get('syncN', 0))} شاشة${f ? ` · <span style="color:var(--bad)">${nf(f)} ما نزلتش</span>` : ''}`; }
 // شريط «من غير نت» تحت الهيدر
 function offBar(){ const el = $('#offBar'); if (navigator.onLine) { if (el) el.remove(); return; }
   const at = store.get('syncAt', 0), t = at ? new Date(at).toLocaleTimeString('ar-EG', {hour: 'numeric', minute: '2-digit'}) : '';
