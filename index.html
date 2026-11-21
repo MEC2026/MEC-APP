@@ -214,7 +214,7 @@ body.sun{font-size:17.5px}body.sun .muted,body.sun small{color:#2b2f36!important
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.10.5';
+const APP_VERSION = '0.10.6';
 const APP_NOTES = ['التوريدة والمعدات بيتحفظوا على الموبايل لو مفيش نت، ويتبعتوا لوحدهم أول ما النت يرجع', 'رقم العربية بيملى الحمولة، والمورد بيقترح «آخر مرة كانت مع فلان» بزرار تأكيد', 'بعد التوريدة: «صوّر البون؟»، وتنبيه لو السعر أعلى من التحليل ولو بجنيه', '«زي اللي فاتت» في الحضور والمعدات، والمنطقة في المشروع، وتصدير إكسيل منسّق باللوجو ومعاه PDF'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
@@ -1070,6 +1070,7 @@ S.people = {};
 async function loadPeople(t, force){
   if (S.people[t] && !force) return S.people[t];
   const r = await api('people', {type: t});
+  S.noList = S.noList || {}; S.noList[t] = !r.ok;
   if (r.ok) S.people[t] = r.items;
   return r.ok ? r.items : (S.people[t] || null);
 }
@@ -1199,9 +1200,14 @@ function personForm(t, p, force, preset){
       terms: val('xTerms'), termDays: val('xTermDays') === undefined ? undefined : digits(val('xTermDays'))};
     if (!person.name.trim()) { $('#xErr').textContent = 'اكتب الاسم'; return; }
     busy($('#xSave'), true); $('#xErr').textContent = '';
-    const r = await qSave('savePerson', {type: t, person, force: !!force}, (p ? 'تعديل ' : 'إضافة ') + PPL[t].one + ': ' + person.name.trim());
+    const tmp = p ? '' : 'NEW-' + t + '-' + Date.now().toString(36).toUpperCase();
+    const r = await qSave('savePerson', Object.assign({type: t, person, force: !!force}, tmp ? {tmpCode: tmp} : {}), (p ? 'تعديل ' : 'إضافة ') + PPL[t].one + ': ' + person.name.trim());
     busy($('#xSave'), false);
-    if (r.queued) { toast(QMSG + (p ? '' : ' · هيظهر في القايمة بعد ما يتبعت')); closeSheet(); return; }
+    if (r.queued && p) { toast(QMSG); closeSheet(); return; }
+    // جديد من غير نت: بياخد كود مؤقت ويدخل القايمة على طول، ولما يتبعت كل حاجة اتسجلت عليه بتتنقل لكوده الحقيقي
+    if (r.queued) { const tp = Object.assign({}, person, {code: tmp, status: 'مستني النت', tmp: true}); await addTmpPerson(t, tp);
+      toast('مفيش نت: ' + PPL[t].one + ' اتضاف على الموبايل ⏳ وتقدر تسجّل عليه دلوقتي');
+      if (S.afterPerson) { const fn = S.afterPerson; S.afterPerson = null; fn(tp); return; } closeSheet(); return; }
     if (r.error === 'similar') {
       $('#xSim').innerHTML = `<div class="card" style="margin:8px 0;border-color:var(--warn)"><b>فيه اسم قريب، هو ده؟</b>
         ${r.matches.map(m => `<button class="mi" data-same="${esc(m.code)}" style="font-weight:400"><span class="pill p-info" dir="ltr">${esc(m.code)}</span><span style="flex:1">${esc(m.name)}<small class="muted" style="display:block">${esc(m.phones || '')}</small></span><small style="color:var(--navy2)">هو ده</small></button>`).join('')}
@@ -1371,6 +1377,7 @@ async function qSave(action, body, label){
   if (!ok) return {ok: false, error: 'full'};
   qCount(); return {ok: true, queued: true, qid: body.qid};
 }
+const NOLIST = 'القايمة ما نزلتش على الموبايل قبل ما النت يقع. ضيف جديد من هنا، أو من «الإعدادات» دوس «نزّل كل البيانات» أول ما النت يرجع.';
 const QMSG = 'مفيش نت: اتحفظ على الموبايل وهيتبعت لوحده أول ما النت يرجع ⏳';
 // إيصال مؤقت للدفع من غير نت: الرقم الرسمي (P-…) بييجي لما يتبعت
 function tempReceipt(x){
@@ -1384,6 +1391,15 @@ function tempReceipt(x){
     <button class="btn gold" id="trOk">تمام</button>`);
   $('#trOk').onclick = closeSheet;
 }
+// الأشخاص اللي اتضافوا من غير نت (كود مؤقت NEW-…) ← بيدخلوا القايمة والنسخة المتخزنة
+async function addTmpPerson(t, tp){
+  const L = (S.people[t] || []).filter(x => x.code !== tp.code); L.unshift(tp); S.people[t] = L;
+  const c = await cacheGet('people', {type: t}); const items = ((c && c.r && c.r.items) || []).filter(x => x.code !== tp.code);
+  items.unshift(tp); await cachePut('people', {type: t}, Object.assign({}, (c && c.r) || {ok: true}, {ok: true, items})); }
+// الكود المؤقت ← الحقيقي في أي تسجيلة مستنية
+function remapTmp(body){ const m = store.get('tmpMap', {}); let j = JSON.stringify(body);
+  Object.keys(m).forEach(k => { j = j.split('"' + k + '"').join('"' + m[k] + '"'); }); return JSON.parse(j); }
+const hasTmp = body => /"NEW-[LCSE]-[0-9A-Z]+"/.test(JSON.stringify(body));
 // للتوافق مع كود 0.10.1 (التوريدة والمعدات)
 function outPush(a, body, label){ QDB.put({id: body.qid || (body.qid = qid()), a, body: Object.assign({qat: new Date().toISOString()}, body), label, at: Date.now()}).then(qCount); return true; }
 let flushingOut = false;
@@ -1393,11 +1409,17 @@ async function flushOut(){
   if (old.length) { for (const it of old) await QDB.put({id: (it.body.qid = it.body.qid || qid()), a: it.a, body: it.body, label: it.label, at: it.at}); store.del('outq'); }
   const q = await QDB.all(); if (!q.length) { qCount(); return; }
   flushingOut = true; const done = [], bad = [];
-  for (const it of q) { const x = await api(it.a, it.body);
+  for (const it of q) { const body = remapTmp(it.body); if (body.tmpCode) delete body.person.code;
+    let x = await api(it.a, body);
+    // المورد/المعدة/العامل اللي اتضاف من غير نت: لو جوجل لقى نفس الاسم بالظبط ناخده، ولو قريب بس نضيفه
+    if (it.a === 'savePerson' && body.tmpCode && x.error === 'similar') {
+      const same = (x.matches || []).find(m => normAr(m.name) === normAr(body.person.name));
+      x = same ? {ok: true, person: same} : await api(it.a, Object.assign({}, body, {force: true, qid: body.qid + '-f'})); }
+    if (x.ok && body.tmpCode && x.person && x.person.code) { const m = store.get('tmpMap', {}); m[body.tmpCode] = x.person.code; store.set('tmpMap', m); S.people[body.type] = null; }
     if (x.ok) { done.push(it.label); await QDB.del(it.id); (x.warnings || []).forEach(w => bad.push(w)); }
     else if (x.error === 'net' || x.error === 'slow' || x.error === 'session') break;   // النت قطع تاني: نكمل بعدين بنفس الترتيب
     else { await QDB.put(Object.assign({}, it, {err: errMsg(x), error: x.error, failedAt: Date.now()}), 'bad'); await QDB.del(it.id); bad.push(it.label + ': ' + errMsg(x)); } }
-  flushingOut = false; qCount();
+  flushingOut = false; qCount(); if (done.length && store.get('attq', []).length) flushAtt();
   if (done.length) { toast('اتبعت اللي كان مستني النت ✓ (' + done.slice(0, 4).join('، ') + (done.length > 4 ? ' و' + (done.length - 4) + ' كمان' : '') + ')'); S.supDay = null; S.secStat = null; S.quickAt = 0; S.duesAt = 0; }
   bad.forEach((w, i) => setTimeout(() => toast(w), 2600 * (i + 1)));
 }
@@ -1487,7 +1509,8 @@ async function flushAtt(){
   const q = store.get('attq', []); if (!q.length) return;
   flushingAtt = true;
   const left = [];
-  for (const b of q) { const x = await api('saveAttendance', b); if (!x.ok && x.error === 'net') left.push(b); }
+  for (const b0 of q) { const b = remapTmp(b0); if (hasTmp(b)) { left.push(b0); continue; }
+    const x = await api('saveAttendance', b); if (!x.ok && x.error === 'net') left.push(b0); }
   store.set('attq', left); flushingAtt = false; qCount();
   if (q.length > left.length) toast('اليوميات اللي كانت مستنية النت اتبعتت ✓');
 }
@@ -2222,10 +2245,11 @@ async function deliveryForm(code, date, preset){
     document.querySelectorAll('[data-mt]').forEach(b => b.onclick = () => { sync(); f.mat = b.dataset.mt; draw(); });
     if ($('#dlSupQ')) { const q = $('#dlSupQ'); const list = () => { const v = normAr(q.value);
         const l = sups.filter(s => s.status !== 'اتدمج' && (!v || normAr(s.name + ' ' + (s.goods || '')).includes(v))).slice(0, 6);
-        $('#dlSupL').innerHTML = l.map(s => `<button class="li" data-sp="${esc(s.code)}"><span class="t"><b>${esc(s.name)}</b><small>${esc(s.goods || '')}</small></span></button>`).join('')
+        $('#dlSupL').innerHTML = (S.noList && S.noList.S ? `<p class="muted" style="font-size:13px;margin:6px 2px">${NOLIST}</p>` : '')
+          + l.map(s => `<button class="li" data-sp="${esc(s.code)}"><span class="t"><b>${esc(s.name)}${s.tmp ? ' <small class="pill p-warn">⏳ مستني النت</small>' : ''}</b><small>${esc(s.goods || '')}</small></span></button>`).join('')
           + `<button class="li" id="dlSupNew"><span class="ico">${ic('plus')}</span><span class="t"><b>مورد جديد${q.value ? ': ' + esc(q.value) : ''}</b></span></button>`;
         document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { sync(); f.sup = b.dataset.sp; f.price = ''; draw(); });
-        $('#dlSupNew').onclick = () => { sync(); S.afterPerson = pp => { S.people.S = null; loadPeople('S', true).then(l2 => { sups.splice(0, sups.length, ...(l2 || [])); f.sup = pp.code; draw(); }); };
+        $('#dlSupNew').onclick = () => { sync(); S.afterPerson = pp => { if (!pp.tmp) S.people.S = null; (pp.tmp ? Promise.resolve(S.people.S) : loadPeople('S', true)).then(l2 => { const L = (l2 || []).slice(); if (!L.some(x => x.code === pp.code)) L.unshift(pp); sups.splice(0, sups.length, ...L); f.sup = pp.code; draw(); }); };
           personForm('S', null, false, {name: q.value}); }; };
       q.oninput = list; list(); }
     if ($('#dlSupX')) $('#dlSupX').onclick = () => { sync(); f.sup = ''; draw(); };
@@ -2384,7 +2408,7 @@ async function eqSheet(code, date){
     if ($('#eqAdd')) $('#eqAdd').onclick = () => { sync();
       const opts = eqs.filter(e => !codes.includes(e.code) && e.status !== 'متوقف' && e.status !== 'اتدمج');
       openSheet(`<h3>معدة من القايمة</h3><input class="in" id="eqQ" placeholder="دوّر"><div id="eqL"></div>`);
-      const l = () => { const v = normAr($('#eqQ').value); $('#eqL').innerHTML = opts.filter(e => !v || normAr(e.name + ' ' + (e.etype || '') + ' ' + (e.plate || '')).includes(v)).map(e => `<button class="li" data-ea="${esc(e.code)}"><span class="t"><b>${esc(e.name)}</b><small>${esc([e.etype, e.own, e.unit].filter(Boolean).join(' · '))}</small></span></button>`).join('')
+      const l = () => { const v = normAr($('#eqQ').value); $('#eqL').innerHTML = (S.noList && S.noList.E ? `<p class="muted" style="font-size:13px;margin:6px 2px">${NOLIST}</p>` : '') + opts.filter(e => !v || normAr(e.name + ' ' + (e.etype || '') + ' ' + (e.plate || '')).includes(v)).map(e => `<button class="li" data-ea="${esc(e.code)}"><span class="t"><b>${esc(e.name)}</b><small>${esc([e.etype, e.own, e.unit].filter(Boolean).join(' · '))}</small></span></button>`).join('')
         + `<button class="li" id="eqNew"><span class="ico">${ic('plus')}</span><span class="t"><b>معدة جديدة</b><small>لودر، خلاطة، ونش…</small></span></button>`;
         document.querySelectorAll('[data-ea]').forEach(b => b.onclick = () => { codes.push(b.dataset.ea); st[b.dataset.ea] = {qty: '', m1: '', m2: '', row: null}; reopen(); });
         $('#eqNew').onclick = () => { S.afterPerson = pp => { eqs.push(pp); codes.push(pp.code); st[pp.code] = {qty: '', m1: '', m2: '', row: null}; reopen(); }; personForm('E', null, false, {name: $('#eqQ').value}); }; };
