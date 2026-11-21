@@ -288,8 +288,9 @@ h3 svg.art{margin:0}
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.11.1';
-const APP_NOTES = ['التقرير الأسبوعي بقى «ملخص» و«تقرير كامل» بتابات (البنود، العمالة، الرمل والسن، الأسمنت والحديد، المعدات، الفلوس، الملاحظات) وPDF لكل واحد', 'البنود: جاري، وخلص، والأسبوع الجاي (🗓️ خطة الأسبوع)، والخطة مقابل الفعلي', 'الصنايعية ومساعدينهم لوحدهم وعمال الشركة لوحدهم، والمعدات بالأيام وساعات السهر، والحديد بالطن والأقطار', '«مين استلم؟» لو سجّلت مكان حد، و💡 «دفتري» للمالك بالذكاء الاصطناعي'];
+const APP_VERSION = '0.11.2';
+const APP_NOTES = ['🗓️ الجدول الزمني بيتعمل لوحده من المقايسة، وبـ 4 أشكال (Gantt، أجندة، أسابيع، أعمدة الحالة).', '📈 «المتابعة» بقت تاب في «كام جالي؟»: SPI وCPI ومنحنى S.',
+  '✅ «جاهز يبدأ؟» و🌙 «خطة بكرة» و🏁 الاستلام بالمناطق ونماذج الجودة (للمالك).', '🔁 أوامر التغيير، و📖 المكتبة الفنية و«اسأل المكتبة».', '🔔 الإشعارات على الموبايل حتى لو التطبيق مقفول: فعّلها من كارت «📲 جهّز الموبايل».'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
 
@@ -303,6 +304,7 @@ const ROLES = {
   contractor: {name:'مقاول'}
 };
 const ERR = {
+  unknown: 'جوجل لسه شغال بالنسخة القديمة. اعمل Deploy ← Manage deployments ← ✏️ ← New version.',
   wrong:'رقم الموبايل أو الرقم السري غلط', locked:'الحساب اتقفل بعد محاولات غلط كتير. كلّم المالك يفتحه',
   disabled:'الحساب ده متوقف. كلّم المالك', noPin:'لسه ما فعّلتش حسابك. افتح لينك الدعوة اللي جالك',
   badInvite:'لينك الدعوة ده مش شغال أو اتستخدم قبل كده. اطلب لينك جديد', pinFormat:'الرقم السري لازم يكون من 4 لـ 8 أرقام',
@@ -678,7 +680,7 @@ function homeView(){
       ...locked.map(u => `<button class="li" data-team="1"><span class="ico">${ic('shield')}</span><span class="t"><b>حساب ${esc(dn(u))} اتقفل</b><small>محاولات رقم سري غلط. افتحه من الفريق</small></span><span class="pill p-bad">مقفول</span></button>`),
       ...waiting.map(u => `<button class="li" data-team="1"><span class="ico">${ic('users')}</span><span class="t"><b>${esc(dn(u))} لسه ما فعّلش حسابه</b><small>ابعتله لينك جديد لو اللي معاه ضاع</small></span><span class="pill p-warn">مستني</span></button>`)
     ].join('');
-    return news + (typeof nightHome === 'function' ? nightHome() : '') + ideasHome() + supplyCards() + duesCard() + savedHome() + `
+    return news + (typeof setupHome === 'function' ? setupHome() : '') + (typeof nightHome === 'function' ? nightHome() : '') + ideasHome() + supplyCards() + duesCard() + savedHome() + `
     <h2 class="sec">المشاريع <button class="more" data-t2="projects">الكل</button></h2>
     ${S.projects.length ? statCards() : `<div class="card empty">${ic('folder')}<div>مفيش مشاريع لسه</div><button class="btn gold" id="newProj" style="margin-top:12px">${ic('plus')} مشروع جديد</button></div>`}
     ${act ? `<h2 class="sec">${ic('alert')} محتاج تتصرف فيه</h2>${act}` : ''}
@@ -686,7 +688,7 @@ function homeView(){
     ${recent.length ? `<h2 class="sec">آخر دخول <button class="more" id="openLog">سجل النشاط</button></h2>
       <div class="card" style="padding:4px 14px">${recent.map(u => `<div class="mi" style="font-weight:400"><span style="flex:1"><b style="font-weight:600">${esc(dn(u))}</b></span><small class="muted">${ago(u.last)}</small></div>`).join('')}</div>` : ''}`;
   }
-  return news + supplyCards() + quickHome() + savedHome() + `
+  return news + (typeof setupHome === 'function' ? setupHome() : '') + supplyCards() + quickHome() + savedHome() + `
     <h2 class="sec">مشاريعي</h2>
     ${S.projects.length ? S.projects.filter(p => p.status !== 'انتهى').map(p => projectCard(p)).join('') : emptyBox('folder','مفيش مشاريع متسجلة عليك لسه')}
     <h2 class="sec">ملاحظة سريعة</h2>
@@ -2809,6 +2811,7 @@ function wireShell(){
   wireSaved();
   if (typeof wireSite === 'function') wireSite(v);
   if (typeof pushRefresh === 'function') pushRefresh();
+  if (typeof wireSetup === 'function') wireSetup();
   if (location.hash === '#night' && typeof pushOpen === 'function') { history.replaceState(null, '', location.pathname); setTimeout(() => pushOpen({ref: 'night'}), 600); }
   if ((S.project || store.get('savedF', []).length) && !S.siteLog && !S.siteTried && ['owner','manager','engineer','supervisor','accountant'].includes(role())) { S.siteTried = true;
     siteData(false).then(d => { if (d && !$('#sheet').classList.contains('on') && !$('#wkOv')) render(); }); }
@@ -5389,6 +5392,31 @@ function pushOpen(d){
   if (typeof notesSheet === 'function') notesSheet();
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', ev => { if (ev.data && ev.data.push) pushOpen(ev.data.push); });
+
+/* ---------- 0.11.2: كارت «📲 جهّز الموبايل» أول ما حد يفتح التطبيق على موبايل جديد ---------- */
+function setupHome(){
+  if (!S.user) return '';
+  const fail = store.get('syncFail', 0), dataOK = !!store.get('syncAt', 0) && !fail, pOK = !pushOK() || pushOn();
+  if (dataOK && pOK) return '';
+  if (Date.now() < store.get('setupLater', 0)) return '';
+  if (syncing && !S.suPoll) S.suPoll = setInterval(() => { if (syncing) return; clearInterval(S.suPoll); S.suPoll = null; if (S.tab === 'home' && !S.project && !$('#sheet').classList.contains('on')) render(); }, 2500);
+  const denied = pushOK() && Notification.permission === 'denied';
+  const row = (ok, t, sub, btn) => `<div class="sr" style="gap:10px"><span style="font-size:20px">${ok ? '✅' : '⬜'}</span><span style="flex:1"><b style="font-size:14px">${t}</b><br><small class="muted">${sub}</small></span>${ok ? '' : btn}</div>`;
+  return `<div class="card" style="margin-bottom:10px;border-color:#C6D7F0;background:#F5F9FF"><b style="font-size:15px">📲 جهّز الموبايل</b>
+    <div class="muted" style="font-size:12.5px;margin:2px 0 6px">خطوتين مرة واحدة بس، عشان التطبيق يشتغل من غير نت ويوصلك كل تنبيه.</div>
+    ${row(dataOK, '⬇️ نزّل كل البيانات', syncing ? 'بينزّل دلوقتي… ⏳' : fail ? `${nf(fail)} شاشة ما نزلتش، جرّب تاني` : dataOK ? 'نزلت ✓' : navigator.onLine ? 'لسه ما نزلتش' : 'محتاج نت',
+      `<button class="chip" id="suData" ${syncing ? 'disabled' : ''}>${syncing ? '⏳' : 'نزّل'}</button>`)}
+    ${pushOK() ? row(pushOn(), '🔔 فعّل الإشعارات', denied ? 'مقفولة من إعدادات الموبايل: افتحها من الإعدادات ← التطبيقات ← الإشعارات' : 'عشان يوصلك كل تنبيه حتى لو التطبيق مقفول',
+      `<button class="chip" id="suPush" ${denied ? 'disabled' : ''}>فعّل</button>`) : ''}
+    <div style="text-align:left;margin-top:4px"><button class="more" id="suLater">بعدين</button></div></div>`;
+}
+function wireSetup(){
+  if ($('#suData')) $('#suData').onclick = async () => { if (!navigator.onLine) { toast('محتاج نت'); return; } const b = $('#suData'); b.disabled = true; b.textContent = '⏳';
+    await syncAll(true); render(); };
+  if ($('#suPush')) $('#suPush').onclick = async () => { const b = $('#suPush'); b.disabled = true; b.textContent = '⏳'; const r = await pushEnable();
+    if (r.ok) { toast('الإشعارات اتفعلت ✓'); render(); } else { b.disabled = false; b.textContent = 'فعّل'; toast(PUSH_ERR[r.error] || errMsg(r)); } };
+  if ($('#suLater')) $('#suLater').onclick = () => { store.set('setupLater', Date.now() + 864e5); render(); };
+}
 
 
 /* ================= البداية ================= */

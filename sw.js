@@ -1,6 +1,6 @@
 // MEC-APP service worker: الصفحة نفسها دايما من النت لو متاح (عشان التحديث يوصل)، والباقي من الكاش
-const CACHE = 'mec-app-v0.11.1';
-const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './logo-512.png'];
+const CACHE = 'mec-app-v0.11.2';
+const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './logo-512.png', './badge-96.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
@@ -27,7 +27,7 @@ self.addEventListener('fetch', e => {
 // 0.11.1: الإشعارات (Firebase بيبعت data بس، والـ service worker بيعرضها)
 self.addEventListener('push', e => {
   let d = {}; try { const j = e.data ? e.data.json() : {}; d = j.data || j.notification || j; } catch (x) { d = {body: e.data ? e.data.text() : ''}; }
-  e.waitUntil(self.registration.showNotification(d.title || 'MEC-APP', {body: d.body || '', icon: './icon-192.png', badge: './icon-192.png', tag: d.tag || 'mec', renotify: true,
+  e.waitUntil(self.registration.showNotification(d.title || 'MEC-APP', {body: d.body || '', icon: './icon-192.png', badge: './badge-96.png', tag: d.tag || 'mec', renotify: true,
     dir: 'rtl', lang: 'ar', data: {ref: d.ref || '', url: './' + (d.ref === 'night' ? '#night' : '')}}));
 });
 self.addEventListener('notificationclick', e => {
