@@ -228,6 +228,9 @@ h3 svg.art{margin:0}
 .wkov{position:fixed;inset:0;z-index:90;background:#F3F6FA;display:flex;flex-direction:column}
 .wkbar{display:flex;align-items:center;gap:6px;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;background:var(--navy);color:#fff}
 .wkbody{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
+.wktabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:8px 10px;background:#fff;border-bottom:1px solid #E6EAF0;align-items:center}.wktabs::-webkit-scrollbar{display:none}.wktabs .tab{flex:none;margin:0}.wktabs .chip{flex:none;font-size:12px}
+.aic{border-inline-start:4px solid var(--c-prod);background:#FBFAFF}
+.ideaHome{border-inline-start:4px solid var(--gold);background:linear-gradient(90deg,#FFFBF0,#fff)}
 </style>
 </head>
 <body>
@@ -285,8 +288,8 @@ h3 svg.art{margin:0}
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.10.7';
-const APP_NOTES = ['«📊 كام جالي؟»: كام نقلة رمل أو ساعة لودر أو يومية مبيض في أي فترة (النهارده، الأسبوع ده من السبت، من أول المشروع…) بالمشروع والخامة والمورد، وشغال من غير نت', '«📐 إنجاز النهارده» في الحضور، والإنتاجية للعامل ومقارنتها بالأسبوع اللي فات وبالمعدل', 'التقرير الأسبوعي للمالك (المزيد ← التقرير الأسبوعي) وبيوصل الإيميل كل جمعة', 'شكل جديد بألوان فاتحة، والكحلي في الهيدر بس'];
+const APP_VERSION = '0.10.8';
+const APP_NOTES = ['التقرير الأسبوعي بقى «ملخص» و«تقرير كامل» بتابات (البنود، العمالة، الرمل والسن، الأسمنت والحديد، المعدات، الفلوس، الملاحظات) وPDF لكل واحد', 'البنود: جاري، وخلص، والأسبوع الجاي (🗓️ خطة الأسبوع)، والخطة مقابل الفعلي', 'الصنايعية ومساعدينهم لوحدهم وعمال الشركة لوحدهم، والمعدات بالأيام وساعات السهر، والحديد بالطن والأقطار', '«مين استلم؟» لو سجّلت مكان حد، و💡 «دفتري» للمالك بالذكاء الاصطناعي'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
 
@@ -369,7 +372,7 @@ async function sha(s){ const b = await crypto.subtle.digest('SHA-256', new TextE
 // الحاجات التقيلة (النسخة الاحتياطية والتصدير) بتستنى لحد 3 دقايق، والباقي 25 ثانية
 const SLOW = {backupNow: 180000, exportTable: 180000, bundle: 180000};
 // 0.10.4: كل قراية بتتحفظ على الموبايل، ومن غير نت الشاشة بتفتح بآخر نسخة
-const READS = new Set(['siteLog','weekReport','me','projects','users','attDay','supplyDay','logs','notes','reports','people','workerAccount','wageHistory','attRequests','custodyLedger','custody','collectDues','supplyPending','items','projectAttendance','appPricing']);
+const READS = new Set(['siteLog','weekReport','ideas','me','projects','users','attDay','supplyDay','logs','notes','reports','people','workerAccount','wageHistory','attRequests','custodyLedger','custody','collectDues','supplyPending','items','projectAttendance','appPricing']);
 function ckey(action, data){ const o = {}, today = ymd(new Date());
   Object.keys(data || {}).sort().forEach(k => { if (['action','session','device','qid','qat'].includes(k)) return; const v = data[k]; if (v === '' || v == null) return; if (k === 'date' && v === today) return; o[k] = v; });
   return action + '|' + JSON.stringify(o); }
@@ -675,7 +678,7 @@ function homeView(){
       ...locked.map(u => `<button class="li" data-team="1"><span class="ico">${ic('shield')}</span><span class="t"><b>حساب ${esc(dn(u))} اتقفل</b><small>محاولات رقم سري غلط. افتحه من الفريق</small></span><span class="pill p-bad">مقفول</span></button>`),
       ...waiting.map(u => `<button class="li" data-team="1"><span class="ico">${ic('users')}</span><span class="t"><b>${esc(dn(u))} لسه ما فعّلش حسابه</b><small>ابعتله لينك جديد لو اللي معاه ضاع</small></span><span class="pill p-warn">مستني</span></button>`)
     ].join('');
-    return news + supplyCards() + duesCard() + savedHome() + `
+    return news + ideasHome() + supplyCards() + duesCard() + savedHome() + `
     <h2 class="sec">المشاريع <button class="more" data-t2="projects">الكل</button></h2>
     ${S.projects.length ? statCards() : `<div class="card empty">${ic('folder')}<div>مفيش مشاريع لسه</div><button class="btn gold" id="newProj" style="margin-top:12px">${ic('plus')} مشروع جديد</button></div>`}
     ${act ? `<h2 class="sec">${ic('alert')} محتاج تتصرف فيه</h2>${act}` : ''}
@@ -788,6 +791,7 @@ function moreView(){
     ${canPay() ? `<button class="mi" id="supPend">${ic('box')}توريدات ناقصها سعر أو مقاس</button>` : ''}
     ${['owner','manager','engineer','supervisor','accountant'].includes(role()) ? `<button class="mi" id="kamBtn">${ic('chart')}كام جالي؟ (توريدات، معدات، عمالة، إنتاجية)</button>` : ''}
     ${isBoss() || ['accountant','engineer'].includes(role()) ? `<button class="mi" id="weekBtn">${ic('doc')}التقرير الأسبوعي</button>` : ''}
+    ${isOwner() ? `<button class="mi" id="ideasMore">💡 دفتري (أفكارك وملاحظاتك)</button>` : ''}
     <button class="mi" id="items">${ic('doc')}بنود الشركة</button>
     ${MORE.map(m => `<button class="mi" data-soon="${esc(m.n)}">${ic(m.i)}${esc(m.n)}<span class="soon">قريبًا</span></button>`).join('')}
   </div>
@@ -1242,12 +1246,13 @@ function personForm(t, p, force, preset){
     ${t === 'C' ? `<label class="f">فرد ولا شركة</label><select class="in" id="xKind">${opt('فرد', p ? p.kind : 'فرد')}${opt('شركة', p ? p.kind : '')}</select>` : ''}
     ${t === 'E' ? `<label class="f">نوع المعدة</label><input class="in" id="xEtype" value="${v('etype')}" placeholder="لودر، خلاطة، ونش، كمبروسر…">
       <div class="row" style="gap:8px"><div style="flex:1"><label class="f">تبع</label><select class="in" id="xOwn">${opt('إيجار', p ? p.own : 'إيجار')}${opt('شركة', p ? p.own : '')}</select></div>
-      <div style="flex:1"><label class="f">بتتحاسب بـ</label><select class="in" id="xUnit">${['ساعة','يوم','نقلة'].map(x => opt(x, p ? p.unit : 'ساعة')).join('')}</select></div></div>
-      ${canPay() ? `<label class="f">السعر (ج) على ال<span id="xUnitL">${esc(p && p.unit ? p.unit : 'ساعة')}</span></label><input class="in" id="xRate" inputmode="decimal" dir="ltr" value="${v('rate')}">` : ''}
+      <div style="flex:1"><label class="f">بتتحاسب بـ</label><select class="in" id="xUnit">${['يوم','ساعة','نقلة'].map(x => opt(x, p ? p.unit : 'يوم')).join('')}</select></div></div>
+      ${canPay() ? `<label class="f">السعر (ج) على ال<span id="xUnitL">${esc(p && p.unit ? p.unit : 'يوم')}</span></label><input class="in" id="xRate" inputmode="decimal" dir="ltr" value="${v('rate')}"><label class="f">سعر ساعة السهر (اختياري)</label><input class="in" id="xOtRate" inputmode="decimal" dir="ltr" value="${v('otRate')}" placeholder="لو اشتغلت بعد اليوم">` : ''}
       <label class="f">صاحبها</label><input class="in" id="xOwner" value="${v('owner')}">
       <label class="f">السواق</label><input class="in" id="xDriver" value="${v('driver')}">
       <label class="f">رقم المعدة (اختياري)</label><input class="in" id="xPlate" value="${v('plate')}" placeholder="النمرة أو رقم الشاسيه">`
-    : t !== 'S' ? `<label class="f">الصنعة</label><input class="in" id="xTrade" value="${v('trade')}" placeholder="${t === 'L' ? 'مبيض، نجار، مساعد…' : 'محارة، ألوميتال، كهرباء…'}">` : `<label class="f">نوع الخامات</label><input class="in" id="xGoods" value="${v('goods')}" placeholder="رمل وسن، أسمنت، سيراميك، دهانات…">
+    : t !== 'S' ? `<label class="f">الصنعة</label><input class="in" id="xTrade" value="${v('trade')}" placeholder="${t === 'L' ? 'مبيض، نجار، مساعد…' : 'محارة، ألوميتال، كهرباء…'}">${t === 'L' ? `<label class="f">النوع</label><div class="chips" id="xKindL">${['صنايعي','مساعد','عامل شركة'].map(k => `<button type="button" class="chip ${(p && p.kind ? p.kind : kindGuess(preset && preset.trade || '')) === k ? 'on' : ''}" data-xk="${k}">${k}</button>`).join('')}</div>
+      <small class="muted">المساعد بيتسجل مع الصنايعي بتاعه: اكتب في الصنعة «مساعد محارة». عامل الشركة بيتحسب لوحده.</small>` : ''}` : `<label class="f">نوع الخامات</label><input class="in" id="xGoods" value="${v('goods')}" placeholder="رمل وسن، أسمنت، سيراميك، دهانات…">
       ${canPay() ? `<div class="row" style="gap:8px"><div style="flex:1.3"><label class="f">شروط الدفع</label><select class="in" id="xTerms">${['فوري','أسبوعي','شهري','آجل'].map(x => opt(x, p && p.terms ? p.terms : 'فوري')).join('')}</select></div>
         <div style="flex:1"><label class="f">أيام الآجل</label><input class="in" id="xTermDays" inputmode="numeric" dir="ltr" value="${v('termDays')}" placeholder="30"></div></div>` : ''}`}
     <label class="f">${t === 'L' ? 'التليفون' : t === 'E' ? 'تليفون صاحبها أو السواق' : 'التليفونات (افصل بينهم بفاصلة)'}</label><input class="in" id="xPhones" type="tel" dir="ltr" value="${v('phones')}" placeholder="01xxxxxxxxx">
@@ -1269,10 +1274,10 @@ function personForm(t, p, force, preset){
     <button class="btn gold" id="xSave">${p ? 'حفظ' : 'ضيف'}</button>`);
   const val = id => { const e = document.getElementById(id); return e ? e.value : undefined; };
   const send = async force => {
-    const person = {code: p ? p.code : '', name: val('xName'), kind: val('xKind'), trade: val('xTrade'), goods: val('xGoods'), phones: digits(val('xPhones') || ''),
+    const person = {code: p ? p.code : '', name: val('xName'), kind: t === 'L' ? (($('#xKindL .chip.on') || {}).dataset || {}).xk || kindGuess(val('xTrade')) : val('xKind'), trade: val('xTrade'), goods: val('xGoods'), phones: digits(val('xPhones') || ''),
       project: val('xProj'), wa: digits(val('xWa') || ''), wage: digits(val('xWage') || ''), hour: digits(val('xHour') || ''), opening: digits(val('xOpen') || ''), wageFrom: val('xFrom'),
       photo: PHOTO.xPhoto, ipn: (val('xIpn') || '').trim(), payNo: digits(val('xPayNo') || ''), payType: val('xPayType'), bank: val('xBank'), iban: val('xIban'), notes: val('xNotes'),
-      etype: val('xEtype'), own: val('xOwn'), unit: val('xUnit'), rate: val('xRate') === undefined ? undefined : digits(val('xRate')).replace(/[٫,]/g, '.'), owner: val('xOwner'), driver: val('xDriver'), plate: val('xPlate'),
+      etype: val('xEtype'), own: val('xOwn'), unit: val('xUnit'), rate: val('xRate') === undefined ? undefined : digits(val('xRate')).replace(/[٫,]/g, '.'), otRate: val('xOtRate') === undefined ? undefined : digits(val('xOtRate')).replace(/[٫,]/g, '.'), owner: val('xOwner'), driver: val('xDriver'), plate: val('xPlate'),
       terms: val('xTerms'), termDays: val('xTermDays') === undefined ? undefined : digits(val('xTermDays'))};
     if (!person.name.trim()) { $('#xErr').textContent = 'اكتب الاسم'; return; }
     busy($('#xSave'), true); $('#xErr').textContent = '';
@@ -1301,6 +1306,8 @@ function personForm(t, p, force, preset){
   };
   $('#xSave').onclick = () => send(force);
   if ($('#xUnit') && $('#xUnitL')) $('#xUnit').onchange = e => $('#xUnitL').textContent = e.target.value;
+  document.querySelectorAll('[data-xk]').forEach(b => b.onclick = () => { document.querySelectorAll('[data-xk]').forEach(x => x.classList.toggle('on', x === b)); b.dataset.set = '1'; });
+  if ($('#xTrade') && $('#xKindL') && !p) $('#xTrade').addEventListener('input', () => { if ($('#xKindL [data-set]')) return; const k = kindGuess($('#xTrade').value); document.querySelectorAll('[data-xk]').forEach(x => x.classList.toggle('on', x.dataset.xk === k)); });
 }
 
 /* ---------- مكان المشروع ---------- */
@@ -1527,9 +1534,11 @@ async function syncAll(force, prog){
     if (isBoss()) base.push({action: 'collectDues', project: ''}, {action: 'supplyPending'}, {action: 'attRequests'}, {action: 'users'});
     if (['owner','manager','engineer','supervisor','accountant'].includes(R)) base.push({action: 'siteLog'});
     if (isBoss() || R === 'accountant' || R === 'engineer') base.push({action: 'weekReport'});
+    if (R === 'owner') base.push({action: 'ideas'});
     const r1 = await sendB(base); if (stop || !r1.length) return n;
     if (r1[0] && r1[0].ok) { S.projects = r1[0].items; S.projectsAt = Date.now(); store.set('projects', r1[0].items); }
     { const i = base.findIndex(x => x.action === 'siteLog'), x = r1[i]; if (i >= 0 && x && x.ok) S.siteLog = Object.assign({}, x, {at: Date.now()}); }
+    { const i = base.findIndex(x => x.action === 'ideas'), x = r1[i]; if (i >= 0 && x && x.ok) { S.ideas = x; store.set('ideasN', x.items.filter(y => ['جديدة', 'بفكر فيها'].includes(y.st)).length); } }
     T.forEach((t, i) => { const x = r1[3 + i]; if (x && x.ok) S.people[t] = x.items; });
     // كل المشاريع اللي ما خلصتش: يوميات وتوريدات ومعدات النهارده، وحساب كل عامل ومعدة ومورد عليها، وكشوف العهد
     const projs = (S.projects || []).filter(p => p.status !== 'انتهى').slice(0, 25), codes = projs.map(p => p.code);
@@ -2196,8 +2205,8 @@ async function quickStatus(){
   const rs = await Promise.all(ps.slice(0, 4).map(p => api('attDay', {project: p.code})));
   const ss = await Promise.all(ps.slice(0, 4).map(p => api('supplyDay', {project: p.code})));
   const ok = ss.filter(r => r.ok), loads = ok.reduce((s, r) => s + r.rows.reduce((t, x) => t + (x.unit === 'نقلة' ? Number(x.count) || 0 : 0), 0), 0), dn = ok.reduce((s, r) => s + r.rows.length, 0);
-  const hrs = ok.reduce((s, r) => s + r.eqRows.filter(x => x.unit === 'ساعة').reduce((t, x) => t + x.qty, 0), 0), en = ok.reduce((s, r) => s + r.eqRows.length, 0);
-  S.quick = {att: rs.every(r => r.ok && (r.rows.length || !r.workers.length)), sup: dn ? (loads ? `✓ ${loads} نقلة` : `✓ ${dn}`) : '', eq: en ? (hrs ? `✓ ${hrs} ساعة` : `✓ ${en}`) : ''};
+  const en = ok.reduce((s, r) => s + r.eqRows.length, 0);
+  S.quick = {att: rs.every(r => r.ok && (r.rows.length || !r.workers.length)), sup: dn ? (loads ? `✓ ${loads} نقلة` : `✓ ${dn}`) : '', eq: en ? `✓ ${en} معدة` : ''};
   if (S.tab === 'home' && !S.project && !$('#sheet').classList.contains('on')) render();
 }
 
@@ -2206,6 +2215,16 @@ const SUP_UNITS = ['نقلة','شيكارة','كرتونة','جردل','م3','م
 const U_SIZE = {'شيكارة':'كجم', 'كرتونة':'م2', 'جردل':'كجم'};
 const U_ON = {'نقلة':['م3','نقلة'], 'شيكارة':['شيكارة','طن'], 'كرتونة':['م2','كرتونة'], 'جردل':['جردل']};
 const numIn = s => digits(s).replace(/[٫,]/g, '.').replace(/[^\d.]/g, '');
+// «مين استلم؟» — المالك والمدير والمهندس بيسجّلوا مكان المشرف لو ما كانش فاضي
+const canRecvFor = () => isBoss() || role() === 'engineer';
+function recvField(id, val, p){
+  const names = [...new Set([p && p.supName, p && p.engName].filter(n => n && n !== dn(S.user)))];
+  return `<label class="f">مين استلم؟</label><div class="chips" style="flex-wrap:wrap"><button type="button" class="chip ${!val ? 'on' : ''}" data-rv="">أنا</button>${names.map(n => `<button type="button" class="chip ${val === n ? 'on' : ''}" data-rv="${esc(n)}">${esc(n)}</button>`).join('')}</div>
+    <input class="in" id="${id}" value="${esc(names.includes(val) ? '' : val || '')}" placeholder="أو اكتب اسمه (لو سجّلت مكان حد)" style="margin-top:6px">`;
+}
+function wireRecv(id, set){ document.querySelectorAll('[data-rv]').forEach(b => b.onclick = () => { document.querySelectorAll('[data-rv]').forEach(x => x.classList.toggle('on', x === b)); if ($('#' + id)) $('#' + id).value = ''; set(b.dataset.rv); });
+  if ($('#' + id)) $('#' + id).oninput = e => { document.querySelectorAll('[data-rv]').forEach(x => x.classList.toggle('on', !e.target.value && x.dataset.rv === '')); set(e.target.value.trim()); }; }
+const kindGuess = t => /مساعد/.test(t || '') ? 'مساعد' : /^\s*عامل/.test(t || '') ? 'عامل شركة' : 'صنايعي';
 const plateN = s => digits(s).replace(/[\s\-_.]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
 const isCement = m => /اسمنت|أسمنت/.test(m || '');
 const delQty = x => x.unit === 'نقلة' ? `${x.count} نقلة${x.total !== '' ? ` (${x.total} م3)` : ''}` : `${x.count} ${x.unit}${x.size !== '' && x.size !== undefined && U_SIZE[x.unit] ? ` × ${x.size} ${U_SIZE[x.unit]}` : ''}`;
@@ -2217,8 +2236,8 @@ function secFromSupply(code, r){
   const o = S.secStat[code] || {at: Date.now()};
   const loads = r.rows.reduce((s, x) => s + (x.unit === 'نقلة' ? Number(x.count) || 0 : 0), 0);
   o.mat = r.rows.length ? (loads ? `✓ ${loads} نقلة` : `✓ ${r.rows.length} توريدة`) : 'none';
-  const hrs = r.eqRows.filter(x => x.unit === 'ساعة').reduce((s, x) => s + x.qty, 0);
-  o.eq = r.eqRows.length ? (hrs ? `✓ ${hrs} ساعة` : `✓ ${r.eqRows.length} معدة`) : 'none';
+  const en = r.eqRows.filter(x => x.qty > 0 || x.ot > 0).length;
+  o.eq = r.eqRows.length ? `✓ ${en || r.eqRows.length} معدة` : 'none';
   S.secStat[code] = o;
 }
 
@@ -2250,7 +2269,7 @@ async function supplySheet(code, date){
         ${x.needSize ? `<span class="pill p-warn">${x.unit === 'كرتونة' ? 'مساحة الكرتونة لسه' : 'الوزن لسه'}</span>` : ''}
         ${canPay() ? (x.needPrice ? '<span class="pill p-warn">السعر لسه</span>' : x.amount !== '' ? `<span class="pill p-ok"><span class="mv">${nf(x.amount)}</span> ج</span>` : '') : ''}
         ${x.bon ? `<a class="pill p-info" href="${esc(x.bon)}" target="_blank" rel="noopener">البون</a>` : ''}
-        <small class="muted" style="flex:1;text-align:left">${esc(x.by)}</small>
+        <small class="muted" style="flex:1;text-align:left">${esc(x.recv || x.by)}${x.recv ? ` <span style="font-size:11px">(سجّلها ${esc(x.by)})</span>` : ''}</small>
         ${(x.needSize && canFix()) || (canPay() && (x.needPrice || x.needSize)) ? `<button class="pill p-info" data-fix="${esc(x.id)}">كمّل</button>` : canPay() ? `<button class="pill p-info" data-fix="${esc(x.id)}">تعديل</button>` : ''}
       </div></div>`).join('') || `<div class="card empty" style="padding:18px">${ic('truck')}<div>${r.date === r.today ? 'فيه نقلات النهارده؟ 🚚' : 'مفيش توريدات في اليوم ده'}</div></div>`}
     ${canPay() ? `<button class="btn ghost" id="spPend" style="margin-top:6px">التوريدات اللي ناقصها سعر أو مقاس</button>` : ''}`;
@@ -2286,9 +2305,10 @@ async function deliveryForm(code, date, preset){
       ${f.sup ? `<div class="row" style="gap:6px"><span class="pill p-info" style="flex:1;justify-content:flex-start;padding:8px 10px">${esc(supName(f.sup))}</span><button class="pill p-info" id="dlSupX">غيّر</button></div>`
         : `<div id="dlSupSug"></div><input class="in" id="dlSupQ" placeholder="دوّر باسم المورد"><div id="dlSupL"></div>`}
       <label class="f">الخامة *</label><div class="row" style="gap:6px"><input class="in" id="dlMat" list="dlMats" value="${esc(f.mat)}" placeholder="رمل، سن، أسمنت، معجون…">${micBtn('dlMat')}</div>
+      <div id="dlDm"></div>
       <datalist id="dlMats">${day.mats.map(m => `<option value="${esc(m)}">`).join('')}</datalist>
       ${day.mats.length && day.mats.length <= 3 ? `<div class="chips" style="margin-top:6px">${day.mats.map(m => `<button class="chip ${normAr(m) === normAr(f.mat) ? 'on' : ''}" data-mt="${esc(m)}">${esc(m)}</button>`).join('')}</div>` : ''}
-      <label class="f">الوحدة</label><div class="chips" style="flex-wrap:wrap">${SUP_UNITS.map(u => `<button class="chip ${f.unit === u ? 'on' : ''}" data-un="${u}" style="${f.unit === u ? 'background:var(--navy);color:#fff' : ''}">${u}${u === 'نقلة' ? ' (عربية)' : ''}</button>`).join('')}</div>
+      <label class="f">الوحدة</label><div class="chips" style="flex-wrap:wrap">${SUP_UNITS.map(u => `<button class="chip ${f.unit === u ? 'on' : ''}" data-un="${u}">${u}${u === 'نقلة' ? ' (عربية)' : ''}</button>`).join('')}</div>
       ${U === 'نقلة' ? `<small class="muted" style="display:block;margin-top:8px">كل عربية في سطر. العربية اللي جت قبل كده حمولتها بتظهر لوحدها. الجديدة لازم تقيس حمولتها بالمتر المكعب.</small>
         ${f.trucks.map((t, i) => { const k = t.plate ? known(t.plate) : null; return `<div class="card" style="padding:10px 12px;margin:8px 0">
           <div class="row" style="gap:6px"><input class="in" data-tp="${i}" value="${esc(t.plate)}" placeholder="رقم العربية" style="flex:2">
@@ -2308,8 +2328,10 @@ async function deliveryForm(code, date, preset){
         <small class="muted" style="display:block">لو السعر مش معروف دلوقتي سيبه فاضي، وهيوصل تنبيه يتكمّل.</small>` : ''}
       <label class="btn ghost" style="margin-top:10px;display:flex;justify-content:center;gap:8px">${ic('camera')} صورة البون (اختياري)${f.bon ? ' ✓' : ''}<input type="file" id="dlBon" accept="image/*" capture="environment" hidden></label>
       <label class="f">ملاحظة</label><div class="row" style="gap:6px"><input class="in" id="dlNote" value="${esc(f.note)}">${micBtn('dlNote')}</div>
+      ${canRecvFor() ? recvField('dlRecv', f.recv, findProject(code)) : ''}
       <div class="err" id="dlErr"></div><div id="dlWarn"></div>
       <button class="btn gold" id="dlSave" style="margin-top:8px">سجّل التوريدة</button>`);
+    if (canRecvFor()) wireRecv('dlRecv', v => { f.recv = v; });
     $('#sheetBody').scrollTop = y;
     wireMics($('#sheetBody'));
     const sync = () => { if ($('#dlMat')) f.mat = $('#dlMat').value; if ($('#dlCnt')) f.count = $('#dlCnt').value; if ($('#dlSize')) f.size = $('#dlSize').value;
@@ -2328,6 +2350,11 @@ async function deliveryForm(code, date, preset){
       if (g) $('#dlSupOk').onclick = () => { sync(); f.sup = g.code; f.price = ''; draw(); }; };
     drawSug();
     document.querySelectorAll('[data-mt]').forEach(b => b.onclick = () => { sync(); f.mat = b.dataset.mt; draw(); });
+    // الحديد: القطر بيتكتب في اسم الخامة («حديد 12») عشان التقرير يطلّع الطن لكل قطر
+    const dmDraw = () => { const el = $('#dlDm'), m = ($('#dlMat') || {}).value || ''; if (!el) return;
+      el.innerHTML = /حديد/.test(normAr(m)) ? `<div class="chips" style="margin-top:6px"><small class="muted" style="align-self:center">القطر:</small>${[8, 10, 12, 16, 18, 22, 25].map(d => `<button class="chip ${(digits(m).match(/\d+/) || [])[0] === String(d) ? 'on' : ''}" data-dm="${d}">${d}</button>`).join('')}</div>` : '';
+      el.querySelectorAll('[data-dm]').forEach(b => b.onclick = () => { sync(); f.mat = 'حديد ' + b.dataset.dm; if (!f.unit || f.unit === 'نقلة') f.unit = 'طن'; draw(); }); };
+    dmDraw(); if ($('#dlMat')) $('#dlMat').addEventListener('input', dmDraw);
     if ($('#dlSupQ')) { const q = $('#dlSupQ'); const list = () => { const v = normAr(q.value);
         const l = sups.filter(s => s.status !== 'اتدمج' && (!v || normAr(s.name + ' ' + (s.goods || '')).includes(v))).slice(0, 6);
         $('#dlSupL').innerHTML = (S.noList && S.noList.S ? `<p class="muted" style="font-size:13px;margin:6px 2px">${NOLIST}</p>` : '')
@@ -2376,7 +2403,7 @@ async function deliveryForm(code, date, preset){
       if (canPay()) { del.price = numIn(f.price); del.priceOn = f.priceOn; }
       busy($('#dlSave'), true);
       const loc = await getLoc();
-      const body = {project: code, date, del, loc, at: new Date().toISOString()};
+      const body = {project: code, date, del, loc, at: new Date().toISOString(), recv: f.recv || ''};
       body.qid = body.qid || qid(); const x = navigator.onLine ? await api('saveDelivery', body) : {ok: false, error: 'net'};
       busy($('#dlSave'), false);
       if (!x.ok && x.error === 'net') {   // من غير نت: تتحفظ على الموبايل وتتبعت لوحدها
@@ -2421,7 +2448,7 @@ function fixDelivery(x, back){
   if (!x) return;
   const sz = U_SIZE[x.unit], ons = U_ON[x.unit] || [x.unit];
   openSheet(`<h3>${esc(x.mat)} · ${esc(x.supName)}</h3>
-    <p class="muted" style="margin:-6px 0 6px">${esc(fmtDate(x.date))} · ${esc(delQty(x))} · ${esc(x.by)}</p>
+    <p class="muted" style="margin:-6px 0 6px">${esc(fmtDate(x.date))} · ${esc(delQty(x))} · ${esc(x.recv ? 'استلمها ' + x.recv + ' (سجّلها ' + x.by + ')' : x.by)}</p>
     ${x.unit === 'نقلة' ? x.trucks.map((t, i) => `<div class="row" style="gap:6px;margin-top:6px"><span style="flex:1">${esc(t.plate || 'من غير رقم')} × ${t.loads}</span><input class="in" data-fc="${i}" inputmode="decimal" dir="ltr" value="${esc(t.cap)}" style="flex:1" placeholder="م3"></div>`).join('')
       : sz ? `<label class="f">${x.unit === 'كرتونة' ? 'مساحة الكرتونة م2' : 'وزن ال' + esc(x.unit) + ' كجم'}</label><input class="in" id="fxSize" inputmode="decimal" dir="ltr" value="${esc(x.size)}">` : ''}
     ${canPay() ? `<div class="row" style="gap:8px"><div style="flex:1.2"><label class="f">السعر (ج)</label><input class="in" id="fxPrice" inputmode="decimal" dir="ltr" value="${esc(x.price)}"></div>
@@ -2461,7 +2488,7 @@ async function eqSheet(code, date){
   const eqs = all || [];
   const byCode = c => eqs.find(x => x.code === c);
   const codes = [...new Set([...r.eqRows.map(x => x.code), ...r.used, ...r.last.map(x => x.code)])].filter(byCode);
-  const st = {}; codes.forEach(c => { const x = r.eqRows.find(y => y.code === c); st[c] = {qty: x ? String(x.qty) : '', note: x ? x.note : '', m1: '', m2: '', row: x || null}; });
+  const st = {}; codes.forEach(c => { const x = r.eqRows.find(y => y.code === c); st[c] = {qty: x ? String(x.qty) : '', ot: x ? (x.ot || 0) : 0, note: x ? x.note : '', m1: '', m2: '', row: x || null}; });
   const draw = () => {
     const prov = r.eqRows.filter(x => x.state === 'مبدئي');
     const y = $('#sheetBody').scrollTop;
@@ -2469,40 +2496,48 @@ async function eqSheet(code, date){
       ${prov.length && canConfirm(p) && !sup2 ? `<button class="btn gold" id="eqConf" style="margin-bottom:8px">أكد ${prov.length} تسجيل مبدئي</button>` : ''}
       ${canRecord() ? `<div class="chips" style="margin-bottom:10px">
         ${r.last.length ? `<button class="chip" id="eqLike">${ic('clock')} زي اللي فاتت <small>(${r.lastDate === yday(r.date) ? 'امبارح' : esc(dshort(r.lastDate))})</small></button>` : ''}
-        ${codes.length && voiceOK() ? `<button class="chip" id="eqVoice">${ic('mic')} قول الساعات</button>` : ''}</div>` : ''}
+        ${codes.length && voiceOK() ? `<button class="chip" id="eqVoice">${ic('mic')} قول المعدات</button>` : ''}</div>` : ''}
       ${codes.map(c => { const e = byCode(c), s = st[c], x = s.row;
         return `<div class="card" style="padding:10px 12px;margin-bottom:8px">
           <div class="row" style="gap:8px">${e.photo ? avatar(e, 30) : ''}<b style="flex:1;min-width:0">${esc(e.name)} <small class="muted" style="font-weight:400">${esc([e.etype, e.own === 'شركة' ? 'تبع الشركة' : '', e.plate].filter(Boolean).join(' · '))}</small></b>
             ${x ? pin(x.flag, x.dist) : ''}${x && x.state === 'مبدئي' ? '<span class="pill p-warn">مبدئي</span>' : ''}${e.status === 'مستني تأكيد' ? '<span class="pill p-warn">جديدة</span>' : ''}</div>
-          <div class="row" style="gap:6px;margin-top:8px"><span class="muted" style="font-size:13px;min-width:62px">${esc(e.unit || 'ساعة')}ات</span>
-            <input class="in" data-eq="${esc(c)}" inputmode="decimal" dir="ltr" value="${esc(s.qty)}" placeholder="0" style="flex:1">
+          <div class="row" style="gap:6px;margin-top:8px">${(e.unit || 'يوم') === 'يوم' ? `<button class="tab ${Number(s.qty) > 0 ? 'on' : ''}" data-eqd="${esc(c)}" style="flex:1">✓ اشتغلت</button><button class="tab ${s.qty === '0' ? 'on' : ''}" data-eqn="${esc(c)}" style="flex:1">ما اشتغلتش</button>`
+              : `<span class="muted" style="font-size:13px;min-width:62px">${esc(e.unit)}ات</span><input class="in" data-eq="${esc(c)}" inputmode="decimal" dir="ltr" value="${esc(s.qty)}" placeholder="0" style="flex:1">`}
             <label class="pill p-info" style="cursor:pointer" title="صورة العداد الصبح">${ic('camera')} صبح${s.m1 || (x && x.m1) ? ' ✓' : ''}<input type="file" accept="image/*" capture="environment" data-m1="${esc(c)}" hidden></label>
             <label class="pill p-info" style="cursor:pointer" title="صورة العداد آخر اليوم">${ic('camera')} آخر${s.m2 || (x && x.m2) ? ' ✓' : ''}<input type="file" accept="image/*" capture="environment" data-m2="${esc(c)}" hidden></label></div>
+          ${(e.unit || 'يوم') === 'يوم' ? `<div class="row" style="gap:8px;margin-top:8px;font-size:13px"><span class="muted" style="flex:1">ساعات سهر (لو اشتغلت بعد اليوم)</span>
+            <button class="pill p-info" data-otm="${esc(c)}" aria-label="أقل">−</button><b style="min-width:22px;text-align:center">${s.ot || 0}</b><button class="pill p-info" data-otp="${esc(c)}" aria-label="أكتر">+</button></div>` : ''}
           ${x && (x.m1 || x.m2) ? `<div class="row" style="gap:6px;margin-top:6px">${x.m1 ? `<a class="pill p-info" href="${esc(x.m1)}" target="_blank" rel="noopener">عداد الصبح</a>` : ''}${x.m2 ? `<a class="pill p-info" href="${esc(x.m2)}" target="_blank" rel="noopener">عداد آخر اليوم</a>` : ''}<small class="muted">افتحهم جنب بعض وقارن</small></div>` : ''}
         </div>`; }).join('') || emptyBox('truck', r.date === r.today ? 'المعدات اشتغلت النهارده؟ ضيف من القايمة' : 'مفيش معدات في اليوم ده')}
       ${canRecord() ? `<button class="btn ghost" id="eqAdd">${ic('plus')} معدة من القايمة</button>
+        ${canRecvFor() ? recvField('eqRecv', S.eqRecv || '', p) : ''}
         <div class="err" id="eqErr"></div><button class="btn gold" id="eqSave" style="margin-top:8px">سجّل</button>` : ''}`;
+    if (canRecvFor()) wireRecv('eqRecv', v => { S.eqRecv = v; });
     $('#sheetBody').scrollTop = y;
     wirePins($('#eqBody'));
     const sync = () => document.querySelectorAll('[data-eq]').forEach(i => st[i.dataset.eq].qty = i.value);
+    document.querySelectorAll('[data-eqd]').forEach(b => b.onclick = () => { sync(); st[b.dataset.eqd].qty = '1'; draw(); });
+    document.querySelectorAll('[data-eqn]').forEach(b => b.onclick = () => { sync(); st[b.dataset.eqn].qty = '0'; st[b.dataset.eqn].ot = 0; draw(); });
+    document.querySelectorAll('[data-otp]').forEach(b => b.onclick = () => { sync(); const z = st[b.dataset.otp]; z.ot = Math.min(16, (z.ot || 0) + 1); if (!(Number(z.qty) > 0)) z.qty = '1'; draw(); });
+    document.querySelectorAll('[data-otm]').forEach(b => b.onclick = () => { sync(); const z = st[b.dataset.otm]; z.ot = Math.max(0, (z.ot || 0) - 1); draw(); });
     document.querySelectorAll('[data-m1],[data-m2]').forEach(i => i.onchange = async e => { const fl = e.target.files[0]; if (!fl) return; sync(); const k = i.dataset.m1 ? 'm1' : 'm2'; st[i.dataset.m1 || i.dataset.m2][k] = await shrinkImage(fl, 1000); draw(); });
     if ($('#eqConf')) $('#eqConf').onclick = async () => { const x = await qSave('confirmSupply', {project: code, kind: 'eq', ids: prov.map(z => z.id)}, 'تأكيد ساعات معدات مبدئية'); if (x.queued) { toast(QMSG); return; } if (x.ok) { toast(`اتأكد ${x.confirmed} ✓`); eqSheet(code, r.date); } else toast(errMsg(x)); };
     if ($('#eqLike')) $('#eqLike').onclick = () => { sync(); r.last.forEach(l => { if (st[l.code]) st[l.code].qty = String(l.qty); }); draw(); toast('اتملى زي آخر يوم. عدّل الفرق وسجّل'); };
     if ($('#eqVoice')) $('#eqVoice').onclick = () => { sync(); $('#eqVoice').classList.add('on'); listen(t => { const v = parseEqVoice(t, codes.map(byCode)); let n = 0;
-        Object.entries(v).forEach(([c, q]) => { st[c].qty = String(q); n++; }); draw(); toast(n ? `فهمت ${n} معدة: راجع وسجّل` : 'ما فهمتش أسامي المعدات، جرّب تاني'); }, () => { const b = $('#eqVoice'); if (b) b.classList.remove('on'); }); };
+        Object.entries(v).forEach(([c, q]) => { const e = byCode(c) || {}; if ((e.unit || 'يوم') === 'يوم') { st[c].qty = '1'; if (/سهر/.test(t)) st[c].ot = Math.min(16, Math.round(q)); } else st[c].qty = String(q); n++; }); draw(); toast(n ? `فهمت ${n} معدة: راجع وسجّل` : 'ما فهمتش أسامي المعدات، جرّب تاني'); }, () => { const b = $('#eqVoice'); if (b) b.classList.remove('on'); }); };
     if ($('#eqAdd')) $('#eqAdd').onclick = () => { sync();
       const opts = eqs.filter(e => !codes.includes(e.code) && e.status !== 'متوقف' && e.status !== 'اتدمج');
       openSheet(`<h3>معدة من القايمة</h3><input class="in" id="eqQ" placeholder="دوّر"><div id="eqL"></div>`);
       const l = () => { const v = normAr($('#eqQ').value); $('#eqL').innerHTML = (S.noList && S.noList.E ? `<p class="muted" style="font-size:13px;margin:6px 2px">${NOLIST}</p>` : '') + opts.filter(e => !v || normAr(e.name + ' ' + (e.etype || '') + ' ' + (e.plate || '')).includes(v)).map(e => `<button class="li" data-ea="${esc(e.code)}"><span class="t"><b>${esc(e.name)}</b><small>${esc([e.etype, e.own, e.unit].filter(Boolean).join(' · '))}</small></span></button>`).join('')
         + `<button class="li" id="eqNew"><span class="ico">${ic('plus')}</span><span class="t"><b>معدة جديدة</b><small>لودر، خلاطة، ونش…</small></span></button>`;
-        document.querySelectorAll('[data-ea]').forEach(b => b.onclick = () => { codes.push(b.dataset.ea); st[b.dataset.ea] = {qty: '', m1: '', m2: '', row: null}; reopen(); });
-        $('#eqNew').onclick = () => { S.afterPerson = pp => { eqs.push(pp); codes.push(pp.code); st[pp.code] = {qty: '', m1: '', m2: '', row: null}; reopen(); }; personForm('E', null, false, {name: $('#eqQ').value}); }; };
+        document.querySelectorAll('[data-ea]').forEach(b => b.onclick = () => { codes.push(b.dataset.ea); const e0 = byCode(b.dataset.ea) || {}; st[b.dataset.ea] = {qty: (e0.unit || 'يوم') === 'يوم' ? '1' : '', ot: 0, m1: '', m2: '', row: null}; reopen(); });
+        $('#eqNew').onclick = () => { S.afterPerson = pp => { eqs.push(pp); codes.push(pp.code); st[pp.code] = {qty: (pp.unit || 'يوم') === 'يوم' ? '1' : '', ot: 0, m1: '', m2: '', row: null}; reopen(); }; personForm('E', null, false, {name: $('#eqQ').value}); }; };
       $('#eqQ').oninput = l; l(); };
     if ($('#eqSave')) $('#eqSave').onclick = async () => { sync();
-      const rows = codes.filter(c => st[c].qty !== '' || st[c].m1 || st[c].m2).map(c => ({code: c, qty: numIn(st[c].qty) || '0', m1: st[c].m1, m2: st[c].m2}));
+      const rows = codes.filter(c => st[c].qty !== '' || st[c].ot || st[c].m1 || st[c].m2).map(c => ({code: c, qty: numIn(st[c].qty) || '0', ot: st[c].ot || 0, m1: st[c].m1, m2: st[c].m2}));
       if (!rows.length) { $('#eqErr').textContent = 'اكتب ساعات معدة واحدة على الأقل'; return; }
       busy($('#eqSave'), true); const loc = await getLoc();
-      const eqBody = {project: code, date: r.date, rows, loc, at: new Date().toISOString()};
+      const eqBody = {project: code, date: r.date, rows, loc, at: new Date().toISOString(), recv: S.eqRecv || ''}; S.eqRecv = '';
       eqBody.qid = eqBody.qid || qid(); const x = navigator.onLine ? await api('saveEq', eqBody) : {ok: false, error: 'net'}; busy($('#eqSave'), false);
       if (!x.ok && x.error === 'net') { if (!outPush('saveEq', eqBody, 'ساعات المعدات')) { $('#eqErr').textContent = 'مفيش نت، والموبايل مش قادر يحفظ الصور دي'; return; }
         toast('مفيش نت: الساعات اتحفظت على الموبايل وهتتبعت أول ما النت يرجع 📶'); closeSheet(); return; }
@@ -2523,6 +2558,7 @@ function parseEqVoice(text, list){
     if (!q) { if (/ساعتين|يومين|نقلتين/.test(seg)) q = 2; else for (const [w, k] of Object.entries(NUMA)) if (seg.includes(' ' + w + ' ')) { q = k; break; } }
     if (!q && /ساعه|يوم|نقله/.test(seg)) q = 1;
     if (/نص/.test(seg)) q = q ? q + 0.5 : 0.5;
+    if (!q && (x.e.unit || 'يوم') === 'يوم') q = 1;
     if (q) out[x.e.code] = q; });
   return out;
 }
@@ -2758,6 +2794,9 @@ function wireShell(){
   if (id('supPend')) id('supPend').onclick = pendingSupplySheet;
   if (id('kamBtn')) id('kamBtn').onclick = () => kamSheet({proj: ''});
   if (id('weekBtn')) id('weekBtn').onclick = () => weekSheet();
+  if (id('ideasMore')) id('ideasMore').onclick = () => ideasSheet();
+  if (id('ideasBtn')) id('ideasBtn').onclick = e => { if (e.target.closest('.chip')) ideaForm(); else ideasSheet(); };
+  if (isOwner() && !S.ideasTried) { S.ideasTried = true; ideasLoad(false).then(() => { if (S.tab === 'home' && !S.project && !$('#sheet').classList.contains('on') && !$('#wkOv')) render(); }); }
   if (id('lifeBtn')) id('lifeBtn').onclick = () => kamSheet({proj: S.project, per: 'all', tab: 'del'});
   wireSaved();
   if ((S.project || store.get('savedF', []).length) && !S.siteLog && !S.siteTried && ['owner','manager','engineer','supervisor','accountant'].includes(role())) { S.siteTried = true;
@@ -2776,8 +2815,15 @@ function wireShell(){
 /* ================= 0.10.7 / 0.10.8: «📊 كام جالي؟» والإنجاز والإنتاجية والتقرير الأسبوعي =================
    كل الحساب بيتعمل على الموبايل من «سجل الموقع» (siteLog) اللي بينزل مع «نزّل كل البيانات»، فأي فلتر شغال من غير نت.
    الأسبوع من السبت. */
-const KT = {del: 'التوريدات', eq: 'المعدات', att: 'العمالة', prod: 'الإنتاجية'};
-const KC = {del: '#E08A2E', eq: '#C99A00', att: '#2E9E6B', prod: '#7B61C9', money: '#3B7DD8'};
+const KT = {del: 'الرمل والسن', core: 'الأسمنت والحديد', eq: 'المعدات', att: 'العمالة', prod: 'الإنتاجية'};
+const KC = {del: '#E08A2E', core: '#8A6D3B', eq: '#C99A00', att: '#2E9E6B', prod: '#7B61C9', money: '#3B7DD8'};
+// نوع الخامة زي التقرير: رمل وسن بالنقلة، والأسمنت والحديد والطوب والباقي
+const mKind = x => { const n = normN(x.mat); return /حديد/.test(n) ? 'steel' : /اسمنت/.test(n) ? 'cement' : /طوب/.test(n) ? 'brick' : x.unit === 'نقلة' ? 'agg' : 'other'; };
+const mDiam = m => { const z = digits(String(m || '')).match(/(\d{1,2})/); const v = z ? Number(z[1]) : 0; return v >= 6 && v <= 40 ? v : 0; };
+const steelT = x => x.unit === 'طن' ? Number(x.count) || 0 : (x.total !== '' && x.total != null && x.sizeUnit === 'كجم' ? (Number(x.total) || 0) / 1000 : 0);
+const cemT = x => x.unit === 'طن' ? Number(x.count) || 0 : x.unit === 'شيكارة' ? (x.total !== '' && x.total != null ? Number(x.total) / 1000 : (Number(x.count) || 0) * 0.05) : 0;
+const tradeK = x => { const t = String(x.trade || '').replace(/مساعد/g, '').trim(); return t || (x.kind === 'مساعد' ? 'مساعدين' : 'من غير صنعة'); };
+const kindOf = x => x.kind || (/مساعد/.test(x.trade || '') ? 'مساعد' : /^\s*عامل/.test(x.trade || '') ? 'عامل شركة' : 'صنايعي');
 const PER = [['today', 'النهارده'], ['week', 'الأسبوع ده'], ['lweek', 'الأسبوع اللي فات'], ['month', 'الشهر ده'], ['all', 'من أول المشروع'], ['custom', 'فترة…']];
 const n1 = (v, d = 1) => { const p = Math.pow(10, d); return (Math.round((Number(v) || 0) * p) / p).toLocaleString('en-US'); };
 const normN = s => String(s || '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[ً-ْـ]/g, '').replace(/\s+/g, ' ').trim();
@@ -2819,8 +2865,8 @@ async function sitePending(){
     if (it.a === 'saveDelivery' && b.del) { const x = b.del, tr = (x.trucks || []).map(z => ({plate: z.plate || '', loads: Number(z.loads) || 0, cap: z.cap === '' || z.cap == null ? '' : Number(z.cap)}));
       const loads = tr.reduce((s, z) => s + z.loads, 0), m3 = tr.reduce((s, z) => s + z.loads * (Number(z.cap) || 0), 0);
       out.del.push({id: it.id, date, proj: b.project, sup: x.sup, supName: sN(x.sup), mat: x.mat, unit: x.unit, count: tr.length ? loads : Number(x.count) || 0, size: Number(x.size) || '',
-        sizeUnit: '', total: tr.length ? (m3 || '') : (x.count && x.size ? x.count * x.size : ''), trucks: tr, state: 'مؤكد', by: dn(S.user), q: 1}); }
-    if (it.a === 'saveEq' && b.rows) b.rows.forEach(r => { const e = eN(r.code); out.eq.push({id: it.id + r.code, date, proj: b.project, code: r.code, name: e.name || r.code, etype: e.etype || '', own: e.own || '', qty: Number(r.qty) || 0, unit: e.unit || 'ساعة', state: 'مؤكد', by: dn(S.user), q: 1}); });
+        sizeUnit: '', total: tr.length ? (m3 || '') : (x.count && x.size ? x.count * x.size : ''), trucks: tr, state: 'مؤكد', by: b.recv || dn(S.user), rec: b.recv ? dn(S.user) : '', q: 1}); }
+    if (it.a === 'saveEq' && b.rows) b.rows.forEach(r => { const e = eN(r.code); out.eq.push({id: it.id + r.code, date, proj: b.project, code: r.code, name: e.name || r.code, etype: e.etype || '', own: e.own || '', qty: Number(r.qty) || 0, ot: Number(r.ot) || 0, unit: e.unit || 'يوم', state: 'مؤكد', by: b.recv || dn(S.user), rec: b.recv ? dn(S.user) : '', q: 1}); });
     if (it.a === 'saveOutput' && b.out) out.out.push(Object.assign({id: it.id, date, proj: b.project, by: dn(S.user), q: 1, mine: true}, b.out, {qty: Number(String(b.out.qty).replace(/[٫,]/g, '.')) || 0, wd: Number(b.out.wd) || 0})); });
   store.get('attq', []).forEach(b => (b.rows || []).forEach(r => { const w = lN(r.code); out.att.push({date: b.date || t, proj: b.project, code: r.code, name: w.name || r.code, trade: w.trade || '', st: r.st, hours: Number(r.hours) || 0, state: 'مؤكد', q: 1}); }));
   return out;
@@ -2834,10 +2880,10 @@ async function siteAll(fresh){
 // ملخص فترة: نفس حساب التقرير اللي في جوجل
 function kSum(D, F, from, to){
   const inP = x => (!F.proj || x.proj === F.proj) && x.date >= from && x.date <= to;
-  const del = D.del.filter(x => inP(x) && (!F.sup || x.sup === F.sup) && (!F.mat || normN(x.mat) + '|' + x.unit === F.mat));
-  const eq = D.eq.filter(x => inP(x) && x.qty > 0 && (!F.eq || x.code === F.eq));
+  const del = D.del.filter(x => inP(x) && (!F.sup || x.sup === F.sup) && (!F.mat || normN(x.mat) + '|' + x.unit === F.mat) && (F.tab === 'core' ? mKind(x) !== 'agg' : F.tab === 'del' ? mKind(x) === 'agg' : true));
+  const eq = D.eq.filter(x => inP(x) && (x.qty > 0 || x.ot > 0) && (!F.eq || x.code === F.eq));
   const attAll = D.att.filter(x => inP(x) && x.st !== 'غياب');
-  const att = attAll.filter(x => !F.trade || (x.trade || 'من غير صنعة') === F.trade);
+  const att = attAll.filter(x => !F.trade || (kindOf(x) === 'عامل شركة' ? 'عمال الشركة' : tradeK(x)) === F.trade);
   const out = D.out.filter(x => inP(x) && (!F.item || outKey(x) === F.item));
   const siteDays = new Set(D.att.filter(x => inP(x) && x.st !== 'غياب').map(x => x.date)); if (!siteDays.size) D.del.concat(D.eq).filter(inP).forEach(x => siteDays.add(x.date));
   return {del, eq, att, out, siteDays: siteDays.size};
@@ -2868,12 +2914,12 @@ function kamHtml(D, F){
   const seesP = D.price !== false && canPay(), seesM = D.money !== false && canPay();
   const opt = (v, t, on) => `<option value="${esc(v)}" ${on ? 'selected' : ''}>${esc(t)}</option>`;
   let sel2 = '';
-  if (F.tab === 'del') { const mats = groupDel(D.del.filter(inProj)), sups = [...new Map(D.del.filter(inProj).map(x => [x.sup, x.supName || x.sup])).entries()];
+  if (F.tab === 'del' || F.tab === 'core') { const kd = x => F.tab === 'core' ? mKind(x) !== 'agg' : mKind(x) === 'agg', mats = groupDel(D.del.filter(x => inProj(x) && kd(x))), sups = [...new Map(D.del.filter(x => inProj(x) && kd(x)).map(x => [x.sup, x.supName || x.sup])).entries()];
     sel2 = `<select class="in" id="kmMat">${opt('', 'كل الخامات', !F.mat)}${mats.map(m => opt(m.key, m.mat + ' (' + m.unit + ')', F.mat === m.key)).join('')}</select>
       <select class="in" id="kmSup">${opt('', 'كل الموردين', !F.sup)}${sups.map(([c, n]) => opt(c, n, F.sup === c)).join('')}</select>`; }
   if (F.tab === 'eq') { const es = [...new Map(D.eq.filter(inProj).map(x => [x.code, x.name + (x.etype ? ' · ' + x.etype : '')])).entries()];
     sel2 = `<select class="in" id="kmEq">${opt('', 'كل المعدات', !F.eq)}${es.map(([c, n]) => opt(c, n, F.eq === c)).join('')}</select>`; }
-  if (F.tab === 'att') { const ts = [...new Set(D.att.filter(inProj).map(x => x.trade || 'من غير صنعة'))];
+  if (F.tab === 'att') { const ts = [...new Set(D.att.filter(inProj).map(x => kindOf(x) === 'عامل شركة' ? 'عمال الشركة' : tradeK(x)))];
     sel2 = `<select class="in" id="kmTrade">${opt('', 'كل الصنايع', !F.trade)}${ts.map(t => opt(t, t, F.trade === t)).join('')}</select>`; }
   if (F.tab === 'prod') { const its = [...new Map(D.out.filter(inProj).map(x => [outKey(x), x.name])).entries()];
     sel2 = `<select class="in" id="kmItem">${opt('', 'كل البنود', !F.item)}${its.map(([k, n]) => opt(k, n, F.item === k)).join('')}</select>`; }
@@ -2889,6 +2935,7 @@ function kamHtml(D, F){
     </div><div id="kmAns"></div>`;
   let body = '';
   if (F.tab === 'del') body = kamDel(cur, prev, F, seesP);
+  if (F.tab === 'core') body = kamCore(cur, prev, F, seesP);
   if (F.tab === 'eq') body = kamEq(cur, prev, F, seesP);
   if (F.tab === 'att') body = kamAtt(cur, prev, F, seesM);
   if (F.tab === 'prod') body = kamProd(D, cur, prev, F, seesM, R);
@@ -2911,12 +2958,14 @@ const qMark = x => x.q ? ' <span class="pill p-warn" style="padding:0 6px">⏳</
 
 function kamDel(c, p, F, seesP){
   const g = groupDel(c.del), gp = p ? groupDel(p.del) : [];
-  if (!c.del.length) return `<div class="empty">${art('truck', 80)}<div>مفيش توريدات في الفترة دي${F.mat || F.sup ? ' بالفلتر ده' : ''}</div></div>`;
+  if (!c.del.length) return `<div class="empty">${art('truck', 80)}<div>مفيش رمل ولا سن في الفترة دي${F.mat || F.sup ? ' بالفلتر ده' : ''}</div><small>الأسمنت والحديد في تاب «الأسمنت والحديد»</small></div>`;
   const trips = g.reduce((s, m) => s + m.trips, 0), tripsP = p ? gp.reduce((s, m) => s + m.trips, 0) : null;
   const m3 = g.filter(m => m.unit === 'نقلة').reduce((s, m) => s + m.total, 0), amt = g.reduce((s, m) => s + m.amount, 0), amtP = p ? gp.reduce((s, m) => s + m.amount, 0) : null;
-  let h = `<div class="kcards">${kCard(KC.del, 'نقلات', n1(trips, 0), 'نقلة', trips, tripsP)}${kCard(KC.del, 'الكمية', n1(m3), 'م³')}${kCard(KC.del, 'توريدات', n1(c.del.length, 0), '')}
+  // كل خامة لوحدها جنب بعض: «رمل 10 نقلة · 61 م³» و«سن 6 نقلة · 38 م³»
+  let h = `<div class="kcards">${g.map(m => { const o = gp.find(x => x.key === m.key); return kCard(KC.del, esc(m.mat), n1(m.trips || m.count, 0), 'نقلة', m.trips || m.count, o ? (o.trips || o.count) : (p ? 0 : null)).replace('</b><div>', `</b><small class="muted">${m.total ? n1(m.total) + ' م³' : ''}</small><div>`); }).join('')}
+    ${g.length > 1 ? kCard(KC.del, 'كل النقلات', n1(trips, 0), 'نقلة', trips, tripsP).replace('</b><div>', `</b><small class="muted">${n1(m3)} م³</small><div>`) : ''}
     ${seesP ? kCard(KC.money, 'التكلفة', `<span class="mv">${n1(amt, 0)}</span>`, 'ج', amt, amtP, false) : ''}</div>`;
-  h += kSec(KC.del, '🚚 الخامات') + kTable(['الخامة', 'الكمية', 'نقلات', 'الموردين'].concat(seesP ? ['متوسط السعر'] : []), g.map(m => { const o = gp.find(x => x.key === m.key);
+  h += kSec(KC.del, '🚚 الرمل والسن') + kTable(['الخامة', 'الكمية', 'نقلات', 'الموردين'].concat(seesP ? ['متوسط السعر'] : []), g.map(m => { const o = gp.find(x => x.key === m.key);
     const avg = m.qPriced ? m.amount / m.qPriced : null, avgP = o && o.qPriced ? o.amount / o.qPriced : null;
     return [`<b>${esc(m.mat)}</b>`, qtyTxt(m), m.trips ? n1(m.trips, 0) : '—', Object.entries(m.sups).map(([s, n]) => esc(s) + (Object.keys(m.sups).length > 1 ? ` <small class="muted">(${n})</small>` : '')).join('، ')]
       .concat(seesP ? [avg ? `<span class="mv">${n1(avg, 0)}</span> <small class="muted">ج/${m.unit === 'نقلة' ? 'م³' : esc(m.unit)}</small>${avgP ? ` <small style="color:${avg > avgP ? 'var(--bad)' : 'var(--ok)'}">${avg > avgP ? '▲' : '▼'}${Math.abs(Math.round((avg - avgP) / avgP * 100))}%</small>` : ''}` : '<small class="muted">السعر لسه</small>'] : []); }), KC.del);
@@ -2929,33 +2978,58 @@ function kamDel(c, p, F, seesP){
   const by = {}; c.del.forEach(x => { by[x.by || '—'] = (by[x.by || '—'] || 0) + 1; });
   h += kSec(KC.del, '🧾 مين استلم') + `<div class="chips" style="flex-wrap:wrap">${Object.entries(by).sort((a, b) => b[1] - a[1]).map(([n, k]) => `<span class="chip" style="cursor:default">${esc(n)} <b>${k}</b></span>`).join('')}</div>`;
   h += kSec(KC.del, '📅 يوم بيوم') + kDays(c.del, x => `<b>${esc(x.mat)}</b> · ${x.unit === 'نقلة' ? (x.trucks || []).map(t => `${t.plate ? `<span dir="ltr">${esc(t.plate)}</span>` : 'عربية'} × ${t.loads}${t.cap !== '' ? ` (${n1(t.cap)} م³)` : ''}`).join('، ') : n1(x.count) + ' ' + esc(x.unit)}
-    <small class="muted"> · ${esc(x.supName || x.sup)} · ${esc(x.by || '')}</small>${qMark(x)}${seesP && x.amount !== undefined ? (x.amount === '' || x.amount == null ? ' <small style="color:var(--warn)">السعر لسه</small>' : ` <small class="mv">${n1(x.amount, 0)} ج</small>`) : ''}`);
+    <small class="muted"> · ${esc(x.supName || x.sup)} · ${esc(x.by || '')}${x.rec ? ' (سجّلها ' + esc(x.rec) + ')' : ''}</small>${qMark(x)}${seesP && x.amount !== undefined ? (x.amount === '' || x.amount == null ? ' <small style="color:var(--warn)">السعر لسه</small>' : ` <small class="mv">${n1(x.amount, 0)} ج</small>`) : ''}`);
+  return h;
+}
+function kamCore(c, p, F, seesP){
+  if (!c.del.length) return `<div class="empty">${art('plan', 80)}<div>مفيش أسمنت ولا حديد ولا خامات تانية في الفترة دي</div></div>`;
+  const cem = c.del.filter(x => mKind(x) === 'cement'), st = c.del.filter(x => mKind(x) === 'steel'), br = c.del.filter(x => mKind(x) === 'brick'), ot = c.del.filter(x => mKind(x) === 'other');
+  const bags = cem.reduce((s, x) => s + (x.unit === 'شيكارة' ? Number(x.count) || 0 : 0), 0), ct = cem.reduce((s, x) => s + cemT(x), 0), stT = st.reduce((s, x) => s + steelT(x), 0);
+  const dm = {}; st.forEach(x => { const d = mDiam(x.mat); if (d) dm[d] = (dm[d] || 0) + steelT(x); });
+  const dmTxt = Object.keys(dm).map(Number).sort((a, b) => a - b).map(d => `قطر ${d}: ${n1(dm[d], 2)}`).join(' · ');
+  const amt = list => list.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  let h = `<div class="kcards">${kCard(KC.core, 'أسمنت', n1(bags || ct, bags ? 0 : 2), bags ? 'شيكارة' : 'طن').replace('</b><div>', `</b><small class="muted">${n1(ct, 2)} طن</small><div>`)}
+    ${kCard(KC.core, 'حديد', n1(stT, 2), 'طن').replace('</b><div>', `</b><small class="muted" style="white-space:normal">${dmTxt}</small><div>`)}
+    ${br.length ? kCard(KC.core, 'طوب', n1(br.reduce((s, x) => s + (Number(x.count) || 0), 0), 0), esc(br[0].unit)) : ''}
+    ${seesP ? kCard(KC.money, 'التكلفة', `<span class="mv">${n1(amt(c.del), 0)}</span>`, 'ج') : ''}</div>`;
+  const g = groupDel(c.del);
+  h += kSec(KC.core, '🧱 كل الخامات') + kTable(['الخامة', 'الكمية', 'الموردين'].concat(seesP ? ['التكلفة'] : []), g.map(m => { const list = c.del.filter(x => normN(x.mat) + '|' + x.unit === m.key);
+    const q = mKind(list[0]) === 'steel' ? `${n1(list.reduce((s, x) => s + steelT(x), 0), 2)} طن` : mKind(list[0]) === 'cement' ? `${m.unit === 'شيكارة' ? n1(m.count, 0) + ' شيكارة · ' : ''}${n1(list.reduce((s, x) => s + cemT(x), 0), 2)} طن` : qtyTxt(m);
+    return [`<b>${esc(m.mat)}</b>`, q, Object.keys(m.sups).map(esc).join('، ')].concat(seesP ? [m.priced ? `<span class="mv">${n1(m.amount, 0)}</span> ج` : '<small class="muted">السعر لسه</small>'] : []); }), KC.core)
+    + '<p class="muted" style="font-size:12px;margin:4px 2px">الحديد بالطن، والقطر بيتقري من اسم الخامة (حديد 12). الأسمنت: الشيكارة 50 كجم لو الوزن مش مكتوب.</p>';
+  h += kSec(KC.core, '📅 يوم بيوم') + kDays(c.del, x => `<b>${esc(x.mat)}</b> · ${mKind(x) === 'steel' ? n1(steelT(x), 2) + ' طن' : n1(x.count) + ' ' + esc(x.unit)} <small class="muted">· ${esc(x.supName || x.sup)} · ${esc(x.by || '')}</small>${qMark(x)}`);
   return h;
 }
 function kamEq(c, p, F, seesP){
   if (!c.eq.length) return `<div class="empty">${art('loader', 80)}<div>مفيش ساعات معدات في الفترة دي</div></div>`;
-  const g = {}; c.eq.forEach(x => { const e = g[x.code] = g[x.code] || {code: x.code, name: x.name, etype: x.etype, own: x.own, unit: x.unit, qty: 0, days: new Set(), amount: 0}; e.qty += x.qty; e.days.add(x.date); e.amount += x.amount || 0; });
-  const L = Object.values(g), hrs = L.filter(e => e.unit === 'ساعة').reduce((s, e) => s + e.qty, 0), days = L.reduce((s, e) => s + e.days.size, 0), amt = L.reduce((s, e) => s + e.amount, 0);
-  const hrsP = p ? p.eq.filter(x => x.unit === 'ساعة').reduce((s, x) => s + x.qty, 0) : null;
-  let h = `<div class="kcards">${kCard(KC.eq, 'ساعات', n1(hrs), 'ساعة', hrs, hrsP)}${kCard(KC.eq, 'أيام شغل', n1(days, 0), 'يوم')}${kCard(KC.eq, 'أيام الموقع', n1(c.siteDays, 0), 'يوم')}
+  const g = {}; c.eq.forEach(x => { const e = g[x.code] = g[x.code] || {code: x.code, name: x.name, etype: x.etype, own: x.own, unit: x.unit, qty: 0, ot: 0, days: new Set(), amount: 0}; e.qty += x.qty; e.ot += x.ot || 0; e.days.add(x.date); e.amount += x.amount || 0; });
+  const L = Object.values(g), days = L.reduce((s, e) => s + e.days.size, 0), ot = L.reduce((s, e) => s + e.ot, 0), amt = L.reduce((s, e) => s + e.amount, 0);
+  const daysP = p ? new Set(p.eq.map(x => x.code + x.date)).size : null;
+  let h = `<div class="kcards">${L.slice(0, 3).map(e => kCard(KC.eq, esc(e.name), n1(e.days.size, 0), 'يوم').replace('</b><div>', `</b><small class="muted">${e.ot ? '+ ' + n1(e.ot) + ' ساعة سهر' : ''}${e.unit === 'ساعة' ? n1(e.qty) + ' ساعة' : ''}</small><div>`)).join('')}
+    ${L.length > 1 ? kCard(KC.eq, 'كل أيام المعدات', n1(days, 0), 'يوم', days, daysP).replace('</b><div>', `</b><small class="muted">${ot ? '+ ' + n1(ot) + ' ساعة سهر' : ''}</small><div>`) : ''}
     ${seesP ? kCard(KC.money, 'التكلفة', `<span class="mv">${n1(amt, 0)}</span>`, 'ج') : ''}</div>`;
-  h += kSec(KC.eq, '🚜 المعدات') + kTable(['المعدة', 'الشغل', 'أيام', 'الاستغلال'].concat(seesP ? ['التكلفة'] : []), L.map(e => { const ut = c.siteDays ? Math.round(e.days.size / c.siteDays * 100) : null;
-    return [`<b>${esc(e.name)}</b>${e.etype ? ` <small class="muted">${esc(e.etype)}</small>` : ''}${e.own === 'شركة' ? ' <small class="muted">(شركة)</small>' : ''}`, n1(e.qty) + ' ' + esc(e.unit), n1(e.days.size, 0),
+  h += kSec(KC.eq, '🚜 المعدات') + kTable(['المعدة', 'أيام', 'الاستغلال'].concat(seesP ? ['التكلفة'] : []), L.map(e => { const ut = c.siteDays ? Math.round(e.days.size / c.siteDays * 100) : null;
+    const sub = [e.ot ? n1(e.ot) + ' ساعة سهر' : '', e.unit === 'ساعة' ? n1(e.qty) + ' ساعة' : '', e.unit === 'نقلة' ? n1(e.qty) + ' نقلة' : ''].filter(Boolean).join(' · ');
+    return [`<b>${esc(e.name)}</b>${e.etype ? ` <small class="muted">${esc(e.etype)}</small>` : ''}${e.own === 'شركة' ? ' <small class="muted">(شركة)</small>' : ''}`, `<b>${n1(e.days.size, 0)}</b> يوم${sub ? `<br><small class="muted">${sub}</small>` : ''}`,
       ut === null ? '—' : `<b style="color:${ut < 60 ? 'var(--bad)' : ut < 85 ? 'var(--warn)' : 'var(--ok)'}">${Math.min(100, ut)}%</b>`].concat(seesP ? [e.own === 'شركة' ? '—' : `<span class="mv">${n1(e.amount, 0)}</span> ج`] : []); }), KC.eq)
-    + '<p class="muted" style="font-size:12px;margin:4px 2px">الاستغلال = أيام المعدة ÷ أيام الشغل في الموقع في نفس الفترة.</p>';
-  h += kSec(KC.eq, '📅 يوم بيوم') + kDays(c.eq, x => `<b>${esc(x.name)}</b> · ${n1(x.qty)} ${esc(x.unit)} <small class="muted">· ${esc(x.by || '')}</small>${qMark(x)}`);
+    + '<p class="muted" style="font-size:12px;margin:4px 2px">المعدات بالأيام، وساعات السهر تحتها. الاستغلال = أيام المعدة ÷ أيام الشغل في الموقع.</p>';
+  h += kSec(KC.eq, '📅 يوم بيوم') + kDays(c.eq, x => `<b>${esc(x.name)}</b> · ${x.unit === 'يوم' ? (x.qty > 0 ? '✓ اشتغلت' : 'ما اشتغلتش') : n1(x.qty) + ' ' + esc(x.unit)}${x.ot ? ` + ${n1(x.ot)} ساعة سهر` : ''} <small class="muted">· ${esc(x.by || '')}${x.rec ? ' (سجّلها ' + esc(x.rec) + ')' : ''}</small>${qMark(x)}`);
   return h;
 }
 function kamAtt(c, p, F, seesM){
   if (!c.att.length) return `<div class="empty">${art('helmet', 80)}<div>مفيش يوميات في الفترة دي</div></div>`;
   const wd = c.att.reduce((s, x) => s + (ST_V[x.st] || 0), 0), wdP = p ? p.att.reduce((s, x) => s + (ST_V[x.st] || 0), 0) : null;
   const hrs = c.att.reduce((s, x) => s + (x.hours || 0), 0), amt = c.att.reduce((s, x) => s + (x.amount || 0), 0), ws = new Set(c.att.map(x => x.code));
-  const g = {}; c.att.forEach(x => { const t = x.trade || 'من غير صنعة', z = g[t] = g[t] || {t, ws: new Set(), d: 0, h: 0, a: 0}; z.ws.add(x.code); z.d += ST_V[x.st] || 0; z.h += x.hours || 0; z.a += x.amount || 0; });
-  const per = {}; c.att.forEach(x => { const z = per[x.code] = per[x.code] || {name: x.name, trade: x.trade, d: 0, h: 0, a: 0, q: 0}; z.d += ST_V[x.st] || 0; z.h += x.hours || 0; z.a += x.amount || 0; if (x.q) z.q = 1; });
-  let h = `<div class="kcards">${kCard(KC.att, 'يوميات', n1(wd), 'يومية', wd, wdP)}${kCard(KC.att, 'عمال', n1(ws.size, 0), 'عامل')}${kCard(KC.att, 'ساعات زيادة', n1(hrs), 'ساعة')}
+  const g = {}, co = {ws: new Set(), d: 0, h: 0, a: 0}; let dSk = 0, dHp = 0;
+  c.att.forEach(x => { const v = ST_V[x.st] || 0, k = kindOf(x); if (k === 'عامل شركة') { co.ws.add(x.code); co.d += v; co.h += x.hours || 0; co.a += x.amount || 0; return; }
+    const t = tradeK(x), z = g[t] = g[t] || {t, sk: new Set(), hp: new Set(), dsk: 0, dhp: 0, h: 0, a: 0}; if (k === 'مساعد') { z.hp.add(x.code); z.dhp += v; dHp += v; } else { z.sk.add(x.code); z.dsk += v; dSk += v; } z.h += x.hours || 0; z.a += x.amount || 0; });
+  const per = {}; c.att.forEach(x => { const z = per[x.code] = per[x.code] || {name: x.name, trade: (kindOf(x) === 'عامل شركة' ? 'عامل شركة' : x.trade), d: 0, h: 0, a: 0, q: 0}; z.d += ST_V[x.st] || 0; z.h += x.hours || 0; z.a += x.amount || 0; if (x.q) z.q = 1; });
+  let h = `<div class="kcards">${kCard(KC.att, 'يوميات الصنايعية', n1(dSk), '')}${kCard(KC.att, 'يوميات المساعدين', n1(dHp), '')}${kCard(KC.att, 'عمال الشركة', n1(co.d), 'يومية')}
+    ${kCard(KC.att, 'كل اليوميات', n1(wd), 'يومية', wd, wdP).replace('</b><div>', `</b><small class="muted">${ws.size} شخص${hrs ? ' · ' + n1(hrs) + ' ساعة زيادة' : ''}</small><div>`)}
     ${seesM ? kCard(KC.money, 'التكلفة', `<span class="mv">${n1(amt, 0)}</span>`, 'ج') : ''}</div>`;
-  h += kSec(KC.att, '👷 الصنايع') + kTable(['الصنعة', 'عمال', 'يوميات', 'ساعات'].concat(seesM ? ['التكلفة'] : []), Object.values(g).sort((a, b) => b.d - a.d).map(z => [`<b>${esc(z.t)}</b>`, n1(z.ws.size, 0), n1(z.d), n1(z.h)].concat(seesM ? [`<span class="mv">${n1(z.a, 0)}</span> ج`] : [])), KC.att);
-  h += kSec(KC.att, '🧍 العمال') + kTable(['العامل', 'يوميات', 'ساعات'].concat(seesM ? ['ليه'] : []), Object.values(per).sort((a, b) => b.d - a.d).map(z => [`<b>${esc(z.name)}</b> <small class="muted">${esc(z.trade || '')}</small>${z.q ? ' ⏳' : ''}`, n1(z.d), n1(z.h)].concat(seesM ? [`<span class="mv">${n1(z.a, 0)}</span> ج`] : [])), KC.att);
+  h += kSec(KC.att, '👷 الصنايعية ومساعدينهم') + kTable(['الصنعة', 'صنايعية', 'يوميات', 'مساعدين', 'يوميات'].concat(seesM ? ['التكلفة'] : []), Object.values(g).sort((a, b) => (b.dsk + b.dhp) - (a.dsk + a.dhp)).map(z => [`<b>${esc(z.t)}</b>`, n1(z.sk.size, 0), n1(z.dsk), n1(z.hp.size, 0), n1(z.dhp)].concat(seesM ? [`<span class="mv">${n1(z.a, 0)}</span> ج`] : [])), KC.att);
+  if (co.d) h += kSec(KC.att, '🦺 عمال الشركة') + kTable(['عمال', 'يوميات', 'ساعات'].concat(seesM ? ['التكلفة'] : []), [[n1(co.ws.size, 0), n1(co.d), n1(co.h)].concat(seesM ? [`<span class="mv">${n1(co.a, 0)}</span> ج`] : [])], KC.att);
+  h += kSec(KC.att, '🧍 كل واحد') + kTable(['العامل', 'يوميات', 'ساعات'].concat(seesM ? ['ليه'] : []), Object.values(per).sort((a, b) => b.d - a.d).map(z => [`<b>${esc(z.name)}</b> <small class="muted">${esc(z.trade || '')}</small>${z.q ? ' ⏳' : ''}`, n1(z.d), n1(z.h)].concat(seesM ? [`<span class="mv">${n1(z.a, 0)}</span> ج`] : [])), KC.att);
   return h;
 }
 function kamProd(D, c, p, F, seesM, R){
@@ -3012,7 +3086,7 @@ function wireKam(D, F, draw){
 // اسم الفلتر: «رمل مونة · الأسبوع ده · العامرية»
 function kamName(D, F){
   const pn = F.proj ? ((findProject(F.proj) || {}).short || (findProject(F.proj) || {}).name || F.proj) : '';
-  const what = F.tab === 'del' ? (F.mat ? (groupDel(D.del).find(m => m.key === F.mat) || {}).mat : F.sup ? 'توريدات ' + ((D.del.find(x => x.sup === F.sup) || {}).supName || '') : 'التوريدات')
+  const what = F.tab === 'del' || F.tab === 'core' ? (F.mat ? (groupDel(D.del).find(m => m.key === F.mat) || {}).mat : F.sup ? 'توريدات ' + ((D.del.find(x => x.sup === F.sup) || {}).supName || '') : KT[F.tab])
     : F.tab === 'eq' ? (F.eq ? (D.eq.find(x => x.code === F.eq) || {}).name : 'المعدات') : F.tab === 'att' ? (F.trade || 'العمالة') : (F.item ? (D.out.find(x => outKey(x) === F.item) || {}).name : 'الإنتاجية');
   return [what, (PER.find(x => x[0] === F.per) || [0, ''])[1], pn].filter(Boolean).join(' · ');
 }
@@ -3021,7 +3095,10 @@ function kamHead(D, F){
   const R = perRange(F), c = kSum(D, F, R.from, R.to);
   if (F.tab === 'del') { const g = groupDel(c.del), tr = g.reduce((s, m) => s + m.trips, 0), m3 = g.filter(m => m.unit === 'نقلة').reduce((s, m) => s + m.total, 0);
     if (F.mat && g[0] && g[0].unit !== 'نقلة') return n1(g[0].count) + ' ' + g[0].unit; return tr ? `${n1(tr, 0)} نقلة${m3 ? ' · ' + n1(m3) + ' م³' : ''}` : (c.del.length ? c.del.length + ' توريدة' : 'مفيش'); }
-  if (F.tab === 'eq') { const hrs = c.eq.reduce((s, x) => s + (x.unit === 'ساعة' ? x.qty : 0), 0), dd = new Set(c.eq.map(x => x.code + x.date)).size; return c.eq.length ? `${n1(hrs)} ساعة · ${dd} يوم` : 'مفيش'; }
+  if (F.tab === 'eq') { const ot = c.eq.reduce((s, x) => s + (x.ot || 0), 0), dd = new Set(c.eq.map(x => x.code + x.date)).size; return c.eq.length ? `${dd} يوم${ot ? ' + ' + n1(ot) + ' ساعة سهر' : ''}` : 'مفيش'; }
+  if (F.tab === 'core') { const st = c.del.filter(x => mKind(x) === 'steel').reduce((s, x) => s + steelT(x), 0), bg = c.del.filter(x => mKind(x) === 'cement').reduce((s, x) => s + (x.unit === 'شيكارة' ? Number(x.count) || 0 : 0), 0);
+    if (F.mat) { const x0 = c.del[0]; return x0 ? (mKind(x0) === 'steel' ? n1(st, 2) + ' طن' : mKind(x0) === 'cement' ? n1(bg, 0) + ' شيكارة' : n1(c.del.reduce((s, x) => s + (Number(x.count) || 0), 0)) + ' ' + x0.unit) : 'مفيش'; }
+    return [bg ? n1(bg, 0) + ' شيكارة أسمنت' : '', st ? n1(st, 2) + ' طن حديد' : ''].filter(Boolean).join(' · ') || (c.del.length ? c.del.length + ' توريدة' : 'مفيش'); }
   if (F.tab === 'att') { const wd = c.att.reduce((s, x) => s + (ST_V[x.st] || 0), 0); return `${n1(wd)} يومية · ${new Set(c.att.map(x => x.code)).size} عامل`; }
   const q = c.out.reduce((s, o) => s + o.qty, 0), wd = c.out.reduce((s, o) => s + o.wd, 0); return c.out.length ? `${n1(q)} ${c.out[0].unit}${wd ? ' · ' + n1(q / wd) + '/عامل' : ''}` : 'مفيش';
 }
@@ -3038,7 +3115,7 @@ function kamAsk(t, D, F){
   F.per = per;
   if (/انتاج|إنتاج/.test(t) || (its.length && !mats.length)) { Object.assign(F, {tab: 'prod', item: its[0] ? outKey(its[0]) : ''}); }
   else if (/ساعه|ساعة|معد|لودر|ونش|خلاط|حفار|بلدوزر/.test(t) && eqs.length || (eqs.length && !mats.length)) Object.assign(F, {tab: 'eq', eq: eqs[0] ? eqs[0].code : ''});
-  else if (mats.length || /نقل|توريد|رمل|سن|زلط|اسمنت|أسمنت/.test(t)) Object.assign(F, {tab: 'del', mat: mats[0] ? mats[0].key : '', sup: ''});
+  else if (mats.length || /نقل|توريد|رمل|سن|زلط|اسمنت|أسمنت|حديد|طوب/.test(t)) Object.assign(F, {tab: mats[0] ? (mKind(mats[0]) === 'agg' ? 'del' : 'core') : /اسمنت|أسمنت|حديد|طوب/.test(t) ? 'core' : 'del', mat: mats[0] ? mats[0].key : '', sup: ''});
   else if (trs.length || /عامل|عمال|يوميه|يومية|يوميات/.test(t)) Object.assign(F, {tab: 'att', trade: trs[0] || ''});
   else return '';
   S.kamF = F;
@@ -3047,16 +3124,16 @@ function kamAsk(t, D, F){
 function kamTable(D, F){
   const R = perRange(F), c = kSum(D, F, R.from, R.to), pn = F.proj ? ((findProject(F.proj) || {}).short || F.proj) : 'كل المشاريع', seesP = canPay();
   const base = {title: kamName(D, F), sub: pn + ' · ' + (R.from > '0001' ? R.from + ' ← ' + R.to : 'لحد ' + R.to), name: 'MEC-' + F.tab + '-' + R.to};
-  if (F.tab === 'del') return Object.assign(base, {head: ['التاريخ', 'المورد', 'الخامة', 'الكمية', 'الوحدة', 'م³', 'العربيات', 'استلم'].concat(seesP ? ['المبلغ'] : []),
-    rows: c.del.sort((a, b) => a.date.localeCompare(b.date)).map(x => [x.date, x.supName || x.sup, x.mat, x.count, x.unit, x.unit === 'نقلة' ? x.total : '', (x.trucks || []).map(t => (t.plate || '') + '×' + t.loads).join(' '), x.by || ''].concat(seesP ? [x.amount === '' || x.amount == null ? '' : x.amount] : []))});
-  if (F.tab === 'eq') return Object.assign(base, {head: ['التاريخ', 'المعدة', 'الشغل', 'الوحدة', 'سجّل'].concat(seesP ? ['المبلغ'] : []), rows: c.eq.sort((a, b) => a.date.localeCompare(b.date)).map(x => [x.date, x.name, x.qty, x.unit, x.by || ''].concat(seesP ? [x.amount || ''] : []))});
+  if (F.tab === 'del' || F.tab === 'core') return Object.assign(base, {head: ['التاريخ', 'المورد', 'الخامة', 'الكمية', 'الوحدة', F.tab === 'core' ? 'طن' : 'م³', 'العربيات', 'استلم'].concat(seesP ? ['المبلغ'] : []),
+    rows: c.del.sort((a, b) => a.date.localeCompare(b.date)).map(x => [x.date, x.supName || x.sup, x.mat, x.count, x.unit, F.tab === 'core' ? (mKind(x) === 'steel' ? steelT(x) : mKind(x) === 'cement' ? Math.round(cemT(x) * 100) / 100 : '') : x.unit === 'نقلة' ? x.total : '', (x.trucks || []).map(t => (t.plate || '') + '×' + t.loads).join(' '), x.by || ''].concat(seesP ? [x.amount === '' || x.amount == null ? '' : x.amount] : []))});
+  if (F.tab === 'eq') return Object.assign(base, {head: ['التاريخ', 'المعدة', 'الشغل', 'الوحدة', 'ساعات سهر', 'سجّل'].concat(seesP ? ['المبلغ'] : []), rows: c.eq.sort((a, b) => a.date.localeCompare(b.date)).map(x => [x.date, x.name, x.qty, x.unit, x.ot || '', x.by || ''].concat(seesP ? [x.amount || ''] : []))});
   if (F.tab === 'att') return Object.assign(base, {head: ['التاريخ', 'العامل', 'الصنعة', 'الحضور', 'ساعات'].concat(canPay() ? ['المبلغ'] : []), rows: c.att.sort((a, b) => a.date.localeCompare(b.date)).map(x => [x.date, x.name, x.trade, x.st, x.hours].concat(canPay() ? [x.amount || ''] : []))});
   return Object.assign(base, {head: ['التاريخ', 'البند', 'الكمية', 'الوحدة', 'يوميات', 'للعامل/يوم', 'سجّل'], rows: c.out.sort((a, b) => a.date.localeCompare(b.date)).map(o => [o.date, o.name, o.qty, o.unit, o.wd, o.wd ? Math.round(o.qty / o.wd * 10) / 10 : '', o.by || ''])});
 }
 function kamText(D, F){
   const t = kamTable(D, F), R = perRange(F);
   const lines = t.rows.slice(-40).map(r => F.tab === 'del' ? `${r[0].slice(5)}: ${r[2]} ${r[4] === 'نقلة' ? (r[6] || r[3] + ' نقلة') + (r[5] ? ' = ' + n1(r[5]) + ' م³' : '') : r[3] + ' ' + r[4]}`
-    : F.tab === 'eq' ? `${r[0].slice(5)}: ${r[1]} ${r[2]} ${r[3]}` : F.tab === 'att' ? `${r[0].slice(5)}: ${r[1]} ${r[3]}${r[4] ? ' +' + r[4] + 'س' : ''}` : `${r[0].slice(5)}: ${r[1]} ${r[2]} ${r[3]}`);
+    : F.tab === 'eq' ? `${r[0].slice(5)}: ${r[1]} ${r[3] === 'يوم' ? (Number(r[2]) > 0 ? 'يوم' : '—') : r[2] + ' ' + r[3]}${r[4] ? ' + ' + r[4] + ' ساعة سهر' : ''}` : F.tab === 'att' ? `${r[0].slice(5)}: ${r[1]} ${r[3]}${r[4] ? ' +' + r[4] + 'س' : ''}` : `${r[0].slice(5)}: ${r[1]} ${r[2]} ${r[3]}`);
   return `الشرق الأوسط للإنشاءات — ${t.title}\n${t.sub}\n\n${lines.join('\n')}\n\nالإجمالي: ${kamHead(D, F)}`;
 }
 // المعدل (الإنتاجية المعتادة للعامل في اليوم) — للمالك والمدير
@@ -3073,11 +3150,13 @@ function lifeCard(p){
   const D = S.siteLog; if (!D || !(D.projects || []).includes(p.code)) return '';
   const del = D.del.filter(x => x.proj === p.code && x.state !== 'مبدئي'), eq = D.eq.filter(x => x.proj === p.code && x.qty > 0), att = D.att.filter(x => x.proj === p.code && x.st !== 'غياب' && x.state === 'مؤكد');
   if (!del.length && !eq.length && !att.length) return '';
-  const g = groupDel(del).slice(0, 3), wd = att.reduce((s, x) => s + (ST_V[x.st] || 0), 0), hrs = eq.reduce((s, x) => s + (x.unit === 'ساعة' ? x.qty : 0), 0);
+  const g = groupDel(del.filter(x => mKind(x) === 'agg')).slice(0, 3), wd = att.reduce((s, x) => s + (ST_V[x.st] || 0), 0), eqd = new Set(eq.map(x => x.code + x.date)).size;
+  const bags = del.filter(x => mKind(x) === 'cement').reduce((s, x) => s + (x.unit === 'شيكارة' ? Number(x.count) || 0 : 0), 0), stT = del.filter(x => mKind(x) === 'steel').reduce((s, x) => s + steelT(x), 0);
   return `<button class="card life" id="lifeBtn" style="display:block;width:100%;text-align:start;margin-top:10px">
     <div class="row" style="gap:8px"><b style="flex:1">📊 من أول المشروع</b><small class="muted">كام جالي؟ ›</small></div>
-    <div class="lifeg">${g.map(m => `<div><small>${esc(m.mat)}</small><b>${m.unit === 'نقلة' ? n1(m.trips || m.count, 0) + '<span> نقلة</span>' : n1(m.count, 0) + `<span> ${esc(m.unit)}</span>`}</b></div>`).join('')}
-      ${wd ? `<div><small>يوميات العمال</small><b>${n1(wd, 0)}</b></div>` : ''}${hrs ? `<div><small>ساعات المعدات</small><b>${n1(hrs, 0)}</b></div>` : ''}</div></button>`;
+    <div class="lifeg">${g.map(m => `<div><small>${esc(m.mat)}</small><b>${n1(m.trips || m.count, 0)}<span> نقلة</span></b>${m.total ? `<small>${n1(m.total)} م³</small>` : ''}</div>`).join('')}
+      ${bags ? `<div><small>أسمنت</small><b>${n1(bags, 0)}<span> شيكارة</span></b></div>` : ''}${stT ? `<div><small>حديد</small><b>${n1(stT, 1)}<span> طن</span></b></div>` : ''}
+      ${wd ? `<div><small>اليوميات</small><b>${n1(wd, 0)}</b></div>` : ''}${eqd ? `<div><small>أيام المعدات</small><b>${n1(eqd, 0)}</b></div>` : ''}</div></button>`;
 }
 /* ---------- الفلاتر المحفوظة في الرئيسية ---------- */
 function savedHome(){
@@ -3096,7 +3175,9 @@ async function outBox(code, date, att, stRef){
   const D = await siteAll(false); if (!$('#atOut')) return;
   const L = D ? D.out.filter(o => o.proj === code && o.date === date) : [];
   box.innerHTML = `<div class="card outc"><div class="row" style="gap:8px"><b style="flex:1">📐 إنجاز ${date === ymd(new Date()) ? 'النهارده' : 'اليوم ده'}</b>${canRecord() ? `<button class="chip" id="outAdd" style="background:#EFEBFA;border-color:#CFC4F0">${ic('plus')} سجّل إنجاز</button>` : ''}</div>
-    ${L.length ? L.map(o => `<div class="kdl">${esc(o.name)} <b>${n1(o.qty)} ${esc(o.unit)}</b> <small class="muted">· ${n1(o.wd)} يومية${o.wd ? ' · ' + n1(o.qty / o.wd) + ' للعامل' : ''}</small>${qMark(o)}</div>`).join('') : '<small class="muted">سجّل اللي اتعمل النهارده (محارة 45 م²، سيراميك 30 م²…) عشان الإنتاجية تتحسب.</small>'}</div>`;
+    ${['owner','manager','engineer','supervisor'].includes(role()) ? `<button class="more" id="outPlan" style="color:var(--pri);font-size:12.5px;margin-top:4px">🗓️ خطة الأسبوع الجاي</button>` : ''}
+    ${L.length ? L.map(o => `<div class="kdl">${esc(o.name)} <b>${n1(o.qty)} ${esc(o.unit)}</b> <small class="muted">· ${n1(o.wd)} يومية${o.wd ? ' · ' + n1(o.qty / o.wd) + ' للعامل' : ''}</small>${o.done ? ' <span class="pill p-ok" style="padding:0 6px">✅ خلص</span>' : ''}${qMark(o)}</div>`).join('') : '<small class="muted">سجّل اللي اتعمل النهارده (محارة 45 م²، سيراميك 30 م²…) عشان الإنتاجية تتحسب.</small>'}</div>`;
+  if ($('#outPlan')) $('#outPlan').onclick = () => planSheet(code);
   if ($('#outAdd')) $('#outAdd').onclick = () => { if (stRef) S.atDraft = {k: code + '|' + date, st: JSON.parse(JSON.stringify(stRef))};
     outputForm(code, date, att.map(a => Object.assign({}, a, {st: stRef && stRef[a.code] ? stRef[a.code].st : a.st}))); };
 }
@@ -3106,7 +3187,7 @@ async function outputForm(code, date, att){
   const items = (S.items && S.items.items || []).filter(x => x.active !== false && x.active !== 'لأ');
   const D = await siteAll(false), recent = D ? [...new Map(D.out.filter(o => o.proj === code).reverse().map(o => [outKey(o), o])).values()].slice(0, 6) : [];
   const present = (att || []).filter(x => x.st && x.st !== 'غياب');
-  const f = {item: '', name: '', unit: 'م2', qty: '', workers: [], wd: '', note: ''};
+  const f = {item: '', name: '', unit: 'م2', qty: '', workers: [], wd: '', note: '', done: false};
   const UN = ['م2', 'م.ط', 'م3', 'عدد', 'نقطة'];
   const draw = () => { const wdAuto = f.workers.reduce((s, c) => { const a = present.find(x => x.code === c); return s + (a ? (ST_V[a.st] || 0) : 1); }, 0);
     const q = normN(f.name), sug = !f.item && q ? items.filter(x => normN(x.name + ' ' + x.code).includes(q)).slice(0, 6) : [];
@@ -3122,10 +3203,11 @@ async function outputForm(code, date, att){
         : '<small class="muted">مفيش يوميات متسجلة لليوم ده. اكتب عدد العمال تحت.</small>'}
       <label class="f">عدد اليوميات في البند ده</label><input class="in" id="ofW" inputmode="decimal" dir="ltr" value="${esc(f.wd !== '' ? f.wd : (wdAuto || ''))}" placeholder="مثلا 3">
       <small class="muted">${f.workers.length ? `من اختيارك: ${n1(wdAuto)} يومية (النص = ½). تقدر تعدّلها لو حد اشتغل في بندين.` : 'لو فريق اشتغل نص اليوم في بند ونص في بند تاني، اكتب ½ لكل واحد.'}</small>
+      <label class="row" style="gap:8px;margin-top:12px;font-weight:600"><input type="checkbox" id="ofDone" ${f.done ? 'checked' : ''} style="width:20px;height:20px"> ✅ البند ده خلص في المشروع</label>
       <label class="f">ملاحظة (اختياري)</label><input class="in" id="ofT" value="${esc(f.note)}">
       <div class="err" id="ofE"></div><button class="btn gold" id="ofGo" style="margin-top:8px">سجّل الإنجاز</button>`);
     wireMics($('#sheetBody'));
-    const sync = () => { f.name = $('#ofN').value; f.qty = $('#ofQ').value; f.note = $('#ofT').value; f.wd = $('#ofW').value === String(wdAuto || '') ? '' : $('#ofW').value; };
+    const sync = () => { f.name = $('#ofN').value; f.qty = $('#ofQ').value; f.note = $('#ofT').value; f.done = $('#ofDone').checked; f.wd = $('#ofW').value === String(wdAuto || '') ? '' : $('#ofW').value; };
     $('#ofN').oninput = () => { sync(); const q2 = normN(f.name); $('#ofSug').innerHTML = !f.item && q2 ? items.filter(x => normN(x.name + ' ' + x.code).includes(q2)).slice(0, 6).map(x => `<button class="li" data-it="${esc(x.code)}" style="padding:8px 12px"><span class="t"><b>${esc(x.name)}</b><small>${esc(x.code)} · ${esc(x.unit)}</small></span></button>`).join('') : ''; wireIt(); };
     // «محارة 45 متر» بالصوت
     $('#ofN').addEventListener('change', () => { const m = $('#ofN').value.match(/([\d٠-٩]+(?:[.,٫][\d٠-٩]+)?)/); if (m && !$('#ofQ').value) { $('#ofQ').value = digits(m[1]).replace(/[,٫]/g, '.'); $('#ofN').value = $('#ofN').value.replace(m[0], '').replace(/متر|مربع|م2|م٢|طولي/g, '').trim(); sync(); } });
@@ -3139,7 +3221,7 @@ async function outputForm(code, date, att){
     $('#ofGo').onclick = async () => { sync(); const qty = numIn(f.qty), wd = numIn($('#ofW').value);
       if (!f.name.trim()) { $('#ofE').textContent = 'اكتب البند'; return; } if (!(Number(qty) > 0)) { $('#ofE').textContent = 'اكتب الكمية'; return; }
       const trades = [...new Set(f.workers.map(c => (present.find(x => x.code === c) || {}).trade).filter(Boolean))];
-      const out = {item: f.item, name: f.name.trim(), unit: f.unit, qty, workers: f.workers, wd: wd === '' ? '' : Number(wd), trade: trades.length === 1 ? trades[0] : '', note: f.note};
+      const out = {item: f.item, name: f.name.trim(), unit: f.unit, qty, workers: f.workers, wd: wd === '' ? '' : Number(wd), trade: trades.length === 1 ? trades[0] : '', note: f.note, done: !!f.done};
       busy($('#ofGo'), true); const r = await qSave('saveOutput', {project: code, date, out}, 'إنجاز ' + out.name + ' ' + qty + ' ' + f.unit); busy($('#ofGo'), false);
       if (!r.ok) { $('#ofE').textContent = errMsg(r); return; }
       if (r.out && S.siteLog) S.siteLog.out.push(r.out);
@@ -3148,28 +3230,196 @@ async function outputForm(code, date, att){
   draw();
 }
 
-/* ---------- 📄 التقرير الأسبوعي (نفس اللي بيوصل الإيميل الجمعة) ---------- */
-async function weekSheet(from){
+/* ---------- 🗓️ خطة الأسبوع (البنود اللي ناويين نشتغل فيها والكمية المستهدفة) ---------- */
+async function planSheet(code, wk){
+  const p = findProject(code) || {}, t = ymd(new Date()), next = addD(satOf(t), 7), cur = satOf(t);
+  const week = wk || next;
+  const D = await siteAll(false);
+  const saved = D ? (D.plans || []).filter(x => x.proj === code && x.week === week) : [];
+  const running = D ? [...new Map(D.out.filter(o => o.proj === code && o.date >= addD(cur, -7) && !o.done).map(o => [outKey(o), o])).values()] : [];
+  if (!S.items) { const r = await api('items'); if (r.ok) S.items = r; }
+  const itemNames = (S.items && S.items.items || []).map(x => x.name);
+  const L = saved.length ? saved.map(x => ({name: x.name, unit: x.unit, target: x.target || '', note: x.note || ''})) : [];
+  const UN = ['م2', 'م.ط', 'م3', 'عدد', 'نقطة'];
+  const draw = () => {
+    openSheet(`<h3>🗓️ خطة ${week === next ? 'الأسبوع الجاي' : 'الأسبوع ده'} · ${esc(p.short || p.name || code)}</h3>
+      <div class="tabs"><button class="tab ${week === cur ? 'on' : ''}" data-pw="${cur}">الأسبوع ده (${esc(dshortN(cur))})</button><button class="tab ${week === next ? 'on' : ''}" data-pw="${next}">الأسبوع الجاي (${esc(dshortN(next))})</button></div>
+      <p class="muted" style="font-size:12.5px;margin:0 0 8px">البنود اللي هتشتغلوا فيها والكمية المستهدفة. التقرير الأسبوعي بيقارن المخطط بالفعلي.</p>
+      ${running.filter(o => !L.some(x => normN(x.name) === normN(o.name))).length ? `<div class="chips" style="margin-bottom:8px;flex-wrap:wrap"><small class="muted" style="align-self:center">شغالين فيه:</small>${running.filter(o => !L.some(x => normN(x.name) === normN(o.name))).map(o => `<button class="chip" data-pa="${esc(o.name)}" data-pu="${esc(o.unit)}">+ ${esc(o.name)}</button>`).join('')}</div>` : ''}
+      <datalist id="plNames">${[...new Set(itemNames.concat(running.map(o => o.name)))].map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+      ${L.map((x, i) => `<div class="card" style="padding:10px 12px;margin-bottom:8px"><div class="row" style="gap:6px"><input class="in" data-pn="${i}" list="plNames" value="${esc(x.name)}" placeholder="البند" style="flex:2"><button class="ibtn" data-px="${i}" aria-label="شيل" style="color:var(--bad)">✕</button></div>
+        <div class="row" style="gap:6px;margin-top:6px;flex-wrap:wrap"><input class="in" data-pt="${i}" inputmode="decimal" dir="ltr" value="${esc(x.target)}" placeholder="الكمية المستهدفة" style="flex:1 1 150px"><div class="chips">${UN.map(u => `<button class="chip ${x.unit === u ? 'on' : ''}" data-pun="${i}" data-u="${u}">${u}</button>`).join('')}</div></div>
+        <input class="in" data-pnt="${i}" value="${esc(x.note)}" placeholder="ملاحظة (اختياري): مثلا الدور التالت" style="margin-top:6px"></div>`).join('') || emptyBox('doc', 'لسه مفيش بنود في الخطة')}
+      <button class="btn ghost" id="plAdd">${ic('plus')} بند</button>
+      <div class="err" id="plE"></div><button class="btn gold" id="plGo" style="margin-top:8px">احفظ الخطة</button>`);
+    const sync = () => { document.querySelectorAll('[data-pn]').forEach(i => L[i.dataset.pn].name = i.value); document.querySelectorAll('[data-pt]').forEach(i => L[i.dataset.pt].target = i.value); document.querySelectorAll('[data-pnt]').forEach(i => L[i.dataset.pnt].note = i.value); };
+    document.querySelectorAll('[data-pw]').forEach(b => b.onclick = () => planSheet(code, b.dataset.pw));
+    document.querySelectorAll('[data-pa]').forEach(b => b.onclick = () => { sync(); L.push({name: b.dataset.pa, unit: b.dataset.pu || 'م2', target: '', note: ''}); draw(); });
+    document.querySelectorAll('[data-px]').forEach(b => b.onclick = () => { sync(); L.splice(Number(b.dataset.px), 1); draw(); });
+    document.querySelectorAll('[data-pun]').forEach(b => b.onclick = () => { sync(); L[b.dataset.pun].unit = b.dataset.u; draw(); });
+    $('#plAdd').onclick = () => { sync(); L.push({name: '', unit: 'م2', target: '', note: ''}); draw(); setTimeout(() => { const i = document.querySelector(`[data-pn="${L.length - 1}"]`); if (i) i.focus(); }, 50); };
+    $('#plGo').onclick = async () => { sync(); const items = L.filter(x => x.name.trim()).map(x => ({name: x.name.trim(), unit: x.unit, target: numIn(x.target), note: x.note}));
+      busy($('#plGo'), true); const r = await qSave('savePlan', {project: code, week, items}, 'خطة أسبوع ' + week + ' · ' + (p.short || p.name || code)); busy($('#plGo'), false);
+      if (!r.ok) { $('#plE').textContent = errMsg(r); return; }
+      if (S.siteLog) { S.siteLog.plans = (S.siteLog.plans || []).filter(x => !(x.proj === code && x.week === week)).concat(items.map(x => Object.assign({proj: code, week, target: Number(x.target) || 0}, x))); }
+      toast(r.queued ? QMSG : 'الخطة اتحفظت ✓'); closeSheet(); };
+  };
+  draw();
+}
+
+/* ---------- 📄 التقرير الأسبوعي: الملخص + التقرير الكامل بالتابات (نفس اللي بيوصل الإيميل الجمعة) ---------- */
+async function weekSheet(from, tab){
   let ov = $('#wkOv'); if (!ov) { ov = document.createElement('div'); ov.id = 'wkOv'; ov.className = 'wkov'; document.body.appendChild(ov); }
   const t = ymd(new Date()), cur = !from || satOf(from) === satOf(t);
   ov.innerHTML = `<div class="wkbar"><button class="ibtn" id="wkX" aria-label="اقفل">${ic('x')}</button><b style="flex:1">التقرير الأسبوعي</b>
-    <button class="ibtn" id="wkPrev" aria-label="الأسبوع اللي قبله">${ic('arrowR')}</button><button class="ibtn" id="wkNext" aria-label="الأسبوع اللي بعده" ${cur ? 'disabled style="opacity:.3"' : ''}>${ic('arrowL')}</button>
-    <button class="ibtn" id="wkPr" aria-label="PDF / طباعة">${ic('download')}</button></div><div id="wkBody" class="wkbody"><div class="empty">${art('chart', 80)}<div>بيجهّز التقرير…</div></div></div>`;
+    <button class="ibtn" id="wkPrev" aria-label="الأسبوع اللي قبله">${ic('arrowR')}</button><button class="ibtn" id="wkNext" aria-label="الأسبوع اللي بعده" ${cur ? 'disabled style="opacity:.3"' : ''}>${ic('arrowL')}</button></div>
+    <div id="wkTabs" class="wktabs"></div><div id="wkBody" class="wkbody"><div class="empty">${art('chart', 80)}<div>بيجهّز التقرير…</div></div></div>`;
   document.body.style.overflow = 'hidden';
   const close = () => { ov.remove(); document.body.style.overflow = ''; };
   $('#wkX').onclick = close;
   const base = from ? satOf(from) : satOf(t);
-  $('#wkPrev').onclick = () => weekSheet(addD(base, -7));
-  if (!cur) $('#wkNext').onclick = () => weekSheet(addD(base, 7));
+  $('#wkPrev').onclick = () => weekSheet(addD(base, -7), S.wkTab);
+  if (!cur) $('#wkNext').onclick = () => weekSheet(addD(base, 7), S.wkTab);
   const r = await api('weekReport', cur ? {} : {from: base});
   if (!$('#wkBody')) return;
   if (!r.ok) { $('#wkBody').innerHTML = `<div class="empty">${art('crane', 70)}<div>${esc(errMsg(r))}</div></div>`; return; }
   const logo = await logoURL();
-  const html = r.html.replace('MEC · الشرق الأوسط للإنشاءات', `${logo ? `<img src="${logo}" style="width:30px;height:30px;border-radius:8px;vertical-align:middle;margin-left:6px;background:#fff">` : ''}MEC · الشرق الأوسط للإنشاءات`);
-  $('#wkBody').innerHTML = (r.offline ? `<div class="card" style="font-size:12.5px;margin:8px">📴 من غير نت: ده التقرير من آخر تحميل</div>` : '') + html;
-  $('#wkPr').onclick = () => { const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;width:0;height:0;border:0;left:-9999px'; document.body.appendChild(f);
-    const d = f.contentWindow.document; d.open(); d.write(`<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>MEC التقرير الأسبوعي ${r.from}</title><style>@page{size:A4;margin:10mm}body{margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}div[style*="overflow-x"]{overflow:visible!important}table{page-break-inside:auto}tr{page-break-inside:avoid}</style></head><body>${html}</body></html>`); d.close();
-    setTimeout(() => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { toast('الطباعة مش متاحة هنا'); } setTimeout(() => f.remove(), 4000); }, 500); };
+  const withLogo = h => String(h || '').replace('MEC · الشرق الأوسط للإنشاءات', `${logo ? `<img src="${logo}" style="width:30px;height:30px;border-radius:8px;vertical-align:middle;margin-left:6px;background:#fff">` : ''}MEC · الشرق الأوسط للإنشاءات`);
+  const tabs = [{k: 'sum', t: 'الملخص', c: '#1D2E4F', html: withLogo(r.summary || r.html)}].concat((r.tabs || []).map(x => Object.assign({}, x, {html: x.html})));
+  const off = r.offline ? `<div class="card" style="font-size:12.5px;margin:8px">📴 من غير نت: ده التقرير من آخر تحميل</div>` : '';
+  const show = k => { S.wkTab = k; const T = tabs.find(x => x.k === k) || tabs[0];
+    $('#wkTabs').innerHTML = tabs.map(x => `<button class="tab kt ${x.k === T.k ? 'on' : ''}" data-wt="${x.k}" style="--kc:${x.c}">${esc(x.t)}</button>`).join('')
+      + `<span style="flex:1"></span><button class="chip" id="wkPs">${ic('download')} PDF الملخص</button><button class="chip" id="wkPf">${ic('download')} PDF الكامل</button>`;
+    $('#wkBody').innerHTML = off + T.html; $('#wkBody').scrollTop = 0;
+    document.querySelectorAll('[data-wt]').forEach(b => b.onclick = () => show(b.dataset.wt));
+    $('#wkPs').onclick = () => printHtml(withLogo(r.summary || r.html), 'MEC الملخص الأسبوعي ' + r.from);
+    $('#wkPf').onclick = () => printHtml(withLogo(r.html), 'MEC التقرير الأسبوعي الكامل ' + r.from); };
+  show(tab && tabs.some(x => x.k === tab) ? tab : 'sum');
+}
+function printHtml(html, title){
+  const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;width:0;height:0;border:0;left:-9999px'; document.body.appendChild(f);
+  const d = f.contentWindow.document; d.open(); d.write(`<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>${esc(title)}</title><style>@page{size:A4;margin:10mm}body{margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}div[style*="overflow-x"]{overflow:visible!important}table{page-break-inside:auto}tr{page-break-inside:avoid}</style></head><body>${html}</body></html>`); d.close();
+  setTimeout(() => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { toast('الطباعة مش متاحة هنا'); } setTimeout(() => f.remove(), 4000); }, 500);
+}
+
+/* ---------- 💡 دفتري (للمالك بس): أفكار وملاحظات لتطوير التطبيق والمكتب الفني والهندسة + الذكاء الاصطناعي ---------- */
+const ID_CATS = ['تطوير التطبيق', 'المكتب الفني', 'الهندسة والتنفيذ', 'الإدارة والفلوس', 'بره التطبيق'];
+const ID_PRIOS = [['عاجلة', 'p-bad'], ['مهمة', 'p-warn'], ['بعدين', 'p-info']];
+const ID_STATES = [['جديدة', 'p-info'], ['بفكر فيها', 'p-warn'], ['اتوافق', 'p-ok'], ['اتنفذت', 'p-ok'], ['اتلغت', '']];
+const idPill = (v, L) => { const x = L.find(y => y[0] === v); return `<span class="pill ${x ? x[1] : ''}" style="${x && x[1] ? '' : 'background:#F1F3F6;color:var(--muted)'}">${esc(v)}</span>`; };
+async function ideasLoad(fresh){
+  if (!fresh && S.ideas) return S.ideas;
+  const r = await api('ideas'); if (r.ok) { S.ideas = r; store.set('ideasN', r.items.filter(x => ['جديدة', 'بفكر فيها'].includes(x.st)).length); }
+  let q = []; try { q = (await QDB.all()).filter(it => it.a === 'saveIdea' && !(it.body.idea || {}).id); } catch (e) { q = []; }
+  if (S.ideas || q.length) { S.ideas = S.ideas || {items: []}; const ids = new Set(S.ideas.items.map(x => x.id));
+    q.forEach(it => { if (!ids.has(it.id)) S.ideas.items.unshift({id: it.id, q: 1, at: new Date(it.at).toISOString(), cat: it.body.idea.cat, prio: it.body.idea.prio, st: 'جديدة', title: (it.body.idea.text || 'فكرة بصورة').split(/\n|\.|،/)[0].slice(0, 60), text: it.body.idea.text, photo: '', ai: null, thread: [], src: 'التطبيق'}); }); }
+  return S.ideas;
+}
+function ideasHome(){
+  if (!isOwner()) return '';
+  const n = store.get('ideasN', 0);
+  return `<button class="card ideaHome" id="ideasBtn" style="display:flex;align-items:center;gap:10px;width:100%;text-align:start;margin:10px 0">${art('plan', 40)}<span style="flex:1"><b style="display:block">💡 دفتري</b><small class="muted">${n ? n + ' فكرة مستنية تفكير' : 'أفكارك وملاحظاتك لتطوير الشغل والتطبيق'}</small></span><span class="chip" style="background:#FFF3D6;border-color:#EBC877">+ فكرة</span></button>`;
+}
+async function ideasSheet(fl){
+  const F = Object.assign({st: '', cat: '', q: ''}, S.idF || {}, fl || {}); S.idF = F;
+  openSheet(`<h3 class="row" style="gap:8px">${art('plan', 34)}<span style="flex:1">💡 دفتري</span><small class="muted" style="font-weight:400">ليك انت بس</small></h3><div id="idBody" class="muted">بيحمّل…</div>`);
+  const D = await ideasLoad(false); if (!$('#idBody')) return;
+  if (!D) { $('#idBody').innerHTML = esc(navigator.onLine ? ERR.net : offMsg()); return; }
+  const L = D.items.filter(x => (!F.st ? x.st !== 'اتلغت' : x.st === F.st) && (!F.cat || x.cat === F.cat) && (!F.q || normN(x.title + ' ' + x.text).includes(normN(F.q))));
+  const dg = D.digest;
+  $('#idBody').innerHTML = `<div class="row" style="gap:8px"><button class="btn gold" id="idNew" style="flex:2">${ic('plus')} فكرة جديدة</button><button class="btn ghost" id="idDig" style="flex:1.4">🧠 اجمع أفكاري</button></div>
+    ${dg && dg.text ? `<div class="card" style="margin-top:10px;background:#FFF8E6;border-color:#F0DCA6"><b>🧠 ترتيب أفكارك</b> <small class="muted">(${esc(new Date(dg.at).toLocaleDateString('ar-EG', {day: 'numeric', month: 'short'}))})</small><div style="font-size:13.5px;margin-top:4px;white-space:pre-wrap">${esc(dg.text)}</div>
+      ${(dg.top || []).length ? `<div style="font-size:13px;margin-top:6px"><b>الأول:</b> ${(dg.top || []).map(t => { const x = D.items.find(y => y.id === t.id); return x ? `<button class="more" data-io="${esc(x.id)}" style="color:var(--pri)">${esc(x.title)}</button>` : ''; }).join(' · ')}</div>` : ''}
+      ${(dg.groups || []).map(g => `<div style="font-size:12.5px;margin-top:4px">🧩 <b>${esc(g.title)}</b>: ${(g.ids || []).map(id => (D.items.find(y => y.id === id) || {}).title).filter(Boolean).map(esc).join('، ')}</div>`).join('')}
+      ${(dg.dupes || []).map(g => `<div style="font-size:12.5px;margin-top:4px;color:var(--warn)">🔁 مكرر: ${(g.ids || []).map(id => (D.items.find(y => y.id === id) || {}).title).filter(Boolean).map(esc).join(' / ')}</div>`).join('')}</div>` : ''}
+    <div class="kfil" style="margin-top:10px"><div class="chips">${[['', 'الكل'], ...ID_STATES.map(x => [x[0], x[0]])].map(([v, n]) => `<button class="chip ${F.st === v ? 'on' : ''}" data-ist="${esc(v)}">${esc(n)}${v ? ` <small class="muted">${D.items.filter(x => x.st === v).length}</small>` : ''}</button>`).join('')}</div>
+      <div class="kgrid"><select class="in" id="idCat"><option value="">كل الأنواع</option>${ID_CATS.map(c => `<option ${F.cat === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select><input class="in" id="idQ" value="${esc(F.q)}" placeholder="دوّر"></div></div>
+    <div style="margin-top:10px">${L.map(x => `<button class="li" data-io="${esc(x.id)}" style="align-items:flex-start"><span class="ico" style="background:#FFF3D6;color:#7A5600">${x.ai ? '🤖' : '💡'}</span><span class="t"><b style="white-space:normal">${esc(x.title)}</b>
+      <small>${esc(x.cat)} · ${esc(new Date(x.at).toLocaleDateString('ar-EG', {day: 'numeric', month: 'short'}))}${x.src === 'البوت' ? ' · من البوت' : ''}${x.thread && x.thread.length ? ' · ' + x.thread.length + ' سؤال' : ''}${x.q ? ' · ⏳' : ''}</small>
+      <span class="row" style="gap:4px;margin-top:4px">${idPill(x.st, ID_STATES)}${idPill(x.prio, ID_PRIOS)}</span></span></button>`).join('') || emptyBox('doc', D.items.length ? 'مفيش أفكار بالفلتر ده' : 'لسه مفيش أفكار. اكتب أول فكرة، أو ابعتها للبوت وابدأها بـ 💡')}</div>
+    ${L.length ? `<button class="btn ghost" id="idCopyAll" style="margin-top:10px">📋 انسخ اللي ظاهر هنا لـ Claude (${L.length})</button>` : ''}`;
+  $('#idNew').onclick = () => ideaForm();
+  $('#idDig').onclick = async () => { if (!navigator.onLine) { toast('الذكاء الاصطناعي محتاج نت'); return; } busy($('#idDig'), true); $('#idDig').textContent = '🧠 بيفكر…';
+    const r = await api('digestIdeas'); if (!$('#idDig')) return; busy($('#idDig'), false); if (!r.ok) { toast(r.error === 'noAI' ? 'مفتاح Gemini مش متركّب (setupGemini)' : r.error === 'missing' ? 'مفيش أفكار مستنية' : errMsg(r)); $('#idDig').textContent = '🧠 اجمع أفكاري'; return; }
+    S.ideas.digest = r.digest; ideasSheet(); };
+  document.querySelectorAll('[data-io]').forEach(b => b.onclick = () => ideaView(b.dataset.io));
+  document.querySelectorAll('[data-ist]').forEach(b => b.onclick = () => ideasSheet({st: b.dataset.ist}));
+  $('#idCat').onchange = e => ideasSheet({cat: e.target.value});
+  $('#idQ').onchange = e => ideasSheet({q: e.target.value});
+  if ($('#idCopyAll')) $('#idCopyAll').onclick = () => copyClaude(L);
+}
+function ideaForm(x){
+  const f = {text: x ? x.text : '', cat: x ? x.cat : (S.idF && S.idF.cat) || ID_CATS[0], prio: x ? x.prio : 'مهمة', photo: ''};
+  const draw = () => {
+    openSheet(`<h3>${x ? 'تعديل الفكرة' : '💡 فكرة جديدة'}</h3>
+      <div class="row" style="gap:6px;align-items:flex-start"><textarea class="in" id="ifT" placeholder="اكتب الفكرة أو الملاحظة زي ما هي… (أو قولها بالمايك)" style="min-height:130px">${esc(f.text)}</textarea>${micBtn('ifT')}</div>
+      <label class="btn ghost" style="margin-top:8px;display:flex;justify-content:center;gap:8px">${ic('camera')} ${f.photo ? 'الصورة ✓ (غيّرها)' : x && x.photo ? 'فيه صورة (غيّرها)' : 'صورة: إعلان، سكرين، حاجة في الموقع (اختياري)'}<input type="file" id="ifP" accept="image/*" hidden></label>
+      <label class="f">النوع</label><div class="chips" style="flex-wrap:wrap">${ID_CATS.map(c => `<button class="chip ${f.cat === c ? 'on' : ''}" data-ic="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+      <label class="f">الأهمية</label><div class="chips">${ID_PRIOS.map(([c]) => `<button class="chip ${f.prio === c ? 'on' : ''}" data-ip="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+      <div class="err" id="ifE"></div><button class="btn gold" id="ifGo" style="margin-top:10px">احفظ</button>
+      ${!x ? `<button class="btn ghost" id="ifGoT" style="margin-top:8px">احفظ و🤖 فكّر فيها</button>` : ''}`);
+    wireMics($('#sheetBody'));
+    const sync = () => { f.text = $('#ifT').value; };
+    document.querySelectorAll('[data-ic]').forEach(b => b.onclick = () => { sync(); f.cat = b.dataset.ic; draw(); });
+    document.querySelectorAll('[data-ip]').forEach(b => b.onclick = () => { sync(); f.prio = b.dataset.ip; draw(); });
+    $('#ifP').onchange = async e => { const fl = e.target.files[0]; if (!fl) return; sync(); f.photo = await shrinkImage(fl, 1400); draw(); };
+    const save = async think => { sync(); if (!f.text.trim() && !f.photo && !(x && x.photo)) { $('#ifE').textContent = 'اكتب الفكرة أو حط صورة'; return; }
+      const b = $(think ? '#ifGoT' : '#ifGo'); busy(b, true);
+      const r = await qSave('saveIdea', {idea: Object.assign({text: f.text.trim(), cat: f.cat, prio: f.prio}, x ? {id: x.id} : {}, f.photo ? {photo: f.photo} : {})}, 'فكرة: ' + (f.text.trim() || 'صورة').slice(0, 40)); busy(b, false);
+      if (!r.ok) { $('#ifE').textContent = errMsg(r); return; }
+      if (r.queued) { toast('اتحفظت على الموبايل ⏳ والتفكير بالذكاء الاصطناعي لما النت يرجع'); S.ideas = null; ideasSheet(); return; }
+      S.ideas = S.ideas || {items: []}; S.ideas.items = [r.idea].concat(S.ideas.items.filter(y => y.id !== r.idea.id)); store.set('ideasN', S.ideas.items.filter(y => ['جديدة', 'بفكر فيها'].includes(y.st)).length);
+      toast('اتحفظت ✓'); ideaView(r.idea.id, think); };
+    $('#ifGo').onclick = () => save(false); if ($('#ifGoT')) $('#ifGoT').onclick = () => save(true);
+  };
+  draw();
+}
+const aiList = (t, L, ic2) => L && L.length ? `<div style="margin-top:8px"><b style="font-size:13.5px">${t}</b>${L.map(v => `<div style="font-size:13.5px;padding:2px 0">${ic2 || '•'} ${esc(v)}</div>`).join('')}</div>` : '';
+async function ideaView(id, think){
+  const D = await ideasLoad(false), x = D && D.items.find(y => y.id === id); if (!x) { toast('الفكرة مش موجودة'); ideasSheet(); return; }
+  const a = x.ai;
+  openSheet(`<button class="row muted" id="ivBack" style="margin-bottom:8px">${ic('arrowR')} دفتري</button>
+    <h3 style="margin-bottom:6px">${esc(x.title)}</h3>
+    <div class="row" style="gap:4px;flex-wrap:wrap">${idPill(x.cat, [])}${idPill(x.prio, ID_PRIOS)}<small class="muted">${esc(new Date(x.at).toLocaleString('ar-EG', {day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'}))}${x.src === 'البوت' ? ' · من البوت' : ''}</small></div>
+    <div class="card" style="margin-top:8px;white-space:pre-wrap;font-size:14.5px;line-height:1.8">${esc(x.text || '—')}${x.photo ? `<div style="margin-top:8px"><a class="pill p-info" href="${esc(x.photo)}" target="_blank" rel="noopener">${ic('camera')} الصورة</a></div>` : ''}</div>
+    <label class="f">الحالة</label><div class="chips" style="flex-wrap:wrap">${ID_STATES.map(([s]) => `<button class="chip ${x.st === s ? 'on' : ''}" data-ivs="${esc(s)}">${esc(s)}</button>`).join('')}</div>
+    <div id="ivAi" style="margin-top:12px">${a ? `<div class="card aic"><div class="row" style="gap:6px"><b style="flex:1">🤖 رأي الذكاء الاصطناعي</b><small class="muted">${esc(new Date(a.at).toLocaleDateString('ar-EG', {day: 'numeric', month: 'short'}))}</small></div>
+      ${a.summary ? `<div style="font-size:14px;margin-top:6px">${esc(a.summary)}</div>` : ''}
+      ${(a.ways || []).map((w, i) => `<div class="card" style="margin-top:8px;padding:10px 12px;${a.best && a.best.includes(w.title) ? 'border-color:#9BD3B4;background:#F3FBF6' : ''}"><b>${i + 1}. ${esc(w.title)}</b><div style="font-size:13.5px;margin-top:3px">${esc(w.how)}</div>
+        <div style="font-size:12.5px;margin-top:4px"><span style="color:var(--ok)">＋ ${esc(w.pros)}</span><br><span style="color:var(--bad)">－ ${esc(w.cons)}</span></div></div>`).join('')}
+      ${a.best ? `<div style="margin-top:8px;font-size:14px"><b>⭐ الأحسن:</b> ${esc(a.best)}</div>` : ''}${a.where ? `<div style="margin-top:4px;font-size:13.5px"><b>📍 فين:</b> ${esc(a.where)}</div>` : ''}
+      ${aiList('👣 أول خطوات', a.steps, '→')}${aiList('🔗 أفكار مرتبطة', a.related)}${aiList('⚠️ مخاطر', a.risks)}</div>` : ''}
+      ${(x.thread || []).map(t => `<div class="card" style="margin-top:8px;padding:10px 12px"><div style="font-size:13px;color:var(--pri);font-weight:700">انت: ${esc(t.q)}</div><div style="font-size:14px;margin-top:4px;white-space:pre-wrap">${esc(t.a)}</div>${aiList('', t.steps, '→')}</div>`).join('')}</div>
+    <button class="btn gold" id="ivThink" style="margin-top:10px">🤖 ${a ? 'فكّر فيها تاني' : 'فكّر فيها'}</button>
+    ${a ? `<div class="row" style="gap:6px;margin-top:8px"><input class="in" id="ivQ" placeholder="اسأل تاني: طب لو…؟" style="flex:1">${micBtn('ivQ')}<button class="mic" id="ivAsk" aria-label="اسأل">${ic('send')}</button></div>` : ''}
+    <div class="row" style="gap:8px;margin-top:10px"><button class="btn ghost" id="ivCopy" style="flex:2">📋 انسخ لـ Claude</button><button class="btn ghost" id="ivEdit" style="flex:1">تعديل</button><button class="btn ghost" id="ivDel" style="flex:1;color:var(--bad)">امسح</button></div>`);
+  wireMics($('#sheetBody'));
+  $('#ivBack').onclick = () => ideasSheet();
+  document.querySelectorAll('[data-ivs]').forEach(b => b.onclick = async () => { const r = await qSave('saveIdea', {idea: {id: x.id, st: b.dataset.ivs}}, 'حالة فكرة'); if (!r.ok) { toast(errMsg(r)); return; } x.st = b.dataset.ivs;
+    store.set('ideasN', S.ideas.items.filter(y => ['جديدة', 'بفكر فيها'].includes(y.st)).length); toast(r.queued ? QMSG : 'اتغيرت ✓'); ideaView(x.id); });
+  const ai = async q => { if (S.ivBusy) return; if (x.q) { toast('الفكرة لسه ما اتبعتتش، استنى النت'); return; } if (!navigator.onLine) { toast('الذكاء الاصطناعي محتاج نت'); return; }
+    S.ivBusy = true; try { await ai2(q); } finally { S.ivBusy = false; } };
+  const ai2 = async q => {
+    const b = q ? $('#ivAsk') : $('#ivThink'); busy(b, true); if (!q) b.textContent = '🤖 بيفكر… (ممكن ياخد دقيقة)';
+    const r = await api('thinkIdea', Object.assign({id: x.id}, q ? {q} : {})); if (!$('#ivThink')) return; busy(b, false);
+    if (!r.ok) { toast(r.error === 'noAI' ? 'مفتاح Gemini مش متركّب (setupGemini)' : r.error === 'ai' ? 'الذكاء الاصطناعي ما ردّش، جرّب تاني' : errMsg(r)); if (!q) b.textContent = '🤖 فكّر فيها'; return; }
+    S.ideas.items = S.ideas.items.map(y => y.id === x.id ? r.idea : y); ideaView(x.id); setTimeout(() => { const el = q ? document.querySelector('#ivAi .card:last-child') : $('#ivAi'); if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'}); }, 80); };
+  $('#ivThink').onclick = () => ai('');
+  if ($('#ivAsk')) { $('#ivAsk').onclick = () => { const q = ($('#ivQ').value || '').trim(); if (q) ai(q); }; $('#ivQ').addEventListener('change', () => { const q = ($('#ivQ').value || '').trim(); if (q) ai(q); }); }
+  $('#ivCopy').onclick = () => copyClaude([x]);
+  $('#ivEdit').onclick = () => ideaForm(x);
+  $('#ivDel').onclick = async () => { if (!confirm('تمسح الفكرة دي؟')) return; const r = await qSave('delIdea', {id: x.id}, 'مسح فكرة'); if (!r.ok) { toast(errMsg(r)); return; } S.ideas.items = S.ideas.items.filter(y => y.id !== x.id); toast('اتمسحت'); ideasSheet(); };
+  if (think && navigator.onLine) ai('');
+}
+// نص واحد فيه الأفكار وردود الذكاء الاصطناعي، يتلزق في محادثة Claude
+async function copyClaude(L){
+  const txt = '📒 من «دفتري» في MEC-APP (' + ymd(new Date()) + '):\n\n' + L.map((x, i) => {
+    const a = x.ai; let s = `${i + 1}) ${x.title} — [${x.cat} · ${x.prio} · ${x.st}]\n${x.text || ''}${x.photo ? '\n(فيها صورة: ' + x.photo + ')' : ''}`;
+    if (a) s += `\n🤖 رأي الذكاء الاصطناعي: ${a.summary}\n${(a.ways || []).map(w => '  - ' + w.title + ': ' + w.how).join('\n')}\n  ⭐ الأحسن: ${a.best}\n  📍 فين: ${a.where}${(a.steps || []).length ? '\n  👣 ' + a.steps.join(' ← ') : ''}`;
+    (x.thread || []).forEach(t => { s += `\n  ❓ ${t.q}\n  ↳ ${t.a}`; });
+    return s; }).join('\n\n') + '\n\nاقرا الأفكار دي واقترح إزاي ننفذها في MEC-APP أو بره التطبيق، واستنى موافقتي قبل أي تنفيذ.';
+  try { await navigator.clipboard.writeText(txt); toast('اتنسخ ✓ الزقه في محادثة Claude'); }
+  catch (e) { openSheet(`<h3>📋 انسخ النص ده</h3><textarea class="in" style="min-height:300px" readonly>${esc(txt)}</textarea><p class="muted" style="font-size:12.5px">دوس دوسة طويلة ← تحديد الكل ← نسخ، وبعدين الزقه في محادثة Claude.</p>`); }
 }
 
 /* ---------- رسومات هندسية بسيطة بخط واحد (كحلي وذهبي فاتح) ---------- */
