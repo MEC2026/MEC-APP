@@ -288,7 +288,7 @@ h3 svg.art{margin:0}
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.10.8';
+const APP_VERSION = '0.11.1';
 const APP_NOTES = ['التقرير الأسبوعي بقى «ملخص» و«تقرير كامل» بتابات (البنود، العمالة، الرمل والسن، الأسمنت والحديد، المعدات، الفلوس، الملاحظات) وPDF لكل واحد', 'البنود: جاري، وخلص، والأسبوع الجاي (🗓️ خطة الأسبوع)، والخطة مقابل الفعلي', 'الصنايعية ومساعدينهم لوحدهم وعمال الشركة لوحدهم، والمعدات بالأيام وساعات السهر، والحديد بالطن والأقطار', '«مين استلم؟» لو سجّلت مكان حد، و💡 «دفتري» للمالك بالذكاء الاصطناعي'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
@@ -372,7 +372,7 @@ async function sha(s){ const b = await crypto.subtle.digest('SHA-256', new TextE
 // الحاجات التقيلة (النسخة الاحتياطية والتصدير) بتستنى لحد 3 دقايق، والباقي 25 ثانية
 const SLOW = {backupNow: 180000, exportTable: 180000, bundle: 180000};
 // 0.10.4: كل قراية بتتحفظ على الموبايل، ومن غير نت الشاشة بتفتح بآخر نسخة
-const READS = new Set(['siteLog','weekReport','ideas','me','projects','users','attDay','supplyDay','logs','notes','reports','people','workerAccount','wageHistory','attRequests','custodyLedger','custody','collectDues','supplyPending','items','projectAttendance','appPricing']);
+const READS = new Set(['siteBoard','siteLog','weekReport','ideas','me','projects','users','attDay','supplyDay','logs','notes','reports','people','workerAccount','wageHistory','attRequests','custodyLedger','custody','collectDues','supplyPending','items','projectAttendance','appPricing']);
 function ckey(action, data){ const o = {}, today = ymd(new Date());
   Object.keys(data || {}).sort().forEach(k => { if (['action','session','device','qid','qat'].includes(k)) return; const v = data[k]; if (v === '' || v == null) return; if (k === 'date' && v === today) return; o[k] = v; });
   return action + '|' + JSON.stringify(o); }
@@ -678,7 +678,7 @@ function homeView(){
       ...locked.map(u => `<button class="li" data-team="1"><span class="ico">${ic('shield')}</span><span class="t"><b>حساب ${esc(dn(u))} اتقفل</b><small>محاولات رقم سري غلط. افتحه من الفريق</small></span><span class="pill p-bad">مقفول</span></button>`),
       ...waiting.map(u => `<button class="li" data-team="1"><span class="ico">${ic('users')}</span><span class="t"><b>${esc(dn(u))} لسه ما فعّلش حسابه</b><small>ابعتله لينك جديد لو اللي معاه ضاع</small></span><span class="pill p-warn">مستني</span></button>`)
     ].join('');
-    return news + ideasHome() + supplyCards() + duesCard() + savedHome() + `
+    return news + (typeof nightHome === 'function' ? nightHome() : '') + ideasHome() + supplyCards() + duesCard() + savedHome() + `
     <h2 class="sec">المشاريع <button class="more" data-t2="projects">الكل</button></h2>
     ${S.projects.length ? statCards() : `<div class="card empty">${ic('folder')}<div>مفيش مشاريع لسه</div><button class="btn gold" id="newProj" style="margin-top:12px">${ic('plus')} مشروع جديد</button></div>`}
     ${act ? `<h2 class="sec">${ic('alert')} محتاج تتصرف فيه</h2>${act}` : ''}
@@ -755,6 +755,7 @@ function projectView(){
   <button class="row muted" id="back" style="margin-bottom:10px">${ic('arrowR')} المشاريع</button>
   ${projectCard(p, true, acts)}
   ${lifeCard(p)}
+  ${typeof siteCard === 'function' ? siteCard(p) : ''}
   <h2 class="sec">أقسام المشروع</h2>
   <div class="grid">${SECTIONS.filter(s => !(s.k === 'takeoff' && role() === 'supervisor2') && !(s.k === 'att' && role() === 'contractor')).map(s => `<button class="tile ${s.live?'live':''}" data-sec="${s.k}" data-n="${esc(s.n)}">${badge(s)}<span class="ico">${ic(s.i)}</span>${esc(s.n)}</button>`).join('')}</div>
   ${needLoc ? `<button class="btn ghost" id="hereBtn" style="margin-top:14px">${ic('pin')} أنا في الموقع دلوقتي: سجّل مكان المشروع</button>` : ''}
@@ -792,6 +793,8 @@ function moreView(){
     ${['owner','manager','engineer','supervisor','accountant'].includes(role()) ? `<button class="mi" id="kamBtn">${ic('chart')}كام جالي؟ (توريدات، معدات، عمالة، إنتاجية)</button>` : ''}
     ${isBoss() || ['accountant','engineer'].includes(role()) ? `<button class="mi" id="weekBtn">${ic('doc')}التقرير الأسبوعي</button>` : ''}
     ${isOwner() ? `<button class="mi" id="ideasMore">💡 دفتري (أفكارك وملاحظاتك)</button>` : ''}
+    ${isBoss() ? `<button class="mi" data-site="lib" data-sp="">📖 المكتبة الفنية</button>` : ''}
+    ${isOwner() ? `<button class="mi" data-site="regAll" data-sp="">📋 سجل نماذج الجودة</button>` : ''}
     <button class="mi" id="items">${ic('doc')}بنود الشركة</button>
     ${MORE.map(m => `<button class="mi" data-soon="${esc(m.n)}">${ic(m.i)}${esc(m.n)}<span class="soon">قريبًا</span></button>`).join('')}
   </div>
@@ -1005,7 +1008,8 @@ function settingsSheet(){
     <div class="row" style="margin-top:6px"><button class="btn ghost" id="sTest">اختبار الاتصال</button>${isOwner() ? '<button class="btn pri" id="sSave">حفظ</button>' : ''}</div>
     <div class="card" style="margin-top:14px"><b>البيانات على الموبايل (عشان يشتغل من غير نت)</b>
       <div class="muted" id="sSyncInfo" style="font-size:13px;margin:6px 0 10px">${syncInfo()}</div>
-      <button class="btn gold" id="sSync">⬇️ نزّل كل البيانات دلوقتي</button></div>`);
+      <button class="btn gold" id="sSync">⬇️ نزّل كل البيانات دلوقتي</button></div>${typeof pushCard === 'function' ? pushCard() : ''}`);
+  if (typeof wirePush === 'function') wirePush();
   $('#sSync').onclick = async () => { const b = $('#sSync'), info = $('#sSyncInfo');
     if (!navigator.onLine) { info.textContent = 'مفيش نت دلوقتي. التحميل محتاج نت.'; return; }
     if (syncing) { info.textContent = 'بينزّل دلوقتي في الخلفية… استنى دقيقة وافتح الإعدادات تاني.'; return; }
@@ -1535,9 +1539,11 @@ async function syncAll(force, prog){
     if (['owner','manager','engineer','supervisor','accountant'].includes(R)) base.push({action: 'siteLog'});
     if (isBoss() || R === 'accountant' || R === 'engineer') base.push({action: 'weekReport'});
     if (R === 'owner') base.push({action: 'ideas'});
+    if (['owner','manager','engineer','supervisor','accountant'].includes(R)) base.push({action: 'siteBoard'});
     const r1 = await sendB(base); if (stop || !r1.length) return n;
     if (r1[0] && r1[0].ok) { S.projects = r1[0].items; S.projectsAt = Date.now(); store.set('projects', r1[0].items); }
     { const i = base.findIndex(x => x.action === 'siteLog'), x = r1[i]; if (i >= 0 && x && x.ok) S.siteLog = Object.assign({}, x, {at: Date.now()}); }
+    { const i = base.findIndex(x => x.action === 'siteBoard'), x = r1[i]; if (i >= 0 && x && x.ok) S.board = Object.assign({}, x, {at: Date.now()}); }
     { const i = base.findIndex(x => x.action === 'ideas'), x = r1[i]; if (i >= 0 && x && x.ok) { S.ideas = x; store.set('ideasN', x.items.filter(y => ['جديدة', 'بفكر فيها'].includes(y.st)).length); } }
     T.forEach((t, i) => { const x = r1[3 + i]; if (x && x.ok) S.people[t] = x.items; });
     // كل المشاريع اللي ما خلصتش: يوميات وتوريدات ومعدات النهارده، وحساب كل عامل ومعدة ومورد عليها، وكشوف العهد
@@ -2329,7 +2335,7 @@ async function deliveryForm(code, date, preset){
       <label class="btn ghost" style="margin-top:10px;display:flex;justify-content:center;gap:8px">${ic('camera')} صورة البون (اختياري)${f.bon ? ' ✓' : ''}<input type="file" id="dlBon" accept="image/*" capture="environment" hidden></label>
       <label class="f">ملاحظة</label><div class="row" style="gap:6px"><input class="in" id="dlNote" value="${esc(f.note)}">${micBtn('dlNote')}</div>
       ${canRecvFor() ? recvField('dlRecv', f.recv, findProject(code)) : ''}
-      <div class="err" id="dlErr"></div><div id="dlWarn"></div>
+      ${typeof mirBox === 'function' ? mirBox(f) : ''}<div class="err" id="dlErr"></div><div id="dlWarn"></div>
       <button class="btn gold" id="dlSave" style="margin-top:8px">سجّل التوريدة</button>`);
     if (canRecvFor()) wireRecv('dlRecv', v => { f.recv = v; });
     $('#sheetBody').scrollTop = y;
@@ -2387,6 +2393,7 @@ async function deliveryForm(code, date, preset){
         if (v.count) { if (f.unit === 'نقلة') f.trucks[0].loads = String(v.count); else f.count = String(v.count); }
         if (v.price && canPay()) f.price = String(v.price);
         draw(); toast('فهمت: ' + t + ' — راجع وسجّل'); }, () => { const b = $('#dlVoice'); if (b) b.classList.remove('on'); }); };
+    if (typeof wireMir === 'function') wireMir(f, draw, sync);
     $('#dlSave').onclick = async () => {
       sync(); $('#dlErr').textContent = '';
       if (!f.sup) { $('#dlErr').textContent = ERR.pickSupplier; return; }
@@ -2404,6 +2411,7 @@ async function deliveryForm(code, date, preset){
       busy($('#dlSave'), true);
       const loc = await getLoc();
       const body = {project: code, date, del, loc, at: new Date().toISOString(), recv: f.recv || ''};
+      if (typeof mirSave === 'function') mirSave(f, code, date, supName(f.sup));
       body.qid = body.qid || qid(); const x = navigator.onLine ? await api('saveDelivery', body) : {ok: false, error: 'net'};
       busy($('#dlSave'), false);
       if (!x.ok && x.error === 'net') {   // من غير نت: تتحفظ على الموبايل وتتبعت لوحدها
@@ -2799,6 +2807,9 @@ function wireShell(){
   if (isOwner() && !S.ideasTried) { S.ideasTried = true; ideasLoad(false).then(() => { if (S.tab === 'home' && !S.project && !$('#sheet').classList.contains('on') && !$('#wkOv')) render(); }); }
   if (id('lifeBtn')) id('lifeBtn').onclick = () => kamSheet({proj: S.project, per: 'all', tab: 'del'});
   wireSaved();
+  if (typeof wireSite === 'function') wireSite(v);
+  if (typeof pushRefresh === 'function') pushRefresh();
+  if (location.hash === '#night' && typeof pushOpen === 'function') { history.replaceState(null, '', location.pathname); setTimeout(() => pushOpen({ref: 'night'}), 600); }
   if ((S.project || store.get('savedF', []).length) && !S.siteLog && !S.siteTried && ['owner','manager','engineer','supervisor','accountant'].includes(role())) { S.siteTried = true;
     siteData(false).then(d => { if (d && !$('#sheet').classList.contains('on') && !$('#wkOv')) render(); }); }
   wireSupplyCards(v);
@@ -2815,8 +2826,8 @@ function wireShell(){
 /* ================= 0.10.7 / 0.10.8: «📊 كام جالي؟» والإنجاز والإنتاجية والتقرير الأسبوعي =================
    كل الحساب بيتعمل على الموبايل من «سجل الموقع» (siteLog) اللي بينزل مع «نزّل كل البيانات»، فأي فلتر شغال من غير نت.
    الأسبوع من السبت. */
-const KT = {del: 'الرمل والسن', core: 'الأسمنت والحديد', eq: 'المعدات', att: 'العمالة', prod: 'الإنتاجية'};
-const KC = {del: '#E08A2E', core: '#8A6D3B', eq: '#C99A00', att: '#2E9E6B', prod: '#7B61C9', money: '#3B7DD8'};
+const KT = {del: 'الرمل والسن', core: 'الأسمنت والحديد', eq: 'المعدات', att: 'العمالة', prod: 'الإنتاجية', track: '📈 المتابعة'};
+const KC = {del: '#E08A2E', core: '#8A6D3B', eq: '#C99A00', att: '#2E9E6B', prod: '#7B61C9', money: '#3B7DD8', track: '#3B7DD8'};
 // نوع الخامة زي التقرير: رمل وسن بالنقلة، والأسمنت والحديد والطوب والباقي
 const mKind = x => { const n = normN(x.mat); return /حديد/.test(n) ? 'steel' : /اسمنت/.test(n) ? 'cement' : /طوب/.test(n) ? 'brick' : x.unit === 'نقلة' ? 'agg' : 'other'; };
 const mDiam = m => { const z = digits(String(m || '')).match(/(\d{1,2})/); const v = z ? Number(z[1]) : 0; return v >= 6 && v <= 40 ? v : 0; };
@@ -2939,6 +2950,7 @@ function kamHtml(D, F){
   if (F.tab === 'eq') body = kamEq(cur, prev, F, seesP);
   if (F.tab === 'att') body = kamAtt(cur, prev, F, seesM);
   if (F.tab === 'prod') body = kamProd(D, cur, prev, F, seesM, R);
+  if (F.tab === 'track') body = typeof trackHtml === 'function' ? trackHtml(D, F) : '';
   const tools = `<div class="row" style="gap:8px;margin-top:14px;flex-wrap:wrap">
       <button class="btn ghost" id="kmWa" style="flex:1;min-width:140px">${ic('send')} ابعت واتساب</button>
       ${isBoss() || role() === 'accountant' || role() === 'engineer' ? `<button class="btn ghost" id="kmXl" style="flex:1;min-width:140px">${ic('download')} إكسيل + PDF</button>` : ''}
@@ -3433,6 +3445,1951 @@ const ART = {
   plan: '<rect x="8" y="10" width="48" height="44" rx="2"/><path d="M8 30h22v24M30 10v12M30 38h26"/><path d="M36 38v-4a6 6 0 0 1 6-6" class="g"/><path d="M14 16h8M40 16h10" class="g"/>'
 };
 const art = (k, s = 56) => ART[k] ? `<svg class="art" viewBox="0 0 64 64" width="${s}" height="${s}" aria-hidden="true">${ART[k]}</svg>` : '';
+
+/* QR (MIT, Kazuhiko Arase — من qrcode-terminal) للنماذج الورقية */
+const qrSvg = (function(){ const M = {}; const req = n => M[n.replace("./", "")];
+(function(module){ var exports = module.exports; module.exports = {
+    MODE_NUMBER :       1 << 0,
+    MODE_ALPHA_NUM :    1 << 1,
+    MODE_8BIT_BYTE :    1 << 2,
+    MODE_KANJI :        1 << 3
+};
+
+ M["QRMode"] = module.exports; })({exports:{}});
+(function(module){ var exports = module.exports; module.exports = {
+	L : 1,
+	M : 0,
+	Q : 3,
+	H : 2
+};
+
+
+ M["QRErrorCorrectLevel"] = module.exports; })({exports:{}});
+(function(module){ var exports = module.exports; module.exports = {
+	PATTERN000 : 0,
+	PATTERN001 : 1,
+	PATTERN010 : 2,
+	PATTERN011 : 3,
+	PATTERN100 : 4,
+	PATTERN101 : 5,
+	PATTERN110 : 6,
+	PATTERN111 : 7
+};
+
+ M["QRMaskPattern"] = module.exports; })({exports:{}});
+(function(module){ var exports = module.exports; var QRMath = {
+
+	glog : function(n) {
+	
+		if (n < 1) {
+			throw new Error("glog(" + n + ")");
+		}
+		
+		return QRMath.LOG_TABLE[n];
+	},
+	
+	gexp : function(n) {
+	
+		while (n < 0) {
+			n += 255;
+		}
+	
+		while (n >= 256) {
+			n -= 255;
+		}
+	
+		return QRMath.EXP_TABLE[n];
+	},
+	
+	EXP_TABLE : new Array(256),
+	
+	LOG_TABLE : new Array(256)
+
+};
+	
+for (var i = 0; i < 8; i++) {
+	QRMath.EXP_TABLE[i] = 1 << i;
+}
+for (var i = 8; i < 256; i++) {
+	QRMath.EXP_TABLE[i] = QRMath.EXP_TABLE[i - 4]
+		^ QRMath.EXP_TABLE[i - 5]
+		^ QRMath.EXP_TABLE[i - 6]
+		^ QRMath.EXP_TABLE[i - 8];
+}
+for (var i = 0; i < 255; i++) {
+	QRMath.LOG_TABLE[QRMath.EXP_TABLE[i] ] = i;
+}
+
+module.exports = QRMath;
+
+ M["QRMath"] = module.exports; })({exports:{}});
+(function(module){ var exports = module.exports; var QRMath = req('./QRMath');
+
+function QRPolynomial(num, shift) {
+	if (num.length === undefined) {
+		throw new Error(num.length + "/" + shift);
+	}
+
+	var offset = 0;
+
+	while (offset < num.length && num[offset] === 0) {
+		offset++;
+	}
+
+	this.num = new Array(num.length - offset + shift);
+	for (var i = 0; i < num.length - offset; i++) {
+		this.num[i] = num[i + offset];
+	}
+}
+
+QRPolynomial.prototype = {
+
+	get : function(index) {
+		return this.num[index];
+	},
+	
+	getLength : function() {
+		return this.num.length;
+	},
+	
+	multiply : function(e) {
+	
+		var num = new Array(this.getLength() + e.getLength() - 1);
+	
+		for (var i = 0; i < this.getLength(); i++) {
+			for (var j = 0; j < e.getLength(); j++) {
+				num[i + j] ^= QRMath.gexp(QRMath.glog(this.get(i) ) + QRMath.glog(e.get(j) ) );
+			}
+		}
+	
+		return new QRPolynomial(num, 0);
+	},
+	
+	mod : function(e) {
+	
+		if (this.getLength() - e.getLength() < 0) {
+			return this;
+		}
+	
+		var ratio = QRMath.glog(this.get(0) ) - QRMath.glog(e.get(0) );
+	
+		var num = new Array(this.getLength() );
+		
+		for (var i = 0; i < this.getLength(); i++) {
+			num[i] = this.get(i);
+		}
+		
+		for (var x = 0; x < e.getLength(); x++) {
+			num[x] ^= QRMath.gexp(QRMath.glog(e.get(x) ) + ratio);
+		}
+	
+		
+		return new QRPolynomial(num, 0).mod(e);
+	}
+};
+
+module.exports = QRPolynomial;
+
+ M["QRPolynomial"] = module.exports; })({exports:{}});
+(function(module){ var exports = module.exports; var QRMode = req('./QRMode');
+
+function QR8bitByte(data) {
+	this.mode = QRMode.MODE_8BIT_BYTE;
+	this.data = data;
+}
+
+QR8bitByte.prototype = {
+
+	getLength : function() {
+		return this.data.length;
+	},
+	
+	write : function(buffer) {
+		for (var i = 0; i < this.data.length; i++) {
+			
+			buffer.put(this.data.charCodeAt(i), 8);
+		}
+	}
+};
+
+module.exports = QR8bitByte;
+
+ M["QR8bitByte"] = module.exports; })({exports:{}});
+(function(module){ var exports = module.exports; function QRBitBuffer() {
+	this.buffer = [];
+	this.length = 0;
+}
+
+QRBitBuffer.prototype = {
+
+	get : function(index) {
+		var bufIndex = Math.floor(index / 8);
+		return ( (this.buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+	},
+	
+	put : function(num, length) {
+		for (var i = 0; i < length; i++) {
+			this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+		}
+	},
+	
+	getLengthInBits : function() {
+		return this.length;
+	},
+	
+	putBit : function(bit) {
+	
+		var bufIndex = Math.floor(this.length / 8);
+		if (this.buffer.length <= bufIndex) {
+			this.buffer.push(0);
+		}
+	
+		if (bit) {
+			this.buffer[bufIndex] |= (0x80 >>> (this.length % 8) );
+		}
+	
+		this.length++;
+	}
+};
+
+module.exports = QRBitBuffer;
+
+ M["QRBitBuffer"] = module.exports; })({exports:{}});
+(function(module){ var exports = module.exports; var QRErrorCorrectLevel = req('./QRErrorCorrectLevel');
+
+function QRRSBlock(totalCount, dataCount) {
+	this.totalCount = totalCount;
+	this.dataCount  = dataCount;
+}
+
+QRRSBlock.RS_BLOCK_TABLE = [
+
+	
+	
+	
+	
+
+	
+	[1, 26, 19],
+	[1, 26, 16],
+	[1, 26, 13],
+	[1, 26, 9],
+	
+	
+	[1, 44, 34],
+	[1, 44, 28],
+	[1, 44, 22],
+	[1, 44, 16],
+
+	
+	[1, 70, 55],
+	[1, 70, 44],
+	[2, 35, 17],
+	[2, 35, 13],
+
+	
+	[1, 100, 80],
+	[2, 50, 32],
+	[2, 50, 24],
+	[4, 25, 9],
+	
+	
+	[1, 134, 108],
+	[2, 67, 43],
+	[2, 33, 15, 2, 34, 16],
+	[2, 33, 11, 2, 34, 12],
+	
+	
+	[2, 86, 68],
+	[4, 43, 27],
+	[4, 43, 19],
+	[4, 43, 15],
+	
+	
+	[2, 98, 78],
+	[4, 49, 31],
+	[2, 32, 14, 4, 33, 15],
+	[4, 39, 13, 1, 40, 14],
+	
+	
+	[2, 121, 97],
+	[2, 60, 38, 2, 61, 39],
+	[4, 40, 18, 2, 41, 19],
+	[4, 40, 14, 2, 41, 15],
+	
+	
+	[2, 146, 116],
+	[3, 58, 36, 2, 59, 37],
+	[4, 36, 16, 4, 37, 17],
+	[4, 36, 12, 4, 37, 13],
+	
+	
+	[2, 86, 68, 2, 87, 69],
+	[4, 69, 43, 1, 70, 44],
+	[6, 43, 19, 2, 44, 20],
+	[6, 43, 15, 2, 44, 16],
+
+	
+	[4, 101, 81],
+	[1, 80, 50, 4, 81, 51],
+	[4, 50, 22, 4, 51, 23],
+	[3, 36, 12, 8, 37, 13],
+
+	
+	[2, 116, 92, 2, 117, 93],
+	[6, 58, 36, 2, 59, 37],
+	[4, 46, 20, 6, 47, 21],
+	[7, 42, 14, 4, 43, 15],
+
+	
+	[4, 133, 107],
+	[8, 59, 37, 1, 60, 38],
+	[8, 44, 20, 4, 45, 21],
+	[12, 33, 11, 4, 34, 12],
+
+	
+	[3, 145, 115, 1, 146, 116],
+	[4, 64, 40, 5, 65, 41],
+	[11, 36, 16, 5, 37, 17],
+	[11, 36, 12, 5, 37, 13],
+
+	
+	[5, 109, 87, 1, 110, 88],
+	[5, 65, 41, 5, 66, 42],
+	[5, 54, 24, 7, 55, 25],
+	[11, 36, 12],
+
+	
+	[5, 122, 98, 1, 123, 99],
+	[7, 73, 45, 3, 74, 46],
+	[15, 43, 19, 2, 44, 20],
+	[3, 45, 15, 13, 46, 16],
+
+	
+	[1, 135, 107, 5, 136, 108],
+	[10, 74, 46, 1, 75, 47],
+	[1, 50, 22, 15, 51, 23],
+	[2, 42, 14, 17, 43, 15],
+
+	
+	[5, 150, 120, 1, 151, 121],
+	[9, 69, 43, 4, 70, 44],
+	[17, 50, 22, 1, 51, 23],
+	[2, 42, 14, 19, 43, 15],
+
+	
+	[3, 141, 113, 4, 142, 114],
+	[3, 70, 44, 11, 71, 45],
+	[17, 47, 21, 4, 48, 22],
+	[9, 39, 13, 16, 40, 14],
+
+	
+	[3, 135, 107, 5, 136, 108],
+	[3, 67, 41, 13, 68, 42],
+	[15, 54, 24, 5, 55, 25],
+	[15, 43, 15, 10, 44, 16],
+
+	
+	[4, 144, 116, 4, 145, 117],
+	[17, 68, 42],
+	[17, 50, 22, 6, 51, 23],
+	[19, 46, 16, 6, 47, 17],
+
+	
+	[2, 139, 111, 7, 140, 112],
+	[17, 74, 46],
+	[7, 54, 24, 16, 55, 25],
+	[34, 37, 13],
+
+	
+	[4, 151, 121, 5, 152, 122],
+	[4, 75, 47, 14, 76, 48],
+	[11, 54, 24, 14, 55, 25],
+	[16, 45, 15, 14, 46, 16],
+
+	
+	[6, 147, 117, 4, 148, 118],
+	[6, 73, 45, 14, 74, 46],
+	[11, 54, 24, 16, 55, 25],
+	[30, 46, 16, 2, 47, 17],
+
+	
+	[8, 132, 106, 4, 133, 107],
+	[8, 75, 47, 13, 76, 48],
+	[7, 54, 24, 22, 55, 25],
+	[22, 45, 15, 13, 46, 16],
+
+	
+	[10, 142, 114, 2, 143, 115],
+	[19, 74, 46, 4, 75, 47],
+	[28, 50, 22, 6, 51, 23],
+	[33, 46, 16, 4, 47, 17],
+
+	
+	[8, 152, 122, 4, 153, 123],
+	[22, 73, 45, 3, 74, 46],
+	[8, 53, 23, 26, 54, 24],
+	[12, 45, 15, 28, 46, 16],
+
+	
+	[3, 147, 117, 10, 148, 118],
+	[3, 73, 45, 23, 74, 46],
+	[4, 54, 24, 31, 55, 25],
+	[11, 45, 15, 31, 46, 16],
+
+	
+	[7, 146, 116, 7, 147, 117],
+	[21, 73, 45, 7, 74, 46],
+	[1, 53, 23, 37, 54, 24],
+	[19, 45, 15, 26, 46, 16],
+
+	
+	[5, 145, 115, 10, 146, 116],
+	[19, 75, 47, 10, 76, 48],
+	[15, 54, 24, 25, 55, 25],
+	[23, 45, 15, 25, 46, 16],
+
+	
+	[13, 145, 115, 3, 146, 116],
+	[2, 74, 46, 29, 75, 47],
+	[42, 54, 24, 1, 55, 25],
+	[23, 45, 15, 28, 46, 16],
+
+	
+	[17, 145, 115],
+	[10, 74, 46, 23, 75, 47],
+	[10, 54, 24, 35, 55, 25],
+	[19, 45, 15, 35, 46, 16],
+
+	
+	[17, 145, 115, 1, 146, 116],
+	[14, 74, 46, 21, 75, 47],
+	[29, 54, 24, 19, 55, 25],
+	[11, 45, 15, 46, 46, 16],
+
+	
+	[13, 145, 115, 6, 146, 116],
+	[14, 74, 46, 23, 75, 47],
+	[44, 54, 24, 7, 55, 25],
+	[59, 46, 16, 1, 47, 17],
+
+	
+	[12, 151, 121, 7, 152, 122],
+	[12, 75, 47, 26, 76, 48],
+	[39, 54, 24, 14, 55, 25],
+	[22, 45, 15, 41, 46, 16],
+
+	
+	[6, 151, 121, 14, 152, 122],
+	[6, 75, 47, 34, 76, 48],
+	[46, 54, 24, 10, 55, 25],
+	[2, 45, 15, 64, 46, 16],
+
+	
+	[17, 152, 122, 4, 153, 123],
+	[29, 74, 46, 14, 75, 47],
+	[49, 54, 24, 10, 55, 25],
+	[24, 45, 15, 46, 46, 16],
+
+	
+	[4, 152, 122, 18, 153, 123],
+	[13, 74, 46, 32, 75, 47],
+	[48, 54, 24, 14, 55, 25],
+	[42, 45, 15, 32, 46, 16],
+
+	
+	[20, 147, 117, 4, 148, 118],
+	[40, 75, 47, 7, 76, 48],
+	[43, 54, 24, 22, 55, 25],
+	[10, 45, 15, 67, 46, 16],
+
+	
+	[19, 148, 118, 6, 149, 119],
+	[18, 75, 47, 31, 76, 48],
+	[34, 54, 24, 34, 55, 25],
+	[20, 45, 15, 61, 46, 16]
+];
+
+QRRSBlock.getRSBlocks = function(typeNumber, errorCorrectLevel) {
+	
+	var rsBlock = QRRSBlock.getRsBlockTable(typeNumber, errorCorrectLevel);
+	
+	if (rsBlock === undefined) {
+		throw new Error("bad rs block @ typeNumber:" + typeNumber + "/errorCorrectLevel:" + errorCorrectLevel);
+	}
+
+	var length = rsBlock.length / 3;
+	
+	var list = [];
+	
+	for (var i = 0; i < length; i++) {
+
+		var count = rsBlock[i * 3 + 0];
+		var totalCount = rsBlock[i * 3 + 1];
+		var dataCount  = rsBlock[i * 3 + 2];
+
+		for (var j = 0; j < count; j++) {
+			list.push(new QRRSBlock(totalCount, dataCount) );	
+		}
+	}
+	
+	return list;
+};
+
+QRRSBlock.getRsBlockTable = function(typeNumber, errorCorrectLevel) {
+
+	switch(errorCorrectLevel) {
+	case QRErrorCorrectLevel.L :
+		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+	case QRErrorCorrectLevel.M :
+		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+	case QRErrorCorrectLevel.Q :
+		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+	case QRErrorCorrectLevel.H :
+		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+	default :
+		return undefined;
+	}
+};
+
+module.exports = QRRSBlock;
+
+ M["QRRSBlock"] = module.exports; })({exports:{}});
+(function(module){ var exports = module.exports; var QRMode = req('./QRMode');
+var QRPolynomial = req('./QRPolynomial');
+var QRMath = req('./QRMath');
+var QRMaskPattern = req('./QRMaskPattern');
+
+var QRUtil = {
+
+    PATTERN_POSITION_TABLE : [
+        [],
+        [6, 18],
+        [6, 22],
+        [6, 26],
+        [6, 30],
+        [6, 34],
+        [6, 22, 38],
+        [6, 24, 42],
+        [6, 26, 46],
+        [6, 28, 50],
+        [6, 30, 54],        
+        [6, 32, 58],
+        [6, 34, 62],
+        [6, 26, 46, 66],
+        [6, 26, 48, 70],
+        [6, 26, 50, 74],
+        [6, 30, 54, 78],
+        [6, 30, 56, 82],
+        [6, 30, 58, 86],
+        [6, 34, 62, 90],
+        [6, 28, 50, 72, 94],
+        [6, 26, 50, 74, 98],
+        [6, 30, 54, 78, 102],
+        [6, 28, 54, 80, 106],
+        [6, 32, 58, 84, 110],
+        [6, 30, 58, 86, 114],
+        [6, 34, 62, 90, 118],
+        [6, 26, 50, 74, 98, 122],
+        [6, 30, 54, 78, 102, 126],
+        [6, 26, 52, 78, 104, 130],
+        [6, 30, 56, 82, 108, 134],
+        [6, 34, 60, 86, 112, 138],
+        [6, 30, 58, 86, 114, 142],
+        [6, 34, 62, 90, 118, 146],
+        [6, 30, 54, 78, 102, 126, 150],
+        [6, 24, 50, 76, 102, 128, 154],
+        [6, 28, 54, 80, 106, 132, 158],
+        [6, 32, 58, 84, 110, 136, 162],
+        [6, 26, 54, 82, 110, 138, 166],
+        [6, 30, 58, 86, 114, 142, 170]
+    ],
+
+    G15 : (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0),
+    G18 : (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0),
+    G15_MASK : (1 << 14) | (1 << 12) | (1 << 10)    | (1 << 4) | (1 << 1),
+
+    getBCHTypeInfo : function(data) {
+        var d = data << 10;
+        while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15) >= 0) {
+            d ^= (QRUtil.G15 << (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15) ) );    
+        }
+        return ( (data << 10) | d) ^ QRUtil.G15_MASK;
+    },
+
+    getBCHTypeNumber : function(data) {
+        var d = data << 12;
+        while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G18) >= 0) {
+            d ^= (QRUtil.G18 << (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G18) ) );    
+        }
+        return (data << 12) | d;
+    },
+
+    getBCHDigit : function(data) {
+
+        var digit = 0;
+
+        while (data !== 0) {
+            digit++;
+            data >>>= 1;
+        }
+
+        return digit;
+    },
+
+    getPatternPosition : function(typeNumber) {
+        return QRUtil.PATTERN_POSITION_TABLE[typeNumber - 1];
+    },
+
+    getMask : function(maskPattern, i, j) {
+        
+        switch (maskPattern) {
+            
+        case QRMaskPattern.PATTERN000 : return (i + j) % 2 === 0;
+        case QRMaskPattern.PATTERN001 : return i % 2 === 0;
+        case QRMaskPattern.PATTERN010 : return j % 3 === 0;
+        case QRMaskPattern.PATTERN011 : return (i + j) % 3 === 0;
+        case QRMaskPattern.PATTERN100 : return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 === 0;
+        case QRMaskPattern.PATTERN101 : return (i * j) % 2 + (i * j) % 3 === 0;
+        case QRMaskPattern.PATTERN110 : return ( (i * j) % 2 + (i * j) % 3) % 2 === 0;
+        case QRMaskPattern.PATTERN111 : return ( (i * j) % 3 + (i + j) % 2) % 2 === 0;
+
+        default :
+            throw new Error("bad maskPattern:" + maskPattern);
+        }
+    },
+
+    getErrorCorrectPolynomial : function(errorCorrectLength) {
+
+        var a = new QRPolynomial([1], 0);
+
+        for (var i = 0; i < errorCorrectLength; i++) {
+            a = a.multiply(new QRPolynomial([1, QRMath.gexp(i)], 0) );
+        }
+
+        return a;
+    },
+
+    getLengthInBits : function(mode, type) {
+
+        if (1 <= type && type < 10) {
+
+            
+
+            switch(mode) {
+            case QRMode.MODE_NUMBER     : return 10;
+            case QRMode.MODE_ALPHA_NUM  : return 9;
+            case QRMode.MODE_8BIT_BYTE  : return 8;
+            case QRMode.MODE_KANJI      : return 8;
+            default :
+                throw new Error("mode:" + mode);
+            }
+
+        } else if (type < 27) {
+
+            
+
+            switch(mode) {
+            case QRMode.MODE_NUMBER     : return 12;
+            case QRMode.MODE_ALPHA_NUM  : return 11;
+            case QRMode.MODE_8BIT_BYTE  : return 16;
+            case QRMode.MODE_KANJI      : return 10;
+            default :
+                throw new Error("mode:" + mode);
+            }
+
+        } else if (type < 41) {
+
+            
+
+            switch(mode) {
+            case QRMode.MODE_NUMBER     : return 14;
+            case QRMode.MODE_ALPHA_NUM  : return 13;
+            case QRMode.MODE_8BIT_BYTE  : return 16;
+            case QRMode.MODE_KANJI      : return 12;
+            default :
+                throw new Error("mode:" + mode);
+            }
+
+        } else {
+            throw new Error("type:" + type);
+        }
+    },
+
+    getLostPoint : function(qrCode) {
+        
+        var moduleCount = qrCode.getModuleCount();
+        var lostPoint = 0;
+        var row = 0; 
+        var col = 0;
+
+        
+        
+        
+        for (row = 0; row < moduleCount; row++) {
+
+            for (col = 0; col < moduleCount; col++) {
+
+                var sameCount = 0;
+                var dark = qrCode.isDark(row, col);
+
+                for (var r = -1; r <= 1; r++) {
+
+                    if (row + r < 0 || moduleCount <= row + r) {
+                        continue;
+                    }
+
+                    for (var c = -1; c <= 1; c++) {
+
+                        if (col + c < 0 || moduleCount <= col + c) {
+                            continue;
+                        }
+
+                        if (r === 0 && c === 0) {
+                            continue;
+                        }
+
+                        if (dark === qrCode.isDark(row + r, col + c) ) {
+                            sameCount++;
+                        }
+                    }
+                }
+
+                if (sameCount > 5) {
+                    lostPoint += (3 + sameCount - 5);
+                }
+            }
+        }
+
+        
+
+        for (row = 0; row < moduleCount - 1; row++) {
+            for (col = 0; col < moduleCount - 1; col++) {
+                var count = 0;
+                if (qrCode.isDark(row,     col    ) ) count++;
+                if (qrCode.isDark(row + 1, col    ) ) count++;
+                if (qrCode.isDark(row,     col + 1) ) count++;
+                if (qrCode.isDark(row + 1, col + 1) ) count++;
+                if (count === 0 || count === 4) {
+                    lostPoint += 3;
+                }
+            }
+        }
+
+        
+
+        for (row = 0; row < moduleCount; row++) {
+            for (col = 0; col < moduleCount - 6; col++) {
+                if (qrCode.isDark(row, col) && 
+                        !qrCode.isDark(row, col + 1) && 
+                         qrCode.isDark(row, col + 2) && 
+                         qrCode.isDark(row, col + 3) && 
+                         qrCode.isDark(row, col + 4) && 
+                        !qrCode.isDark(row, col + 5) && 
+                         qrCode.isDark(row, col + 6) ) {
+                    lostPoint += 40;
+                }
+            }
+        }
+
+        for (col = 0; col < moduleCount; col++) {
+            for (row = 0; row < moduleCount - 6; row++) {
+                if (qrCode.isDark(row, col) &&
+                        !qrCode.isDark(row + 1, col) &&
+                         qrCode.isDark(row + 2, col) &&
+                         qrCode.isDark(row + 3, col) &&
+                         qrCode.isDark(row + 4, col) &&
+                        !qrCode.isDark(row + 5, col) &&
+                         qrCode.isDark(row + 6, col) ) {
+                    lostPoint += 40;
+                }
+            }
+        }
+
+        
+        
+        var darkCount = 0;
+
+        for (col = 0; col < moduleCount; col++) {
+            for (row = 0; row < moduleCount; row++) {
+                if (qrCode.isDark(row, col) ) {
+                    darkCount++;
+                }
+            }
+        }
+        
+        var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+        lostPoint += ratio * 10;
+
+        return lostPoint;       
+    }
+
+};
+
+module.exports = QRUtil;
+
+ M["QRUtil"] = module.exports; })({exports:{}});
+(function(module){ var exports = module.exports; 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var QR8bitByte = req('./QR8bitByte');
+var QRUtil = req('./QRUtil');
+var QRPolynomial = req('./QRPolynomial');
+var QRRSBlock = req('./QRRSBlock');
+var QRBitBuffer = req('./QRBitBuffer');
+
+function QRCode(typeNumber, errorCorrectLevel) {
+	this.typeNumber = typeNumber;
+	this.errorCorrectLevel = errorCorrectLevel;
+	this.modules = null;
+	this.moduleCount = 0;
+	this.dataCache = null;
+	this.dataList = [];
+}
+
+QRCode.prototype = {
+	
+	addData : function(data) {
+		var newData = new QR8bitByte(data);
+		this.dataList.push(newData);
+		this.dataCache = null;
+	},
+	
+	isDark : function(row, col) {
+		if (row < 0 || this.moduleCount <= row || col < 0 || this.moduleCount <= col) {
+			throw new Error(row + "," + col);
+		}
+		return this.modules[row][col];
+	},
+
+	getModuleCount : function() {
+		return this.moduleCount;
+	},
+	
+	make : function() {
+		
+		if (this.typeNumber < 1 ){
+			var typeNumber = 1;
+			for (typeNumber = 1; typeNumber < 40; typeNumber++) {
+				var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, this.errorCorrectLevel);
+
+				var buffer = new QRBitBuffer();
+				var totalDataCount = 0;
+				for (var i = 0; i < rsBlocks.length; i++) {
+					totalDataCount += rsBlocks[i].dataCount;
+				}
+
+				for (var x = 0; x < this.dataList.length; x++) {
+					var data = this.dataList[x];
+					buffer.put(data.mode, 4);
+					buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber) );
+					data.write(buffer);
+				}
+				if (buffer.getLengthInBits() <= totalDataCount * 8)
+					break;
+			}
+			this.typeNumber = typeNumber;
+		}
+		this.makeImpl(false, this.getBestMaskPattern() );
+	},
+	
+	makeImpl : function(test, maskPattern) {
+		
+		this.moduleCount = this.typeNumber * 4 + 17;
+		this.modules = new Array(this.moduleCount);
+		
+		for (var row = 0; row < this.moduleCount; row++) {
+			
+			this.modules[row] = new Array(this.moduleCount);
+			
+			for (var col = 0; col < this.moduleCount; col++) {
+				this.modules[row][col] = null;
+			}
+		}
+	
+		this.setupPositionProbePattern(0, 0);
+		this.setupPositionProbePattern(this.moduleCount - 7, 0);
+		this.setupPositionProbePattern(0, this.moduleCount - 7);
+		this.setupPositionAdjustPattern();
+		this.setupTimingPattern();
+		this.setupTypeInfo(test, maskPattern);
+		
+		if (this.typeNumber >= 7) {
+			this.setupTypeNumber(test);
+		}
+	
+		if (this.dataCache === null) {
+			this.dataCache = QRCode.createData(this.typeNumber, this.errorCorrectLevel, this.dataList);
+		}
+	
+		this.mapData(this.dataCache, maskPattern);
+	},
+
+	setupPositionProbePattern : function(row, col)  {
+		
+		for (var r = -1; r <= 7; r++) {
+			
+			if (row + r <= -1 || this.moduleCount <= row + r) continue;
+			
+			for (var c = -1; c <= 7; c++) {
+				
+				if (col + c <= -1 || this.moduleCount <= col + c) continue;
+				
+				if ( (0 <= r && r <= 6 && (c === 0 || c === 6) ) || 
+                     (0 <= c && c <= 6 && (r === 0 || r === 6) ) || 
+                     (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+					this.modules[row + r][col + c] = true;
+				} else {
+					this.modules[row + r][col + c] = false;
+				}
+			}		
+		}		
+	},
+	
+	getBestMaskPattern : function() {
+	
+		var minLostPoint = 0;
+		var pattern = 0;
+	
+		for (var i = 0; i < 8; i++) {
+			
+			this.makeImpl(true, i);
+	
+			var lostPoint = QRUtil.getLostPoint(this);
+	
+			if (i === 0 || minLostPoint >  lostPoint) {
+				minLostPoint = lostPoint;
+				pattern = i;
+			}
+		}
+	
+		return pattern;
+	},
+	
+	createMovieClip : function(target_mc, instance_name, depth) {
+	
+		var qr_mc = target_mc.createEmptyMovieClip(instance_name, depth);
+		var cs = 1;
+	
+		this.make();
+
+		for (var row = 0; row < this.modules.length; row++) {
+			
+			var y = row * cs;
+			
+			for (var col = 0; col < this.modules[row].length; col++) {
+	
+				var x = col * cs;
+				var dark = this.modules[row][col];
+			
+				if (dark) {
+					qr_mc.beginFill(0, 100);
+					qr_mc.moveTo(x, y);
+					qr_mc.lineTo(x + cs, y);
+					qr_mc.lineTo(x + cs, y + cs);
+					qr_mc.lineTo(x, y + cs);
+					qr_mc.endFill();
+				}
+			}
+		}
+		
+		return qr_mc;
+	},
+
+	setupTimingPattern : function() {
+		
+		for (var r = 8; r < this.moduleCount - 8; r++) {
+			if (this.modules[r][6] !== null) {
+				continue;
+			}
+			this.modules[r][6] = (r % 2 === 0);
+		}
+	
+		for (var c = 8; c < this.moduleCount - 8; c++) {
+			if (this.modules[6][c] !== null) {
+				continue;
+			}
+			this.modules[6][c] = (c % 2 === 0);
+		}
+	},
+	
+	setupPositionAdjustPattern : function() {
+	
+		var pos = QRUtil.getPatternPosition(this.typeNumber);
+		
+		for (var i = 0; i < pos.length; i++) {
+		
+			for (var j = 0; j < pos.length; j++) {
+			
+				var row = pos[i];
+				var col = pos[j];
+				
+				if (this.modules[row][col] !== null) {
+					continue;
+				}
+				
+				for (var r = -2; r <= 2; r++) {
+				
+					for (var c = -2; c <= 2; c++) {
+					
+						if (Math.abs(r) === 2 || 
+                            Math.abs(c) === 2 ||
+                            (r === 0 && c === 0) ) {
+							this.modules[row + r][col + c] = true;
+						} else {
+							this.modules[row + r][col + c] = false;
+						}
+					}
+				}
+			}
+		}
+	},
+	
+	setupTypeNumber : function(test) {
+	
+		var bits = QRUtil.getBCHTypeNumber(this.typeNumber);
+        var mod;
+	
+		for (var i = 0; i < 18; i++) {
+			mod = (!test && ( (bits >> i) & 1) === 1);
+			this.modules[Math.floor(i / 3)][i % 3 + this.moduleCount - 8 - 3] = mod;
+		}
+	
+		for (var x = 0; x < 18; x++) {
+			mod = (!test && ( (bits >> x) & 1) === 1);
+			this.modules[x % 3 + this.moduleCount - 8 - 3][Math.floor(x / 3)] = mod;
+		}
+	},
+	
+	setupTypeInfo : function(test, maskPattern) {
+	
+		var data = (this.errorCorrectLevel << 3) | maskPattern;
+		var bits = QRUtil.getBCHTypeInfo(data);
+        var mod;
+	
+		
+		for (var v = 0; v < 15; v++) {
+	
+			mod = (!test && ( (bits >> v) & 1) === 1);
+	
+			if (v < 6) {
+				this.modules[v][8] = mod;
+			} else if (v < 8) {
+				this.modules[v + 1][8] = mod;
+			} else {
+				this.modules[this.moduleCount - 15 + v][8] = mod;
+			}
+		}
+	
+		
+		for (var h = 0; h < 15; h++) {
+	
+			mod = (!test && ( (bits >> h) & 1) === 1);
+			
+			if (h < 8) {
+				this.modules[8][this.moduleCount - h - 1] = mod;
+			} else if (h < 9) {
+				this.modules[8][15 - h - 1 + 1] = mod;
+			} else {
+				this.modules[8][15 - h - 1] = mod;
+			}
+		}
+	
+		
+		this.modules[this.moduleCount - 8][8] = (!test);
+	
+	},
+	
+	mapData : function(data, maskPattern) {
+		
+		var inc = -1;
+		var row = this.moduleCount - 1;
+		var bitIndex = 7;
+		var byteIndex = 0;
+		
+		for (var col = this.moduleCount - 1; col > 0; col -= 2) {
+	
+			if (col === 6) col--;
+	
+			while (true) {
+	
+				for (var c = 0; c < 2; c++) {
+					
+					if (this.modules[row][col - c] === null) {
+						
+						var dark = false;
+	
+						if (byteIndex < data.length) {
+							dark = ( ( (data[byteIndex] >>> bitIndex) & 1) === 1);
+						}
+	
+						var mask = QRUtil.getMask(maskPattern, row, col - c);
+	
+						if (mask) {
+							dark = !dark;
+						}
+						
+						this.modules[row][col - c] = dark;
+						bitIndex--;
+	
+						if (bitIndex === -1) {
+							byteIndex++;
+							bitIndex = 7;
+						}
+					}
+				}
+								
+				row += inc;
+	
+				if (row < 0 || this.moduleCount <= row) {
+					row -= inc;
+					inc = -inc;
+					break;
+				}
+			}
+		}
+		
+	}
+
+};
+
+QRCode.PAD0 = 0xEC;
+QRCode.PAD1 = 0x11;
+
+QRCode.createData = function(typeNumber, errorCorrectLevel, dataList) {
+	
+	var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectLevel);
+	
+	var buffer = new QRBitBuffer();
+	
+	for (var i = 0; i < dataList.length; i++) {
+		var data = dataList[i];
+		buffer.put(data.mode, 4);
+		buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber) );
+		data.write(buffer);
+	}
+
+	
+	var totalDataCount = 0;
+	for (var x = 0; x < rsBlocks.length; x++) {
+		totalDataCount += rsBlocks[x].dataCount;
+	}
+
+	if (buffer.getLengthInBits() > totalDataCount * 8) {
+		throw new Error("code length overflow. (" + 
+            buffer.getLengthInBits() + 
+            ">" +  
+            totalDataCount * 8 + 
+            ")");
+	}
+
+	
+	if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+		buffer.put(0, 4);
+	}
+
+	
+	while (buffer.getLengthInBits() % 8 !== 0) {
+		buffer.putBit(false);
+	}
+
+	
+	while (true) {
+		
+		if (buffer.getLengthInBits() >= totalDataCount * 8) {
+			break;
+		}
+		buffer.put(QRCode.PAD0, 8);
+		
+		if (buffer.getLengthInBits() >= totalDataCount * 8) {
+			break;
+		}
+		buffer.put(QRCode.PAD1, 8);
+	}
+
+	return QRCode.createBytes(buffer, rsBlocks);
+};
+
+QRCode.createBytes = function(buffer, rsBlocks) {
+
+	var offset = 0;
+	
+	var maxDcCount = 0;
+	var maxEcCount = 0;
+	
+	var dcdata = new Array(rsBlocks.length);
+	var ecdata = new Array(rsBlocks.length);
+	
+	for (var r = 0; r < rsBlocks.length; r++) {
+
+		var dcCount = rsBlocks[r].dataCount;
+		var ecCount = rsBlocks[r].totalCount - dcCount;
+
+		maxDcCount = Math.max(maxDcCount, dcCount);
+		maxEcCount = Math.max(maxEcCount, ecCount);
+		
+		dcdata[r] = new Array(dcCount);
+		
+		for (var i = 0; i < dcdata[r].length; i++) {
+			dcdata[r][i] = 0xff & buffer.buffer[i + offset];
+		}
+		offset += dcCount;
+		
+		var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+		var rawPoly = new QRPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+		var modPoly = rawPoly.mod(rsPoly);
+		ecdata[r] = new Array(rsPoly.getLength() - 1);
+		for (var x = 0; x < ecdata[r].length; x++) {
+            var modIndex = x + modPoly.getLength() - ecdata[r].length;
+			ecdata[r][x] = (modIndex >= 0)? modPoly.get(modIndex) : 0;
+		}
+
+	}
+	
+	var totalCodeCount = 0;
+	for (var y = 0; y < rsBlocks.length; y++) {
+		totalCodeCount += rsBlocks[y].totalCount;
+	}
+
+	var data = new Array(totalCodeCount);
+	var index = 0;
+
+	for (var z = 0; z < maxDcCount; z++) {
+		for (var s = 0; s < rsBlocks.length; s++) {
+			if (z < dcdata[s].length) {
+				data[index++] = dcdata[s][z];
+			}
+		}
+	}
+
+	for (var xx = 0; xx < maxEcCount; xx++) {
+		for (var t = 0; t < rsBlocks.length; t++) {
+			if (xx < ecdata[t].length) {
+				data[index++] = ecdata[t][xx];
+			}
+		}
+	}
+
+	return data;
+
+};
+
+module.exports = QRCode;
+
+ M["index"] = module.exports; })({exports:{}});
+const QRCode = M.index, L = M.QRErrorCorrectLevel.L;
+  return function(text, size){ let q; for (let t = 2; t <= 10; t++) { try { q = new QRCode(t, L); q.addData(String(text)); q.make(); break; } catch (e) { q = null; } }
+    if (!q) return ''; const n = q.getModuleCount(); let d = '';
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += 'M' + (c + 2) + ' ' + (r + 2) + 'h1v1h-1z';
+    return '<svg viewBox="0 0 ' + (n + 4) + ' ' + (n + 4) + '" width="' + (size || 64) + '" height="' + (size || 64) + '" style="background:#fff" role="img" aria-label="QR"><path d="' + d + '" fill="#000"/></svg>'; };
+})();
+
+/* ================= 0.11: المقايسة والجدول الزمني والمتابعة والجودة (نسخة خفيفة) =================
+   نفس أشكال الشاشات المعتمدة (أشكال-شاشات-0.11). كل البيانات من «siteBoard» وبتتخزن للعمل من غير نت،
+   وكل تسجيل بيتحفظ في الطابور (qSave) لو مفيش نت.
+   الصلاحيات دلوقتي: «جاهز يبدأ؟» والمعوقات وخطة بكرة والفحص والاستلام ونماذج الجودة وسجلها: المالك بس.
+   المكتبة الفنية: المالك والمدير. المتابعة: زي «كام جالي؟». */
+const SITE_R = ['owner', 'manager', 'engineer', 'supervisor', 'accountant'];
+const siteOK = () => SITE_R.includes(role());
+const boqEdit = p => isBoss() || (role() === 'engineer' && p && p.engId === S.user.id);
+const FT = {IR: 'طلب استلام أعمال', MIR: 'استلام خامة', NCR: 'عدم مطابقة', SI: 'تعليمات موقع', MOM: 'محضر اجتماع', HO: 'محضر تسليم ابتدائي', FHO: 'محضر تسليم نهائي', MAR: 'اعتماد خامة', CO: 'أمر تغيير', DEC: 'قرار العميل', DLY: 'سجل التأخير'};
+const WHY = ['الخامة', 'العمالة', 'اللي قبله', 'العميل', 'الجو', 'سبب تاني'];
+const ZQ = ['الصالة', 'الريسبشن', 'نوم 1', 'نوم 2', 'نوم 3', 'المطبخ', 'حمام 1', 'حمام 2', 'البلكونة', 'الطرقة'];
+const STG = ['قبل البدء', 'أثناء', 'الاستلام', 'بيتنسي'];
+const nrm = s => normN(s).toLowerCase();
+const tdy = () => ymd(new Date());
+const dd = d => d && d > '0001' ? dshortN(d) : '—';
+const daysB = (a, b) => Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5);
+const fPill = st => `<span class="pill ${/مقبول$|مقفول|وافق|اتنفذ|جاهز|خلص/.test(st) ? 'p-ok' : /مرفوض|اترفض|متأخر|ناقص/.test(st) ? 'p-bad' : /بملاحظات|مفتوح|اتبعت|شغال/.test(st) ? 'p-warn' : 'p-info'}">${esc(st)}</span>`;
+
+(function(){ const s = document.createElement('style'); s.textContent = `
+.shd{background:var(--navy);color:#fff;border-radius:14px 14px 0 0;padding:10px 12px;font-weight:700}.shd small{display:block;font-weight:400;opacity:.85;font-size:12px}
+.sbd{background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 14px 14px;padding:10px;margin-bottom:10px}
+.sr{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #EEF1F4}.sr:last-child{border-bottom:0}
+.gr{display:grid;grid-template-columns:96px 1fr;gap:6px;align-items:center;margin:6px 0;font-size:12.5px}
+.gtr{position:relative;height:18px;background:#EEF1F4;border-radius:4px}.gpl{position:absolute;top:2px;height:6px;background:#B4B2A9;border-radius:3px}.gac{position:absolute;top:10px;height:6px;border-radius:3px}
+.gnow{position:absolute;top:-2px;bottom:-2px;width:2px;background:#E24B4A}
+.wg{display:grid;gap:2px;align-items:center;font-size:11px}.wc{height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px}
+.cols4{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}.col4{flex:0 0 78%;scroll-snap-align:start;background:#F3F6FA;border-radius:12px;padding:8px}
+.col4 h5{margin:0 0 6px;font-size:13px}.ck{display:flex;gap:6px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #EEF1F4}.ck:last-child{border-bottom:0}
+.ck .t{flex:1;font-size:13.5px}.yn{display:flex;gap:4px}.yn button{min-width:44px;min-height:36px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:700}
+.yn button.ok{background:var(--ok-bg);color:var(--ok);border-color:#BFE3CF}.yn button.no{background:var(--bad-bg);color:var(--bad);border-color:#F3C9C3}
+.bub{background:#EEF1F4;border-radius:14px 14px 14px 4px;padding:9px 12px;margin:6px 0;max-width:88%;font-size:14px}
+.bme{background:#E8F0FB;color:#24578F;border-radius:14px 14px 4px 14px;padding:8px 12px;margin:6px 0 6px auto;width:fit-content;max-width:75%;font-size:14px}
+.kp2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.kpc{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}.kpc b{display:block;font-size:22px}
+.zpin{position:absolute;transform:translate(50%,-50%);min-width:26px;height:26px;border-radius:13px;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 6px;border:2px solid #fff;box-shadow:0 1px 3px #0003}
+.sline{font-size:12.5px;color:var(--muted);margin-top:4px}.redd{color:var(--bad);font-weight:700}`; document.head.appendChild(s); })();
+
+/* ---------- البيانات ---------- */
+async function board(fresh){
+  if (!S.board) { const c = await cacheGet('siteBoard', {}); if (c && c.r && c.r.ok) S.board = Object.assign({}, c.r, {at: c.at}); }
+  if (navigator.onLine && (fresh || !S.board || Date.now() - (S.board.at || 0) > 90000)) { const r = await api('siteBoard'); if (r.ok && !r.offline) S.board = Object.assign({}, r, {at: Date.now()}); }
+  return S.board;
+}
+const B = () => S.board || {items: [], seq: [], lib: [], forms: [], zones: [], proj: {}, hol: [], methods: {}};
+const bItems = code => B().items.filter(x => x.proj === code).sort((a, b) => (a.start || '9').localeCompare(b.start || '9'));
+const bProg = (code, id) => ((B().proj[code] || {}).prog || {})[id] || {pct: 0, qty: 0};
+const bForms = (code, type) => B().forms.filter(x => (!code || x.proj === code) && (!type || x.type === type));
+const putForm = f => { if (!S.board || !f) return; S.board.forms = S.board.forms.filter(x => x.id !== f.id).concat([f]); };
+const keyHit = (it, key) => { const k = nrm(key); if (!k) return false; if (it.item && (it.item === key || it.item.split('-')[0] === key)) return true; return k.split('|').some(w => w && nrm(it.name).includes(w)); };
+const seqOf = code => { const L = B().seq, mine = L.filter(x => x.proj === code), ks = new Set(mine.map(x => nrm(x.key))); return L.filter(x => !x.proj && !ks.has(nrm(x.key))).concat(mine); };
+function predsOf(code, it){ const its = bItems(code), out = [];
+  seqOf(code).filter(s => keyHit(it, s.key)).forEach(s => its.filter(o => o.id !== it.id && keyHit(o, s.after) && !keyHit(o, s.key)).forEach(o => out.push({it: o, s}))); return out; }
+const libFor = (type, it) => B().lib.filter(x => x.type === type && (x.key === '*' || !it || keyHit(it, x.key)));
+const tipOf = it => (libFor('خبرة', it).find(x => (x.x || {}).st !== 'مقترح') || {}).text || '';
+const lastRdy = (code, id) => bForms(code, 'RDY').filter(x => x.item === id).sort((a, b) => b.at.localeCompare(a.at))[0];
+function itemSt(code, it){
+  const p = bProg(code, it.id);
+  if (p.doneAt || p.pct >= 100) return 'خلص';
+  if (p.pct > 0) return 'شغال';
+  const r = lastRdy(code, it.id); if (r) return (r.data.miss || []).length ? 'ناقصه حاجة' : 'جاهز يبدأ';
+  return 'مخطط';
+}
+const stColor = st => ({'خلص': '#1D9E75', 'شغال': '#EF9F27', 'جاهز يبدأ': '#378ADD', 'ناقصه حاجة': '#E24B4A'})[st] || '#B4B2A9';
+async function siteSave(action, body, label){ const r = await qSave(action, body, label); if (!r.ok) toast(errMsg(r)); return r; }
+
+/* ---------- كارت المشروع: الجدول والمتابعة والجودة ---------- */
+function siteCard(p){
+  if (!siteOK()) return '';
+  const its = bItems(p.code), ev = ((B().proj[p.code] || {}).evm) || null, o = isOwner();
+  const late = ev ? ev.late : 0, nNcr = bForms(p.code, 'NCR').filter(x => x.st !== 'مقفول').length, nBlk = bForms(p.code, 'BLK').filter(x => x.st !== 'مقفول').length;
+  const b = (id, t, show) => show ? `<button class="chip" data-site="${id}" data-sp="${esc(p.code)}">${t}</button>` : '';
+  return `<div class="card" style="margin-top:10px"><div class="row" style="gap:8px;align-items:center"><b style="flex:1">🗓️ الجدول والمتابعة</b>
+    ${its.length ? `<small class="muted">${its.length} بند${ev && ev.spi != null ? ` · SPI ${ev.spi}` : ''}${late ? ` · <span class="redd">${late} متأخر</span>` : ''}</small>` : `<small class="muted">لسه مفيش مقايسة</small>`}</div>
+    <div class="chips" style="flex-wrap:wrap;margin-top:8px">${b('sch', '🗓️ الجدول الزمني', true)}${b('boq', '📝 المقايسة', true)}${b('rdy', `✅ جاهز يبدأ؟${nBlk ? ` <small class="redd">${nBlk}</small>` : ''}`, o)}
+      ${b('zon', `🏁 الاستلام بالمناطق${nNcr ? ` <small class="redd">${nNcr}</small>` : ''}`, o)}${b('co', '🔁 أوامر التغيير', role() !== 'supervisor2')}${b('reg', '📋 نماذج الجودة', o)}${b('night', '🌙 خطة بكرة', o)}</div></div>`;
+}
+function wireSite(v){
+  (v || document).querySelectorAll('[data-site]').forEach(b => b.onclick = () => { const c = b.dataset.sp, k = b.dataset.site;
+    ({sch: () => schedSheet(c), boq: () => boqSheet(c), rdy: () => readySheet(c), zon: () => zonesSheet(c), co: () => coSheet(c), reg: () => regSheet(c), night: () => nightSheet(c), lib: () => libSheet(), regAll: () => regSheet('')})[k](); });
+  if (siteOK() && !S.boardTried && navigator.onLine) { S.boardTried = true; board(false).then(() => { if (!$('#sheet').classList.contains('on') && !$('#wkOv') && (S.project || isOwner())) render(); }); }
+}
+// كارت 8 بالليل على الرئيسية (للمالك): الحوار بدل كارت 7
+function nightHome(){
+  if (!isOwner() || new Date().getHours() < 20) return '';
+  const tm = addD(tdy(), 1), P = S.projects.filter(p => p.status === 'جاري' && bItems(p.code).length && !bForms(p.code, 'DAY').some(x => x.due === tm));
+  if (!P.length) return '';
+  return `<div class="card" style="margin:10px 0;background:#F4F1FB;border-color:#DCD3F3"><b>🌙 خطة بكرة</b><div class="muted" style="font-size:13px;margin:2px 0 8px">4–5 أسئلة بدوسة لكل مشروع</div>
+    <div class="chips" style="flex-wrap:wrap">${P.map(p => `<button class="chip" data-site="night" data-sp="${esc(p.code)}">${esc(p.short || p.name)}</button>`).join('')}</div></div>`;
+}
+
+/* ---------- 📝 المقايسة (بنود المشروع) ---------- */
+async function boqSheet(code){
+  const p = findProject(code) || {}; await board(false);
+  if (!S.items) { const r = await api('items'); if (r.ok) S.items = r; }
+  const C = (S.items && S.items.items || []).filter(x => x.active !== false), ed = boqEdit(p), money = B().money;
+  const L = bItems(code).map(x => Object.assign({}, x)); let dirty = false;
+  const tileQ = x => /سيراميك|بورسلين/.test(nrm(x.name));
+  const methods = x => { const M = B().methods || {}; return /بورسلين/.test(nrm(x.name)) ? (M['بورسلين صغير'] || []).concat(M['بورسلين كبير'] || []).filter((v, i, a) => a.indexOf(v) === i) : M['سيراميك'] || ['مونة', 'مادة']; };
+  const draw = () => {
+    openSheet(`<h3>📝 المقايسة · ${esc(p.short || p.name || code)}</h3>
+      <p class="muted" style="font-size:12.5px;margin:0 0 8px">الشغل بالبند. الجدول بيتعمل لوحده من الكمية والإنتاجية وتسلسل الشركة، وتقدر تعدّل المدة أو يوم البداية.</p>
+      <datalist id="bqC">${C.map(x => `<option value="${esc(x.name)}">`).join('')}</datalist>
+      ${L.map((x, i) => `<div class="card" style="padding:10px 12px;margin-bottom:8px">
+        <div class="row" style="gap:6px"><input class="in" data-bn="${i}" list="bqC" value="${esc(x.name)}" placeholder="البند" style="flex:1" ${ed ? '' : 'disabled'}>${x.co ? `<span class="pill p-info">${esc(x.co)}</span>` : ''}${ed ? `<button class="ibtn" data-bx="${i}" aria-label="شيل" style="color:var(--bad)">✕</button>` : ''}</div>
+        <div class="row" style="gap:6px;margin-top:6px;flex-wrap:wrap"><input class="in" data-bq="${i}" inputmode="decimal" dir="ltr" value="${esc(x.qty)}" placeholder="الكمية" style="flex:1 1 90px" ${ed ? '' : 'disabled'}>
+          <input class="in" data-bu="${i}" value="${esc(x.unit)}" placeholder="الوحدة" style="flex:0 1 80px" ${ed ? '' : 'disabled'}>
+          ${money ? `<input class="in" data-bp="${i}" inputmode="decimal" dir="ltr" value="${esc(x.price === undefined ? '' : x.price)}" placeholder="سعر الوحدة" style="flex:1 1 100px" ${ed ? '' : 'disabled'}>` : ''}
+          <input class="in" data-bd="${i}" inputmode="numeric" dir="ltr" value="${esc(x.dur)}" placeholder="المدة (يوم)" style="flex:1 1 90px" ${ed ? '' : 'disabled'}></div>
+        ${tileQ(x) ? `<div style="margin-top:6px;font-size:12.5px"><b>طريقة التركيب${x.method ? '' : ' <span class="redd">(لازم تختار)</span>'}:</b><div class="chips" style="flex-wrap:wrap;margin-top:4px">${methods(x).map(m => `<button class="chip ${x.method === m ? 'on' : ''}" data-bm="${i}" data-m="${esc(m)}" ${ed ? '' : 'disabled'}>${esc(m)}</button>`).join('')}</div></div>` : ''}
+        ${x.start ? `<div class="sline">🗓️ ${dd(x.start)} ← ${dd(x.end)}${x.bs && (x.bs !== x.start || x.be !== x.end) ? ` · المعتمد ${dd(x.bs)} ← ${dd(x.be)}` : ''}</div>` : ''}</div>`).join('') || emptyBox('doc', 'لسه مفيش بنود. ضيف أول بند من بنود الشركة')}
+      ${ed ? `<button class="btn ghost" id="bqAdd">${ic('plus')} بند</button><div class="err" id="bqE"></div><button class="btn gold" id="bqGo" style="margin-top:8px">احفظ واعمل الجدول</button>` : ''}`);
+    const sync = () => { document.querySelectorAll('[data-bn]').forEach(i => { const x = L[i.dataset.bn]; if (x.name !== i.value) { x.name = i.value; const c = C.find(y => y.name === i.value); if (c) { x.item = c.code; x.unit = x.unit || c.unit; } } });
+      [['bq', 'qty'], ['bu', 'unit'], ['bp', 'price'], ['bd', 'dur']].forEach(([a, k]) => document.querySelectorAll(`[data-${a}]`).forEach(i => { L[i.dataset[a]][k] = i.value; })); };
+    document.querySelectorAll('input[data-bn],input[data-bq],input[data-bu],input[data-bp],input[data-bd]').forEach(i => i.oninput = () => { dirty = true; });
+    document.querySelectorAll('[data-bx]').forEach(b => b.onclick = async () => { sync(); const x = L[b.dataset.bx];
+      if (x.id && !confirm('تشيل «' + x.name + '» من المقايسة؟')) return; L.splice(Number(b.dataset.bx), 1);
+      if (x.id) { const r = await siteSave('delBoq', {id: x.id}, 'شيل بند ' + x.name); if (r.ok && r.items && S.board) S.board.items = S.board.items.filter(y => y.proj !== code).concat(r.items); } draw(); });
+    document.querySelectorAll('[data-bm]').forEach(b => b.onclick = () => { sync(); L[b.dataset.bm].method = b.dataset.m; dirty = true; draw(); });
+    if ($('#bqAdd')) $('#bqAdd').onclick = () => { sync(); L.push({name: '', unit: '', qty: '', dur: '', method: ''}); draw(); setTimeout(() => { const i = document.querySelector(`[data-bn="${L.length - 1}"]`); if (i) i.focus(); }, 50); };
+    if ($('#bqGo')) $('#bqGo').onclick = async () => { sync();
+      const miss = L.find(x => x.name.trim() && tileQ(x) && !x.method); if (miss) { $('#bqE').textContent = 'اختار طريقة التركيب لـ «' + miss.name + '»'; return; }
+      const items = L.filter(x => x.name.trim()).map(x => ({id: x.id, item: x.item || '', name: x.name.trim(), unit: x.unit, qty: numIn(String(x.qty || '')), price: money ? numIn(String(x.price || '')) : undefined, dur: numIn(String(x.dur || '')), method: x.method || ''}));
+      if (!items.length) { $('#bqE').textContent = 'ضيف بند واحد على الأقل'; return; }
+      busy($('#bqGo'), true); const r = await siteSave('saveBoq', {project: code, items}, 'المقايسة · ' + (p.short || p.name)); busy($('#bqGo'), false);
+      if (!r.ok) return; if (r.items && S.board) S.board.items = S.board.items.filter(y => y.proj !== code).concat(r.items);
+      toast(r.queued ? QMSG : 'اتحفظت والجدول اتعمل ✓'); dirty = false; if (!r.queued) schedSheet(code); else closeSheet(); };
+  };
+  draw();
+}
+
+/* ---------- 🗓️ الجدول الزمني: 4 أشكال (تابات + سحب بالعرض) ---------- */
+const SV = [['g', 'أ · Gantt'], ['a', 'ب · أجندة'], ['w', 'ج · شبكة الأسابيع'], ['c', 'د · أعمدة الحالة']];
+async function schedSheet(code, view){
+  const p = findProject(code) || {};
+  openSheet(`<div id="schBody" class="muted">بيحمّل…</div>`);
+  await board(false); if (!$('#schBody')) return;
+  const v = view || store.get('schV', 'g'); store.set('schV', v);
+  const its = bItems(code), ev = (B().proj[code] || {}).evm, t = tdy();
+  if (!its.length) { $('#schBody').innerHTML = `<h3>🗓️ الجدول الزمني</h3>${emptyBox('doc', 'الجدول بيتعمل لوحده أول ما بنود المقايسة تتحط')}${boqEdit(p) ? `<button class="btn gold" data-site="boq" data-sp="${esc(code)}">📝 حط المقايسة</button>` : ''}`; wireSite($('#schBody')); return; }
+  const s0 = its.reduce((m, x) => !m || (x.bs || x.start) < m ? (x.bs || x.start) : m, ''), e0 = its.reduce((m, x) => x.end > m ? x.end : (x.be || '') > m ? x.be : m, '');
+  const wk = Math.max(1, Math.ceil((daysB(s0, t) + 1) / 7)), wkN = Math.max(1, Math.ceil((daysB(s0, e0) + 1) / 7)), lateD = ev && ev.endNow && ev.endPlan ? daysB(ev.endPlan, ev.endNow) : 0;
+  const body = {g: ganttV, a: agendaV, w: gridV, c: colsV}[v](code, its, s0, e0);
+  $('#schBody').innerHTML = `<div class="shd">الجدول الزمني · ${esc(p.short || p.name || code)}<small>كما في ${esc(dd(t))} · الأسبوع ${Math.min(wk, wkN)} من ${wkN}${lateD > 0 ? ` · متأخرين ${lateD} أيام` : lateD < 0 ? ` · قدام ${-lateD} أيام` : ''}${ev && ev.bno ? ` · خطة ${ev.bno}` : ' · لسه ما اتعتمدتش'}</small></div>
+    <div class="sbd"><div class="tabs" style="margin-bottom:8px">${SV.map(([k, n]) => `<button class="tab ${v === k ? 'on' : ''}" data-sv="${k}">${n}</button>`).join('')}</div><div id="schV">${body}</div></div>
+    <div class="row" style="gap:6px;flex-wrap:wrap">${boqEdit(p) ? `<button class="btn ghost" data-site="boq" data-sp="${esc(code)}" style="flex:1">📝 المقايسة</button>` : ''}
+      ${boqEdit(p) && (!ev || !ev.bno || isOwner()) ? `<button class="btn ghost" id="schBase" style="flex:1">${ev && ev.bno ? '🔁 إعادة اعتماد' : '✔️ اعتماد الخطة'}</button>` : ''}
+      <button class="btn ghost" id="schPdf" style="flex:1">📄 PDF</button></div>`;
+  wireSite($('#schBody'));
+  document.querySelectorAll('[data-sv]').forEach(b => b.onclick = () => schedSheet(code, b.dataset.sv));
+  document.querySelectorAll('[data-it]').forEach(b => b.onclick = () => itemSheet(code, b.dataset.it));
+  const el = $('#schV'); let x0 = null;
+  el.ontouchstart = e => { x0 = e.touches[0].clientX; }; el.ontouchend = e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (Math.abs(dx) < 70 || e.target.closest('.cols4')) return; const i = SV.findIndex(z => z[0] === v), j = (i + (dx < 0 ? 1 : -1) + 4) % 4; schedSheet(code, SV[j][0]); };
+  if ($('#schBase')) $('#schBase').onclick = async () => { const re = ev && ev.bno; let reason = '';
+    if (re) { reason = prompt('إعادة اعتماد الخطة لازم سبب (زي أمر تغيير اتوافق):') || ''; if (!reason.trim()) return; }
+    else if (!confirm('تعتمد الخطة دي؟ المنحنيات هتتقاس عليها.')) return;
+    if (!navigator.onLine) { toast('الاعتماد محتاج نت'); return; }
+    const r = await api('setBaseline', {project: code, reason}); if (!r.ok) { toast(r.error === 'reason' ? 'اكتب السبب' : errMsg(r)); return; }
+    toast('الخطة رقم ' + r.bno + ' اتعتمدت ✓'); await board(true); schedSheet(code, v); };
+  $('#schPdf').onclick = () => printHtml(`<div style="font-family:Cairo,Tahoma,Arial;padding:8px"><h2 style="color:#1D2E4F;margin:0">الجدول الزمني · ${esc(p.name || code)}</h2><div style="color:#666;font-size:12px">كما في ${esc(t)}</div>
+    <h3>Gantt</h3>${ganttV(code, its, s0, e0, true)}<h3 style="page-break-before:always">شبكة الأسابيع</h3>${gridV(code, its, s0, e0, true)}</div>`, 'الجدول الزمني ' + (p.short || code));
+}
+function ganttV(code, its, s0, e0, pr){
+  const span = Math.max(1, daysB(s0, e0) + 1), pos = d => Math.max(0, Math.min(100, daysB(s0, d) / span * 100)), t = tdy();
+  return its.map(x => { const P = bProg(code, x.id), st = itemSt(code, x), ps = x.bs || x.start, pe = x.be || x.end;
+    const aS = P.first || (P.pct > 0 ? x.start : ''), aE = P.doneAt || (P.pct > 0 ? t : '');
+    return `<${pr ? 'div' : 'button'} class="gr" ${pr ? '' : `data-it="${esc(x.id)}"`} style="width:100%;text-align:start;background:none;border:0;padding:0"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.name)}</span>
+      <div class="gtr"><div class="gpl" style="right:${pos(ps)}%;width:${Math.max(1.5, pos(pe) - pos(ps) + 100 / span)}%"></div>
+      ${aS ? `<div class="gac" style="right:${pos(aS)}%;width:${Math.max(1.5, pos(aE) - pos(aS) + 100 / span)}%;background:${aE > pe && st !== 'خلص' || (P.doneAt && P.doneAt > pe) ? '#EF9F27' : '#1D9E75'}"></div>` : ''}
+      ${t >= s0 && t <= e0 ? `<div class="gnow" style="right:${pos(t)}%"></div>` : ''}</div></${pr ? 'div' : 'button'}>`; }).join('')
+    + `<div class="sline">رمادي المخطط${its.some(x => x.bs) ? ' (المعتمد)' : ''} · أخضر/برتقاني المنفذ · خط أحمر النهارده</div>`;
+}
+function agendaV(code, its){
+  const t = tdy(), w0 = satOf(t), wk = (a, b) => its.filter(x => x.start <= b && x.end >= a && itemSt(code, x) !== 'خلص');
+  const days = bForms(code, 'DAY').filter(x => x.due >= w0 && x.due <= addD(w0, 6)), pl = days.reduce((s, x) => s + (x.data.plan || []).length, 0), dn2 = days.reduce((s, x) => s + (x.data.plan || []).filter(y => y.done).length, 0);
+  const box = (c, title, L, extra) => `<div class="card" style="border-inline-start:4px solid ${c};padding:10px;margin-bottom:8px"><div class="sr" style="padding-top:0"><b>${title}</b>${extra || ''}</div>
+    ${L.map(x => `<button class="sr" data-it="${esc(x.id)}" style="width:100%;background:none;border:0;border-bottom:1px solid #EEF1F4;text-align:start"><span>${esc(x.name)} <small class="muted">${dd(x.start)} ← ${dd(x.end)}</small></span>${fPill(itemSt(code, x).replace('ناقصه حاجة', 'ناقص'))}</button>`).join('') || '<div class="muted" style="font-size:12.5px">مفيش بنود</div>'}</div>`;
+  return box('#1D9E75', `الأسبوع ده · ${dd(w0)}–${dd(addD(w0, 6))}`, wk(w0, addD(w0, 6)), pl ? `<span class="pill ${dn2 / pl >= .8 ? 'p-ok' : 'p-warn'}">PPC ${Math.round(dn2 / pl * 100)}%</span>` : '')
+    + box('#378ADD', 'الأسبوع الجاي', wk(addD(w0, 7), addD(w0, 13))) + box('#B4B2A9', 'بعد أسبوعين', wk(addD(w0, 14), addD(w0, 20)));
+}
+function gridV(code, its, s0, e0, pr){
+  const t = tdy(), w0 = pr ? satOf(s0) : addD(satOf(t), -14), n = pr ? Math.min(16, Math.ceil((daysB(w0, e0) + 1) / 7)) : 8, W = [...Array(n)].map((_, i) => addD(w0, i * 7));
+  const cell = (x, a) => { const b = addD(a, 6); if (x.end < a || x.start > b) return `<div class="wc"></div>`; const st = itemSt(code, x), P = bProg(code, x.id);
+    if (st === 'خلص' || (P.doneAt && P.doneAt <= b)) return `<div class="wc" style="background:#D9F0E5;color:#17683F">✓</div>`;
+    if (st === 'ناقصه حاجة') return `<div class="wc" style="background:#FBE9E7;color:#9E2E22">!</div>`;
+    if (a <= t && P.pct > 0) return `<div class="wc" style="background:#FDF0E1;color:#7A4E0C">${Math.round(P.pct)}%</div>`;
+    return `<div class="wc" style="background:#E8F0FB"></div>`; };
+  return `<div style="overflow-x:auto"><div class="wg" style="grid-template-columns:90px repeat(${n},minmax(30px,1fr));min-width:${90 + n * 32}px"><span></span>${W.map(a => `<span style="text-align:center;${a === satOf(t) ? 'color:var(--bad);font-weight:700' : 'color:var(--muted)'}">${dd(a)}</span>`).join('')}
+    ${its.map(x => `<span style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis" ${pr ? '' : `data-it="${esc(x.id)}"`}>${esc(x.name)}</span>${W.map(a => cell(x, a)).join('')}`).join('')}</div></div>
+    <div class="sline">✓ خلص · % شغال · أزرق مخطط · ! ناقصه حاجة</div>`;
+}
+const predOK = (code, it) => predsOf(code, it).every(z => { const P = bProg(code, z.it.id); return z.s.type === 'تداخل' ? P.pct >= z.s.val : P.pct >= 100 || !!P.doneAt; });
+function colsV(code, its){
+  const C = [['شغال', '#EF9F27'], ['جاهز يبدأ', '#378ADD'], ['ناقصه حاجة', '#E24B4A'], ['خلص', '#1D9E75']];
+  return `<div class="cols4">${C.map(([st, c]) => { const L = its.filter(x => itemSt(code, x) === st || (st === 'جاهز يبدأ' && itemSt(code, x) === 'مخطط' && predOK(code, x) && x.start <= addD(tdy(), 7)));
+    return `<div class="col4"><h5 style="color:${c}">${st} <small class="muted">${L.length}</small></h5>${L.map(x => `<button class="li" data-it="${esc(x.id)}" style="padding:8px 10px"><span class="t"><b style="font-size:13px;white-space:normal">${esc(x.name)}</b><small>${dd(x.start)} ← ${dd(x.end)} · ${Math.round(bProg(code, x.id).pct)}%${itemSt(code, x) === 'مخطط' ? ' · لسه ما اتسألش' : ''}</small></span></button>`).join('') || '<div class="muted" style="font-size:12px">—</div>'}</div>`; }).join('')}</div>`;
+}
+// كارت البند: التواريخ والتقدم واللي قبله و«من الخبرة» و«📖 المرجع»
+function itemSheet(code, id){
+  const it = bItems(code).find(x => x.id === id); if (!it) return;
+  const P = bProg(code, id), pr = predsOf(code, it), tip = tipOf(it), refs = isBoss() ? libFor('فهرس', it).slice(0, 4) : [];
+  const irs = bForms(code, 'IR').filter(x => x.item === it.name).sort((a, b) => b.at.localeCompare(a.at));
+  openSheet(`<h3>${esc(it.name)}</h3>
+    <div class="kp2"><div class="kpc"><small class="muted">الإنجاز</small><b>${n1(P.pct, 0)}%</b><small class="muted">${n1(P.qty)} من ${n1(it.qty)} ${esc(it.unit)}</small></div>
+      <div class="kpc"><small class="muted">المخطط</small><b style="font-size:16px">${dd(it.start)} ← ${dd(it.end)}</b><small class="muted">${it.bs ? `المعتمد ${dd(it.bs)} ← ${dd(it.be)}` : 'لسه ما اتعتمدش'}</small></div></div>
+    ${it.method ? `<div class="sline">طريقة التنفيذ: <b>${esc(it.method)}</b></div>` : ''}
+    ${pr.length ? `<div class="card" style="margin-top:8px;padding:10px"><b style="font-size:13px">بيبدأ بعد</b>${pr.map(z => `<div class="sr"><span>${esc(z.it.name)} <small class="muted">${z.s.type === 'تداخل' ? `تداخل من ${z.s.val}%` : `بعد ما يخلص${z.s.val ? ` + ${z.s.val} يوم` : ''}`}</small></span>${fPill(itemSt(code, z.it))}</div>`).join('')}</div>` : ''}
+    ${tip ? `<div class="card" style="margin-top:8px;padding:10px;background:#FFF8E6;border-color:#F0DCA6;font-size:13px">💡 <b>من الخبرة:</b> ${esc(tip)}</div>` : ''}
+    ${irs.length ? `<div class="sline">آخر فحص: ${esc(irs[0].no)} ${fPill(irs[0].st)}</div>` : ''}
+    ${refs.length ? `<div class="card" style="margin-top:8px;padding:10px"><b style="font-size:13px">📖 المرجع</b>${refs.map(r => `<div class="sr"><span style="font-size:13px">${esc(r.text)}${r.x.page ? ` <small class="muted">ص ${esc(r.x.page)}</small>` : ''}</span>${r.x.link ? `<a class="more" href="${esc(r.x.link)}" target="_blank" rel="noopener">افتح</a>` : ''}</div>`).join('')}</div>` : ''}
+    <div class="row" style="gap:6px;margin-top:10px;flex-wrap:wrap">${isOwner() ? `<button class="btn gold" id="itIr" style="flex:1">✓ فحص واستلام</button><button class="btn ghost" id="itRdy" style="flex:1">جاهز يبدأ؟</button>` : ''}</div>`);
+  if ($('#itIr')) $('#itIr').onclick = () => inspectSheet(code, id);
+  if ($('#itRdy')) $('#itRdy').onclick = () => readyItem(code, id);
+}
+
+/* ---------- ✅ جاهز يبدأ؟ + سجل المعوقات + Look-ahead 3 أسابيع (للمالك) ---------- */
+async function readySheet(code){
+  const p = findProject(code) || {}; await board(false);
+  const t = tdy(), L = bItems(code).filter(x => !['خلص', 'شغال'].includes(itemSt(code, x)) && x.start <= addD(t, 21));
+  const blk = bForms(code, 'BLK').filter(x => x.st !== 'مقفول').sort((a, b) => (a.due || '9').localeCompare(b.due || '9'));
+  openSheet(`<h3>✅ جاهز يبدأ؟ · ${esc(p.short || p.name || code)}</h3>
+    <p class="muted" style="font-size:12.5px;margin:0 0 8px">البنود اللي عليها الدور في الـ 3 أسابيع الجايين. دوس على البند وجاوب ✓ أو ✗.</p>
+    ${L.map(x => { const st = itemSt(code, x), r = lastRdy(code, x.id); return `<button class="li" data-ri="${esc(x.id)}"><span class="ico" style="background:${stColor(st)}22;color:${stColor(st)}">${st === 'جاهز يبدأ' ? '✅' : st === 'ناقصه حاجة' ? '❌' : '⏳'}</span>
+      <span class="t"><b>${esc(x.name)}</b><small>يبدأ ${dd(x.start)}${r && (r.data.miss || []).length ? ' · ناقص: ' + esc(r.data.miss.join('، ')) : ''}</small></span></button>`; }).join('') || emptyBox('check', 'مفيش بنود عليها الدور في الـ 3 أسابيع الجايين')}
+    <h2 class="sec">⛔ سجل المعوقات <small class="muted">${blk.length}</small></h2>
+    ${blk.map(b => `<div class="card" style="padding:10px;margin-bottom:6px"><div class="sr" style="padding:0"><span><b style="font-size:13.5px">${esc(b.title)}</b><br><small class="muted">${esc(b.item ? (bItems(code).find(x => x.id === b.item) || {}).name || '' : '')} · ${esc(b.data.who || '')}${b.due ? ` · <span class="${b.due < t ? 'redd' : ''}">${dd(b.due)}</span>` : ''}</small></span>
+      <button class="chip" data-bc="${esc(b.id)}">✓ اتحل</button></div></div>`).join('') || '<div class="muted" style="font-size:13px">مفيش معوقات مفتوحة</div>'}`);
+  document.querySelectorAll('[data-ri]').forEach(b => b.onclick = () => readyItem(code, b.dataset.ri));
+  document.querySelectorAll('[data-bc]').forEach(b => b.onclick = async () => { const f = B().forms.find(x => x.id === b.dataset.bc); if (!f) return;
+    const r = await siteSave('saveForm', {form: {id: f.id, type: 'BLK', project: code, st: 'مقفول'}}, 'قفل معوق'); if (r.ok) { putForm(r.form || Object.assign({}, f, {st: 'مقفول'})); readySheet(code); } });
+}
+async function readyItem(code, id){
+  const p = findProject(code) || {}, it = bItems(code).find(x => x.id === id); if (!it) return;
+  const pr = predsOf(code, it), prev = lastRdy(code, id), A = Object.assign({}, prev ? prev.data.a : {});
+  const prOK = predOK(code, it);
+  const irOK = pr.every(z => !z.s.check || bForms(code, 'IR').some(f => f.item === z.it.name && /^مقبول/.test(f.st)));
+  const Q = [['mat', 'الخامات في الموقع أو جاية في الميعاد؟'], ['lab', 'الصنايعية أو المقاول محددين؟'], ['eq', 'المعدات والعدة موجودة؟'], ['cli', 'العميل اعتمد (اللون، الخامة، الأماكن)؟']];
+  if (pr.some(z => z.s.check) && !irOK) Q.unshift(['chk', 'الفحص اللي قبله اتعمل: ' + pr.filter(z => z.s.check).map(z => z.s.check).join('، ')]);
+  let cliDue = prev ? prev.data.cliDue || '' : '';
+  const draw = () => {
+    const miss = (prOK ? [] : ['اللي قبله']).concat(Q.filter(([k]) => A[k] === 'x').map(([k, t]) => ({mat: 'الخامات', lab: 'العمالة', eq: 'المعدات', cli: 'اعتماد العميل', chk: 'الفحص'})[k]));
+    const done = Q.every(([k]) => A[k]);
+    openSheet(`<h3>جاهز يبدأ؟ · ${esc(it.name)}</h3>
+      <div class="card" style="padding:10px"><div class="ck"><span class="t">البند اللي قبله ${pr.length ? `<small class="muted">(${pr.map(z => esc(z.it.name) + ' ' + Math.round(bProg(code, z.it.id).pct) + '%').join('، ')})</small>` : '<small class="muted">(مفيش)</small>'}</span>${prOK ? '<span class="pill p-ok">✓ من الإنجاز</span>' : '<span class="pill p-bad">✗ لسه</span>'}</div>
+        ${Q.map(([k, t]) => `<div class="ck"><span class="t">${esc(t)}</span><span class="yn"><button class="${A[k] === 'ok' ? 'ok' : ''}" data-a="${k}" data-v="ok" aria-label="آه">✓</button><button class="${A[k] === 'x' ? 'no' : ''}" data-a="${k}" data-v="x" aria-label="لأ">✗</button></span></div>
+          ${k === 'cli' ? `<div class="row" style="gap:6px;align-items:center;font-size:12.5px;padding-bottom:6px"><span class="muted">آخر ميعاد لاعتماد العميل:</span><input class="in" type="date" id="rdCli" value="${esc(cliDue)}" style="flex:1"></div>` : ''}`).join('')}</div>
+      <div class="card" style="margin-top:8px;text-align:center;font-weight:800;font-size:16px;${!done ? '' : miss.length ? 'background:var(--bad-bg);color:var(--bad)' : 'background:var(--ok-bg);color:var(--ok)'}">${!done ? 'جاوب كل الأسئلة' : miss.length ? `❌ ناقص ${miss.length}: ${esc(miss.join('، '))}` : '✅ جاهز يبدأ'}</div>
+      <div class="chips" style="flex-wrap:wrap;margin-top:8px"><button class="chip" id="rdMat">📦 اطلب الخامات</button><button class="chip" id="rdLab">👷 حدد صنايعي/مقاول</button>${p.clientPhone ? '<button class="chip" id="rdCliB">💬 فكّر العميل</button>' : ''}</div>
+      <button class="btn gold" id="rdGo" style="margin-top:10px" ${done ? '' : 'disabled'}>احفظ${miss.length && done ? ' وسجّل المعوقات' : ''}</button>`);
+    document.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { if ($('#rdCli')) cliDue = $('#rdCli').value; A[b.dataset.a] = b.dataset.v; draw(); });
+    $('#rdMat').onclick = () => { const txt = `مطلوب خامات لبند «${it.name}» في ${p.name || code} قبل ${dd(it.start)}`; if (navigator.share) navigator.share({text: txt}).catch(() => {}); else { navigator.clipboard && navigator.clipboard.writeText(txt); toast('اتنسخ ✓'); } };
+    $('#rdLab').onclick = () => peopleSheet(/مقاول|سباك|كهرب/.test(nrm(it.name)) ? 'C' : 'L');
+    if ($('#rdCliB')) $('#rdCliB').onclick = () => { const ph = String(p.clientPhone).replace(/^0/, '20'); window.open(`https://wa.me/${ph}?text=${encodeURIComponent(`أهلا بحضرتك، محتاجين اعتمادك على ${it.name}${cliDue ? ' قبل ' + dd(cliDue) : ''} عشان نبدأ في الميعاد. شكرا 🙏`)}`, '_blank'); };
+    $('#rdGo').onclick = async () => { if ($('#rdCli')) cliDue = $('#rdCli').value; busy($('#rdGo'), true);
+      const r = await siteSave('saveForm', {form: {type: 'RDY', project: code, item: id, title: 'جاهز يبدأ؟ ' + it.name, data: {a: A, miss, cliDue, prOK}}}, 'جاهز يبدأ؟ ' + it.name);
+      if (r.ok) { putForm(r.form || {id: 'L' + Date.now(), type: 'RDY', proj: code, item: id, st: 'اتسجل', at: new Date().toISOString(), data: {a: A, miss, cliDue}});
+        for (const m of miss.filter(x => x !== 'اللي قبله')) { const due = m === 'اعتماد العميل' && cliDue ? cliDue : addD(tdy(), 2);
+          const r2 = await siteSave('saveForm', {form: {type: 'BLK', project: code, item: id, due, title: m + ' · ' + it.name, data: {who: m === 'اعتماد العميل' ? 'العميل' : m === 'الخامات' ? 'المورد' : 'المهندس', miss: m}}}, 'معوق ' + m);
+          if (r2.ok && r2.form) putForm(r2.form); }
+        toast(r.queued ? QMSG : miss.length ? 'اتسجل والمعوقات اتضافت ✓' : 'جاهز يبدأ ✓'); readySheet(code); } else busy($('#rdGo'), false); };
+  };
+  draw();
+}
+
+/* ---------- 🌙 حوار خطة بكرة (4–5 أسئلة بدوسة) ---------- */
+async function nightSheet(code){
+  const p = findProject(code) || {}; await board(false);
+  const t = tdy(), tm = addD(t, 1), its = bItems(code), todayF = bForms(code, 'DAY').find(x => x.due === t), tmF = bForms(code, 'DAY').find(x => x.due === tm);
+  const plan = (todayF ? todayF.data.plan || [] : []).map(x => Object.assign({}, x));
+  const sug = its.filter(x => itemSt(code, x) !== 'خلص' && x.start <= addD(tm, 1) && x.end >= t).map(x => x.name);
+  const A = {plan, sup: '', tom: tmF ? (tmF.data.plan || []).map(x => x.name) : sug.slice(0, 4), wk: tmF ? tmF.data.workers || '' : '', mats: tmF ? tmF.data.mats || [] : [], step: plan.length ? 0 : 1, note: ''};
+  const pend = (S.siteLog && S.siteLog.del || []).filter(x => x.proj === code && x.state === 'مبدئي').length;
+  const draw = () => {
+    const ch = (k, v, on, lbl) => `<button class="chip ${on ? 'on' : ''}" data-n="${k}" data-v="${esc(v)}">${esc(lbl || v)}</button>`;
+    let h = `<h3>🌙 خطة بكرة · ${esc(p.short || p.name || code)}</h3>`;
+    if (plan.length) { h += `<div class="bub">مساء الخير يا ${esc(dn(S.user).split(' ').slice(-1)[0])} 👋 النهارده كان مخطط ${plan.length} بند. خلصتوا إيه؟</div>
+      <div class="chips" style="flex-wrap:wrap;justify-content:flex-end">${plan.map((x, i) => ch('done', i, x.done, (x.done ? '✓ ' : '') + x.name)).join('')}</div>`;
+      plan.filter(x => !x.done).forEach(x => { const i = plan.indexOf(x); h += `<div class="bub">«${esc(x.name)}» ما اتنفذش ليه؟</div><div class="chips" style="flex-wrap:wrap;justify-content:flex-end">${WHY.map(w => `<button class="chip ${x.why === w ? 'on' : ''}" data-why="${i}" data-v="${esc(w)}">${esc(w)}</button>`).join('')}</div>`; }); }
+    h += `<div class="bub">النهارده جه نقلات؟ المعدات اشتغلت؟${pend ? ` <small class="muted">(فيه ${pend} توريدة مبدئي مستنية)</small>` : ''}</div><div class="chips" style="justify-content:flex-end">${['جه كله ✓', 'لسه مستنيين', 'مفيش النهارده'].map(v => ch('sup', v, A.sup === v)).join('')}</div>
+      <div class="bub">بكرة هتشتغلوا في إيه؟ <small class="muted">(اقتراح من الجدول)</small></div><div class="chips" style="flex-wrap:wrap;justify-content:flex-end">${[...new Set(sug.concat(A.tom))].map(n => ch('tom', n, A.tom.includes(n))).join('') || '<small class="muted">مفيش بنود في الجدول لبكرة</small>'}</div>
+      <div class="bub">كام عامل متوقع بكرة؟</div><div class="chips" style="flex-wrap:wrap;justify-content:flex-end">${['2', '4', '6', '8', '10', '12+'].map(v => ch('wk', v, A.wk === v)).join('')}</div>
+      <div class="bub">محتاجين خامات لبكرة؟</div><div class="chips" style="flex-wrap:wrap;justify-content:flex-end">${['مفيش', 'رمل', 'سن', 'أسمنت', 'طوب', 'لاصق', 'سيراميك/بورسلين', 'دهانات', 'مواسير', 'سلك'].map(v => ch('mats', v, A.mats.includes(v))).join('')}</div>
+      <div class="row" style="gap:6px;margin-top:8px"><input class="in" id="ntNote" value="${esc(A.note)}" placeholder="حاجة تانية؟ (اختياري)" style="flex:1">${micBtn('ntNote')}</div>
+      ${plan.length ? `<div class="sline">PPC النهارده: <b>${Math.round(plan.filter(x => x.done).length / plan.length * 100)}%</b></div>` : ''}
+      <div class="err" id="ntE"></div><button class="btn gold" id="ntGo" style="margin-top:8px">تمام، احفظ خطة بكرة</button>`;
+    openSheet(h);
+    document.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { A.note = $('#ntNote').value; const k = b.dataset.n, v = b.dataset.v;
+      if (k === 'done') { const x = plan[Number(v)]; x.done = !x.done; if (x.done) delete x.why; }
+      else if (k === 'tom' || k === 'mats') { const L = A[k]; const i = L.indexOf(v); if (i >= 0) L.splice(i, 1); else { if (k === 'mats' && v === 'مفيش') L.length = 0; else if (k === 'mats') { const j = L.indexOf('مفيش'); if (j >= 0) L.splice(j, 1); } L.push(v); } }
+      else A[k] = A[k] === v ? '' : v; draw(); });
+    document.querySelectorAll('[data-why]').forEach(b => b.onclick = () => { A.note = $('#ntNote').value; plan[Number(b.dataset.why)].why = b.dataset.v; draw(); });
+    $('#ntGo').onclick = async () => { A.note = $('#ntNote').value;
+      if (plan.some(x => !x.done && !x.why)) { $('#ntE').textContent = 'قول سبب البند اللي ما اتنفذش'; return; }
+      if (!A.tom.length) { $('#ntE').textContent = 'اختار بند واحد على الأقل لبكرة'; return; }
+      busy($('#ntGo'), true);
+      if (todayF) { const r = await siteSave('saveForm', {form: {id: todayF.id, type: 'DAY', project: code, data: {plan, sup: A.sup}}}, 'عملت إيه النهارده'); if (r.ok) putForm(r.form || Object.assign({}, todayF, {data: Object.assign({}, todayF.data, {plan})})); }
+      const data = {plan: A.tom.map(n => { const x = its.find(y => y.name === n); return {name: n, id: x ? x.id : '', done: false}; }), workers: A.wk, mats: A.mats, note: A.note};
+      const r = await siteSave('saveForm', {form: {id: tmF ? tmF.id : undefined, type: 'DAY', project: code, due: tm, title: 'خطة ' + tm, data}}, 'خطة بكرة · ' + (p.short || p.name));
+      busy($('#ntGo'), false); if (!r.ok) return;
+      putForm(r.form || {id: 'L' + Date.now(), type: 'DAY', proj: code, due: tm, st: 'اتسجل', at: new Date().toISOString(), data});
+      toast(r.queued ? QMSG : 'خطة بكرة اتحفظت ✓ تصبح على خير 🌙'); closeSheet(); S.redraw = true; };
+  };
+  draw();
+}
+
+/* ---------- 📦 تاب استلام الخامة في فورمة التوريدة (للمالك) ---------- */
+function mirPts(mat){ const L = B().lib.filter(x => x.type === 'خامة'); const k = nrm(mat);
+  const hit = L.filter(x => x.key !== '*' && nrm(x.key).split('|').some(w => w && k.includes(w)));
+  return hit.length ? hit : L.filter(x => x.key === '*'); }
+function mirBox(f){
+  if (!isOwner() || !f.mat || !S.board) return '';
+  const P = mirPts(f.mat); if (!P.length) return '';
+  const M = f.mir || (f.mir = {v: {}, brk: '', note: ''}), must = P.filter(x => x.stage === 'لازم'), tab = P.filter(x => x.stage !== 'لازم'), x0 = P[0].x || {}, open = store.get('mirOpen', false);
+  const row = x => `<div class="ck"><span class="t">${x.must ? '🔴 ' : ''}${esc(x.text)}</span><span class="yn"><button class="${M.v[x.id] === 'ok' ? 'ok' : ''}" data-mr="${esc(x.id)}" data-v="ok" aria-label="آه">✓</button><button class="${M.v[x.id] === 'x' ? 'no' : ''}" data-mr="${esc(x.id)}" data-v="x" aria-label="لأ">✗</button></span></div>`;
+  return `<div class="card" style="margin-top:10px;padding:10px;border-color:#C6D7F0"><b style="font-size:13.5px">📦 استلام الخامة</b>${must.map(row).join('')}
+    ${x0.brk ? `<div class="row" style="gap:6px;align-items:center;margin-top:6px"><span style="font-size:13px;flex:1">فيه كسر قد إيه؟</span><input class="in" id="mirBrk" inputmode="decimal" dir="ltr" value="${esc(M.brk)}" placeholder="عدد أو %" style="max-width:120px"></div>` : ''}
+    ${tab.length ? `<button class="more" id="mirTog" style="color:var(--pri);margin-top:6px">${open ? '▴ اخفي' : '▾'} نقط تانية (${tab.length})</button>${open ? tab.map(row).join('') : ''}` : ''}
+    <div class="row" style="gap:6px;margin-top:6px"><input class="in" id="mirNote" value="${esc(M.note)}" placeholder="ملاحظة الاستلام (اختياري)" style="flex:1">${micBtn('mirNote')}</div>
+    ${Object.values(M.v).includes('x') ? `<label class="row" style="gap:6px;font-size:13px;margin-top:6px"><input type="checkbox" id="mirNcr" ${M.ncr ? 'checked' : ''}> اعمل «عدم مطابقة» للمورد</label>` : ''}</div>`;
+}
+function wireMir(f, draw, sync){
+  const keep = () => { if (!f.mir) return; if ($('#mirBrk')) f.mir.brk = $('#mirBrk').value; if ($('#mirNote')) f.mir.note = $('#mirNote').value; if ($('#mirNcr')) f.mir.ncr = $('#mirNcr').checked; };
+  document.querySelectorAll('[data-mr]').forEach(b => b.onclick = () => { if (sync) sync(); keep(); f.mir.v[b.dataset.mr] = b.dataset.v; draw(); });
+  if ($('#mirTog')) $('#mirTog').onclick = () => { if (sync) sync(); keep(); store.set('mirOpen', !store.get('mirOpen', false)); draw(); };
+  ['mirBrk', 'mirNote', 'mirNcr'].forEach(i => { if ($('#' + i)) $('#' + i).onchange = keep; });
+}
+function mirSave(f, code, date, supName){
+  if (!f.mir || !isOwner()) return; if ($('#mirBrk')) f.mir.brk = $('#mirBrk').value; if ($('#mirNote')) f.mir.note = $('#mirNote').value; if ($('#mirNcr')) f.mir.ncr = $('#mirNcr').checked;
+  const P = mirPts(f.mat), checks = P.filter(x => f.mir.v[x.id]).map(x => ({t: x.text, must: x.must ? 1 : 0, v: f.mir.v[x.id]}));
+  if (!checks.length && !f.mir.note && !f.mir.brk) return;
+  qSave('saveForm', {form: {type: 'MIR', project: code, title: 'استلام ' + f.mat, data: {mat: f.mat, sup: supName || '', date, checks, brk: f.mir.brk, note: f.mir.note, ncr: !!f.mir.ncr, who: supName || 'المورد'}}}, 'استلام خامة ' + f.mat)
+    .then(r => { if (r.ok && r.form) putForm(r.form); if (r.made && r.made.length) toast('اتعمل ' + r.made.map(x => x.no).join('، ') + ' للمورد'); });
+}
+
+/* ---------- ✓ فحص واستلام بند (قايمة الفحص) ---------- */
+function inspectSheet(code, id, parentId){
+  const p = findProject(code) || {}, it = bItems(code).find(x => x.id === id); if (!it) return;
+  const par = parentId ? B().forms.find(x => x.id === parentId) : null;
+  let pts = libFor('فحص', it).map(x => ({id: x.id, t: x.text, must: x.must ? 1 : 0, stage: x.stage}));
+  if (par) { const bad = (par.data.checks || []).filter(c => c.v === 'x').map(c => c.t); pts = pts.filter(x => bad.includes(x.t)); if (!pts.length) pts = (par.data.checks || []).filter(c => c.v === 'x').map((c, i) => ({id: 'r' + i, t: c.t, must: c.must, stage: 'الاستلام'})); }
+  const Z = B().zones.filter(z => z.proj === code && z.name !== '_بلان').map(z => z.name);
+  const V = {}, F = {zones: par ? par.zones.slice() : [], qty: '', note: '', who: par ? par.data.who || '' : '', photos: []};
+  const draw = () => {
+    const allMust = pts.filter(x => x.must).every(x => V[x.id]);
+    openSheet(`<h3>${par ? `🔁 إعادة فحص ${esc(par.no)}` : '✓ فحص واستلام'} · ${esc(it.name)}</h3>
+      ${Z.length ? `<div style="font-size:13px;margin-bottom:4px"><b>المناطق</b></div><div class="chips" style="flex-wrap:wrap">${Z.map(z => `<button class="chip ${F.zones.includes(z) ? 'on' : ''}" data-iz="${esc(z)}">${esc(z)}</button>`).join('')}</div>` : `<div class="muted" style="font-size:12.5px">ضيف مناطق المشروع من «🏁 الاستلام بالمناطق» عشان تختارها هنا.</div>`}
+      ${STG.map(s => { const L = pts.filter(x => (x.stage || 'الاستلام') === s); return L.length ? `<h2 class="sec" style="margin:10px 0 4px">${s}</h2><div class="card" style="padding:6px 10px">${L.map(x => `<div class="ck"><span class="t">${x.must ? '🔴' : '⚪'} ${esc(x.t)}${/تصو/.test(x.t) ? ' <small class="muted">📸</small>' : ''}</span>${s === 'بيتنسي' ? '' : `<span class="yn"><button class="${V[x.id] === 'ok' ? 'ok' : ''}" data-iv="${esc(x.id)}" data-v="ok" aria-label="مطابق">✓</button><button class="${V[x.id] === 'x' ? 'no' : ''}" data-iv="${esc(x.id)}" data-v="x" aria-label="مش مطابق">✗</button></span>`}</div>`).join('')}</div>` : ''; }).join('') || emptyBox('check', 'مفيش نقط فحص للبند ده في المكتبة الفنية')}
+      <div class="row" style="gap:6px;margin-top:10px;flex-wrap:wrap"><input class="in" id="irQ" inputmode="decimal" dir="ltr" value="${esc(F.qty)}" placeholder="الكمية المقبولة (${esc(it.unit)})" style="flex:1 1 140px"><input class="in" id="irW" value="${esc(F.who)}" placeholder="المسؤول (المقاول / الصنايعي)" style="flex:1 1 140px"></div>
+      <div class="row" style="gap:6px;margin-top:6px"><input class="in" id="irN" value="${esc(F.note)}" placeholder="ملاحظات" style="flex:1">${micBtn('irN')}</div>
+      <label class="btn ghost" style="margin-top:8px;display:flex;justify-content:center;gap:8px">${ic('camera')} صورة ${F.photos.length ? `(${F.photos.length})` : ''}<input type="file" id="irPh" accept="image/*" capture="environment" hidden></label>
+      <div class="err" id="irE"></div><button class="btn gold" id="irGo" style="margin-top:8px" ${allMust ? '' : 'disabled'}>${allMust ? 'احفظ الفحص' : 'علّم كل النقط 🔴 الأول'}</button>`);
+    const keep = () => { F.qty = $('#irQ').value; F.who = $('#irW').value; F.note = $('#irN').value; };
+    document.querySelectorAll('[data-iv]').forEach(b => b.onclick = () => { keep(); V[b.dataset.iv] = b.dataset.v; draw(); });
+    document.querySelectorAll('[data-iz]').forEach(b => b.onclick = () => { keep(); const i = F.zones.indexOf(b.dataset.iz); if (i >= 0) F.zones.splice(i, 1); else F.zones.push(b.dataset.iz); draw(); });
+    $('#irPh').onchange = async e => { keep(); const fl = e.target.files[0]; if (!fl) return; const b64 = await shrinkImage(fl, 1280);
+      if (!navigator.onLine) { toast('الصورة محتاجة نت'); return; } toast('بيرفع الصورة…');
+      const r = await api('formPic', {photo: b64, name: it.name}); if (r.ok) { F.photos.push({url: r.url, link: r.link, at: new Date().toISOString(), zone: F.zones[0] || ''}); draw(); } else toast(errMsg(r)); };
+    $('#irGo').onclick = async () => { keep(); const checks = pts.filter(x => V[x.id]).map(x => ({t: x.t, must: x.must, v: V[x.id]}));
+      const st = checks.some(c => c.must && c.v === 'x') ? 'مرفوض' : checks.some(c => c.v === 'x') ? 'مقبول بملاحظات' : 'مقبول';
+      busy($('#irGo'), true);
+      const r = await siteSave('saveForm', {form: {type: 'IR', project: code, item: it.name, zones: F.zones, parent: par ? par.id : '', st, title: 'استلام ' + it.name, data: {checks, qty: numIn(F.qty), who: F.who, note: F.note, photos: F.photos, itemId: it.id}}}, 'فحص ' + it.name);
+      busy($('#irGo'), false); if (!r.ok) return; if (r.form) putForm(r.form); else putForm({id: 'L' + Date.now(), type: 'IR', no: '⏳', proj: code, item: it.name, zones: F.zones, st, at: new Date().toISOString(), parent: par ? par.id : '', data: {checks, who: F.who, note: F.note, photos: F.photos}});
+      toast(r.queued ? QMSG : `${r.form.no} ${st}${r.made && r.made.length ? ' · واتعمل ' + r.made[0].no : ''} ✓`); if (!r.queued) await board(true); zonesSheet(code); };
+  };
+  draw();
+}
+
+/* ---------- 🏁 الاستلام بالمناطق (شاشة واحدة بطبقات) ---------- */
+function zoneState(code){
+  const IR = bForms(code, 'IR'), NC = bForms(code, 'NCR').filter(x => x.st !== 'مقفول');
+  const Z = B().zones.filter(z => z.proj === code && z.name !== '_بلان');
+  return Z.map(z => { const mine = IR.filter(f => f.zones.includes(z.name)), ok = mine.some(f => /^مقبول/.test(f.st)), nc = NC.filter(n => n.zones.includes(z.name));
+    return {z, ok: ok && !nc.length, nc, irs: mine, pts: nc.reduce((s, n) => s + (n.data.items || []).length, 0)}; });
+}
+async function zonesSheet(code, tab){
+  const p = findProject(code) || {}; await board(false);
+  const T = tab || store.get('znT', 'z'); store.set('znT', T);
+  const ZS = zoneState(code), plan = B().zones.find(z => z.proj === code && z.name === '_بلان'), NC = bForms(code, 'NCR').filter(x => x.st !== 'مقفول'), t = tdy();
+  const nxt = NC.map(x => x.due).filter(Boolean).sort()[0];
+  const pin = s => s.ok ? '#1D9E75' : s.nc.length ? '#E24B4A' : s.irs.length ? '#EF9F27' : '#9AA3AF';
+  openSheet(`<div class="shd">الاستلام بالمناطق · ${esc(p.short || p.name || code)}<small>كما في ${esc(dd(t))}</small></div>
+    <div class="sbd"><div class="kp2"><div class="kpc"><small class="muted">اتستلم</small><b>${ZS.filter(s => s.ok).length} <small style="font-size:13px">من ${ZS.length}</small></b><small class="muted">منطقة</small></div>
+      <div class="kpc"><small class="muted">ملاحظات مفتوحة</small><b style="color:${NC.length ? 'var(--bad)' : 'var(--ok)'}">${NC.length}</b><small class="muted">${nxt ? 'أقرب ميعاد ' + dd(nxt) : '—'}</small></div></div>
+    <div class="tabs" style="margin:10px 0 8px"><button class="tab ${T === 'p' ? 'on' : ''}" data-zt="p">البلان</button><button class="tab ${T === 'z' ? 'on' : ''}" data-zt="z">المناطق</button></div>
+    ${T === 'p' ? (plan && plan.note ? `<div id="znPlan" style="position:relative"><img src="${esc(plan.note)}" alt="البلان" style="width:100%;border-radius:10px;display:block">
+        ${ZS.filter(s => s.z.x !== '' && s.z.y !== '').map(s => `<span class="zpin" style="right:${s.z.x}%;top:${s.z.y}%;background:${pin(s)}">${esc(s.z.name.slice(0, 6))}</span>`).join('')}</div>
+        <div class="chips" style="flex-wrap:wrap;margin-top:8px"><small class="muted" style="align-self:center">علّم مكان:</small>${ZS.map(s => `<button class="chip ${S.zPick === s.z.id ? 'on' : ''}" data-zp="${esc(s.z.id)}">${esc(s.z.name)}</button>`).join('')}</div>
+        <div class="sline">اختار منطقة ودوس على مكانها في البلان · أخضر اتستلم · أحمر فيه ملاحظات · برتقاني اتفحص</div>`
+      : `<div class="empty">${ic('camera')}<div>ارفع صورة البلان أو المسقط، وعلّم المناطق بصباعك</div></div>`)
+      + `<label class="btn ghost" style="margin-top:8px;display:flex;justify-content:center;gap:8px">${ic('camera')} ${plan ? 'غيّر صورة البلان' : 'ارفع صورة البلان'}<input type="file" id="znImg" accept="image/*" hidden></label>`
+    : `${ZS.map(s => `<div class="card" style="padding:10px;margin-bottom:8px;border-inline-start:4px solid ${pin(s)}"><div class="sr" style="padding:0"><b>${esc(s.z.name)}</b>${s.ok ? fPill('اتستلم') : s.nc.length ? `<span class="pill p-bad">${s.pts || s.nc.length} نقط مطابقة</span>` : s.irs.length ? fPill('اتفحص') : '<span class="pill p-info">لسه</span>'}</div>
+        ${s.nc.length ? `<details style="font-size:13px;margin-top:4px"><summary style="color:var(--pri)">اعرضهم</summary>${s.nc.map(n => `<div style="padding:3px 0">• ${esc((n.data.items || []).join('، ') || n.title)} <small class="muted">${esc(n.no)} · ${esc(n.data.who || '')} · ${dd(n.due)}</small></div>`).join('')}</details>` : ''}
+        ${(() => { const its = bItems(code).filter(x => s.irs.some(f => f.item === x.name)); const tp = its.map(tipOf).find(Boolean); return tp ? `<div class="sline">💡 ${esc(tp)}</div>` : ''; })()}
+        <div class="row" style="gap:6px;margin-top:6px">${s.nc.length ? `<button class="chip" data-zr="${esc(s.z.name)}">🔁 إعادة فحص</button>` : ''}<button class="chip" data-zpr="${esc(s.z.name)}">🖨️ اطبع ▾</button></div></div>`).join('') || emptyBox('folder', 'لسه مفيش مناطق')}
+      <div style="font-size:13px;margin-top:8px"><b>ضيف مناطق</b></div><div class="chips" style="flex-wrap:wrap">${ZQ.filter(z => !ZS.some(s => s.z.name === z)).map(z => `<button class="chip" data-za="${esc(z)}">+ ${esc(z)}</button>`).join('')}</div>
+      <div class="row" style="gap:6px;margin-top:6px"><input class="in" id="znNew" placeholder="منطقة تانية" style="flex:1"><button class="btn ghost" id="znAdd" style="width:auto">ضيف</button></div>`}
+    </div>
+    <div class="row" style="gap:6px"><button class="btn gold" id="znIr" style="flex:1">✓ فحص بند</button><button class="btn ghost" id="znPrint" style="flex:1">🖨️ اطبع الكل ▾</button></div>`);
+  document.querySelectorAll('[data-zt]').forEach(b => b.onclick = () => zonesSheet(code, b.dataset.zt));
+  const addZ = async names => { const r = await siteSave('saveZone', {project: code, zones: names}, 'مناطق ' + (p.short || p.name));
+    if (r.ok && S.board) { if (r.zones) S.board.zones = S.board.zones.filter(z => z.proj !== code).concat(r.zones); else names.forEach(n => S.board.zones.push({id: 'L' + n, proj: code, name: n, x: '', y: ''})); } zonesSheet(code, 'z'); };
+  document.querySelectorAll('[data-za]').forEach(b => b.onclick = () => addZ([b.dataset.za]));
+  if ($('#znAdd')) $('#znAdd').onclick = () => { const v = $('#znNew').value.trim(); if (v) addZ([v]); };
+  document.querySelectorAll('[data-zp]').forEach(b => b.onclick = () => { S.zPick = b.dataset.zp; zonesSheet(code, 'p'); });
+  if ($('#znPlan')) $('#znPlan').onclick = async e => { if (!S.zPick) { toast('اختار المنطقة الأول'); return; } const r0 = e.currentTarget.getBoundingClientRect();
+    const x = Math.round((r0.right - e.clientX) / r0.width * 1000) / 10, y = Math.round((e.clientY - r0.top) / r0.height * 1000) / 10, z = B().zones.find(q => q.id === S.zPick); if (!z) return;
+    z.x = x; z.y = y; const r = await siteSave('saveZone', {project: code, zone: {id: z.id, name: z.name, x, y}}, 'مكان ' + z.name); if (r.ok && r.zones && S.board) S.board.zones = S.board.zones.filter(q => q.proj !== code).concat(r.zones); S.zPick = ''; zonesSheet(code, 'p'); };
+  if ($('#znImg')) $('#znImg').onchange = async e => { const fl = e.target.files[0]; if (!fl) return; if (!navigator.onLine) { toast('رفع البلان محتاج نت'); return; }
+    toast('بيرفع البلان…'); const r = await api('planImg', {project: code, photo: await shrinkImage(fl, 1600)}); if (!r.ok) { toast(errMsg(r)); return; }
+    if (S.board) S.board.zones = S.board.zones.filter(q => q.proj !== code).concat(r.zones); zonesSheet(code, 'p'); };
+  document.querySelectorAll('[data-zr]').forEach(b => b.onclick = () => { const s = ZS.find(q => q.z.name === b.dataset.zr), n = s && s.nc[0];
+    const par = n && B().forms.find(f => f.id === n.parent), it = par && bItems(code).find(x => x.name === par.item); if (par && it) inspectSheet(code, it.id, par.id); else toast('مش لاقي الفحص الأصلي'); });
+  document.querySelectorAll('[data-zpr]').forEach(b => b.onclick = () => printMenu(code, b.dataset.zpr));
+  $('#znPrint').onclick = () => printMenu(code, '');
+  $('#znIr').onclick = () => { const L = bItems(code); openSheet(`<h3>✓ فحص بند</h3>${L.map(x => `<button class="li" data-zi="${esc(x.id)}"><span class="t"><b>${esc(x.name)}</b><small>${Math.round(bProg(code, x.id).pct)}% · ${esc(itemSt(code, x))}</small></span></button>`).join('') || emptyBox('doc', 'حط المقايسة الأول')}`);
+    document.querySelectorAll('[data-zi]').forEach(b => b.onclick = () => inspectSheet(code, b.dataset.zi)); };
+}
+function printMenu(code, zone){
+  openSheet(`<h3>🖨️ اطبع${zone ? ' · ' + esc(zone) : ''}</h3>
+    <button class="li" data-pm="A"><span class="t"><b>(أ) رسمي بجدول</b><small>زي النماذج الورقية بالتوقيعات والـ QR</small></span></button>
+    <button class="li" data-pm="B"><span class="t"><b>(ب) كروت بالمناطق والصور</b><small>لكل منطقة مشاكلها وصورها</small></span></button>
+    <button class="li" data-pm="C"><span class="t"><b>(ج) صفحة بالبلان</b><small>البلان والدبابيس بالألوان</small></span></button>
+    <button class="li" data-pm="all"><span class="t"><b>الكل في ملف واحد</b><small>التلاتة مكملين لبعض</small></span></button>`);
+  document.querySelectorAll('[data-pm]').forEach(b => b.onclick = async () => { const k = b.dataset.pm, p = findProject(code) || {}, logo = await logoURL();
+    const F = bForms(code, 'IR').filter(f => !zone || f.zones.includes(zone)).sort((a, b) => a.at.localeCompare(b.at));
+    const parts = []; if (k === 'A' || k === 'all') parts.push(F.map(f => paperA(f, p, logo)).join('<div style="page-break-after:always"></div>') || '<p>مفيش فحوصات</p>');
+    if (k === 'B' || k === 'all') parts.push(paperB(code, p, logo, zone)); if (k === 'C' || k === 'all') parts.push(paperC(code, p, logo));
+    printHtml(parts.join('<div style="page-break-after:always"></div>'), 'استلام ' + (p.short || code)); });
+}
+const PSTY = 'font-family:Cairo,Tahoma,Arial;font-size:12px;color:#222';
+const pTop = (title, no, p, logo, f) => `<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1D2E4F;padding-bottom:6px;margin-bottom:8px">
+  <div style="display:flex;gap:8px;align-items:center">${logo ? `<img src="${logo}" style="width:40px;height:40px;border-radius:50%">` : ''}<div><b style="font-size:15px;color:#1D2E4F">${esc(title)}</b><br><span style="font-size:11px">الشرق الأوسط للإنشاءات · MEC</span></div></div>
+  <div style="text-align:left;font-size:11px">${no ? `<b>${esc(no)}</b><br>` : ''}${esc(p.name || '')}<br>${esc(f ? (f.at || '').slice(0, 10) : tdy())}</div>${no && typeof qrSvg === 'function' ? qrSvg(`MEC ${no} ${p.code || ''} ${f ? (f.at || '').slice(0, 10) : ''}`, 64) : ''}</div>`;
+const pSig = () => `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;font-size:11px;margin-top:22px">${['المسلّم', 'المستلم', 'المراجع'].map(x => `<div style="border-top:1px solid #888;padding-top:4px">${x}</div>`).join('')}</div>`;
+const pTb = 'width:100%;border-collapse:collapse', pTd = 'border:1px solid #888;padding:4px 6px;text-align:right;font-size:11px';
+function paperA(f, p, logo){
+  return `<div style="${PSTY}">${pTop(FT[f.type] || f.title, f.no, p, logo, f)}
+    <table style="${pTb};margin-bottom:8px"><tr><td style="${pTd};background:#E8F0FB">البند</td><td style="${pTd}">${esc(f.item)}</td><td style="${pTd};background:#E8F0FB">المناطق</td><td style="${pTd}">${esc(f.zones.join('، '))}</td></tr>
+      <tr><td style="${pTd};background:#E8F0FB">النتيجة</td><td style="${pTd}"><b>${esc(f.st)}</b></td><td style="${pTd};background:#E8F0FB">الكمية المقبولة</td><td style="${pTd}">${esc(f.data.qty || '')}</td></tr></table>
+    <table style="${pTb}"><tr><th style="${pTd};background:#E8F0FB;color:#1D2E4F">#</th><th style="${pTd};background:#E8F0FB;color:#1D2E4F">النقطة</th><th style="${pTd};background:#E8F0FB;color:#1D2E4F">لازم</th><th style="${pTd};background:#E8F0FB;color:#1D2E4F">النتيجة</th></tr>
+      ${(f.data.checks || []).map((c, i) => `<tr><td style="${pTd}">${i + 1}</td><td style="${pTd}">${esc(c.t)}</td><td style="${pTd}">${c.must ? '🔴' : ''}</td><td style="${pTd}">${c.v === 'ok' ? '✓ مطابق' : '✗ غير مطابق'}</td></tr>`).join('')}</table>
+    ${f.data.note ? `<p><b>ملاحظات:</b> ${esc(f.data.note)}</p>` : ''}${f.data.who ? `<p><b>المسؤول:</b> ${esc(f.data.who)}</p>` : ''}${pSig()}</div>`;
+}
+function paperB(code, p, logo, zone){
+  const ZS = zoneState(code).filter(s => !zone || s.z.name === zone);
+  return `<div style="${PSTY}">${pTop('استلام بالمناطق — كروت', '', p, logo)}${ZS.map(s => { const ph = s.irs.flatMap(f => (f.data.photos || []).filter(x => !x.zone || x.zone === s.z.name)).slice(0, 3);
+    return `<div style="border:1px solid #ccc;border-radius:8px;padding:8px;margin-bottom:8px;break-inside:avoid"><b>${esc(s.z.name)}</b> — ${s.ok ? '✓ اتستلم' : s.nc.length ? '✗ فيه ملاحظات' : 'لسه'}
+      ${s.nc.map(n => `<div>• ${esc((n.data.items || []).join('، '))} <span style="color:#666">(${esc(n.no)} · ${esc(n.data.who || '')} · ${esc(n.due)})</span></div>`).join('')}
+      ${ph.length ? `<div style="display:flex;gap:6px;margin-top:6px">${ph.map(x => `<img src="${esc(x.url)}" style="width:32%;border-radius:6px">`).join('')}</div>` : ''}</div>`; }).join('')}</div>`;
+}
+function paperC(code, p, logo){
+  const plan = B().zones.find(z => z.proj === code && z.name === '_بلان'), ZS = zoneState(code);
+  const c = s => s.ok ? '#1D9E75' : s.nc.length ? '#E24B4A' : s.irs.length ? '#EF9F27' : '#9AA3AF';
+  return `<div style="${PSTY}">${pTop('استلام بالمناطق — البلان', '', p, logo)}${plan && plan.note ? `<div style="position:relative"><img src="${esc(plan.note)}" style="width:100%">${ZS.filter(s => s.z.x !== '').map(s => `<span style="position:absolute;right:${s.z.x}%;top:${s.z.y}%;transform:translate(50%,-50%);background:${c(s)};color:#fff;border-radius:10px;padding:1px 6px;font-size:10px">${esc(s.z.name)}</span>`).join('')}</div>` : '<p>مفيش صورة بلان</p>'}
+    <p style="font-size:11px">أخضر اتستلم · أحمر فيه ملاحظات · برتقاني اتفحص · رمادي لسه</p></div>`;
+}
+
+/* ---------- 🔁 أوامر التغيير (واللي العميل بيشوفه) ---------- */
+async function coSheet(code){
+  const p = findProject(code) || {}; await board(false);
+  const L = bForms(code, 'CO').sort((a, b) => b.at.localeCompare(a.at)), ok = L.filter(x => ['وافق', 'اتنفذ'].includes(x.st));
+  const sumP = ok.reduce((s, x) => s + (Number(x.data.pfin) || Number(x.data.pmax) || 0), 0), sumD = ok.reduce((s, x) => s + (Number(x.data.dmax) || 0), 0);
+  openSheet(`<h3>🔁 أوامر التغيير · ${esc(p.short || p.name || code)}</h3>
+    ${ok.length ? `<div class="kp2" style="margin-bottom:8px">${B().money ? `<div class="kpc"><small class="muted">إجمالي اللي اتوافق</small><b>${nf(sumP)}</b><small class="muted">جنيه (حد أقصى)</small></div>` : ''}<div class="kpc"><small class="muted">أثره على المدة</small><b>${sumD}</b><small class="muted">يوم</small></div></div>` : ''}
+    ${role() === 'supervisor' || role() === 'accountant' ? '' : `<button class="btn gold" id="coNew">${ic('plus')} أمر تغيير جديد</button>`}
+    <div style="margin-top:10px">${L.map(x => `<button class="li" data-co="${esc(x.id)}"><span class="t"><b style="white-space:normal">${esc(x.no)} · ${esc(x.title)}</b><small>${esc(x.data.kind || '')} · ${esc((x.at || '').slice(0, 10))}</small></span>${fPill(x.st)}</button>`).join('') || emptyBox('doc', 'مفيش أوامر تغيير')}</div>`);
+  if ($('#coNew')) $('#coNew').onclick = () => coForm(code);
+  document.querySelectorAll('[data-co]').forEach(b => b.onclick = () => coForm(code, b.dataset.co));
+}
+function coForm(code, fid){
+  const p = findProject(code) || {}, ex = fid ? B().forms.find(x => x.id === fid) : null, money = B().money;
+  const d = Object.assign({kind: 'طلب من العميل', how: 'جاهز', desc: '', lines: [{name: '', unit: '', qty: ''}], pmin: '', pmax: '', grade: 'C', dmin: '', dmax: '', dlater: false, verbal: ''}, ex ? JSON.parse(JSON.stringify(ex.data)) : {});
+  let title = ex ? ex.title : '';
+  const NEXT = {'مسودة': ['اتبعت'], 'اتبعت': ['وافق', 'اترفض'], 'وافق': ['اتنفذ'], 'اترفض': [], 'اتنفذ': []}, st = ex ? ex.st : 'مسودة', canSt = isBoss();
+  const draw = () => {
+    openSheet(`<h3>${ex ? esc(ex.no) : '🔁 أمر تغيير جديد'}${ex ? ' ' + fPill(st) : ''}</h3>
+      <label class="f">العنوان</label><input class="in" id="coT" value="${esc(title)}" placeholder="مثلا: زيادة 10 نقط كهرباء في الصالة">
+      <label class="f">النوع</label><div class="chips" style="flex-wrap:wrap">${['طلب من العميل', 'اقتراح مننا', 'ظرف في الموقع / حتمي'].map(k => `<button class="chip ${d.kind === k ? 'on' : ''}" data-ck="${esc(k)}">${esc(k)}</button>`).join('')}</div>
+      <label class="f">اللي هيتعمل</label><textarea class="in" id="coD" placeholder="الوصف">${esc(d.desc)}</textarea>
+      <label class="f">البنود (بتدخل المقايسة والجدول بعد الموافقة)</label>${d.lines.map((l, i) => `<div class="row" style="gap:4px;margin-bottom:4px"><input class="in" data-cln="${i}" value="${esc(l.name)}" placeholder="البند" style="flex:2"><input class="in" data-clq="${i}" inputmode="decimal" dir="ltr" value="${esc(l.qty)}" placeholder="كمية" style="flex:1"><input class="in" data-clu="${i}" value="${esc(l.unit)}" placeholder="وحدة" style="flex:1"></div>`).join('')}
+      <button class="more" id="coL" style="color:var(--pri)">+ بند</button>
+      ${money ? `<label class="f">السعر (رينج غير ملزم)</label><div class="row" style="gap:6px"><input class="in" id="coP1" inputmode="decimal" dir="ltr" value="${esc(d.pmin)}" placeholder="من"><input class="in" id="coP2" inputmode="decimal" dir="ltr" value="${esc(d.pmax)}" placeholder="لحد"></div>
+        <div class="chips" style="margin-top:6px"><small class="muted" style="align-self:center">درجة الدقة:</small>${['A', 'B', 'C', 'D'].map(g => `<button class="chip ${d.grade === g ? 'on' : ''}" data-cg="${g}">${g}</button>`).join('')}</div>
+        ${['وافق', 'اتنفذ'].includes(st) ? `<label class="f">السعر النهائي بعد التنفيذ</label><input class="in" id="coPF" inputmode="decimal" dir="ltr" value="${esc(d.pfin || '')}">` : ''}` : ''}
+      <label class="f">المدة</label><label class="row" style="gap:6px;font-size:13px"><input type="checkbox" id="coDL" ${d.dlater ? 'checked' : ''}> تتحدد بعد التنفيذ</label>
+      ${d.dlater ? '' : `<div class="row" style="gap:6px;margin-top:4px"><input class="in" id="coD1" inputmode="numeric" dir="ltr" value="${esc(d.dmin)}" placeholder="من (يوم)"><input class="in" id="coD2" inputmode="numeric" dir="ltr" value="${esc(d.dmax)}" placeholder="لحد (يوم)"></div>`}
+      <label class="f">تنفيذ عاجل؟ مين وافق شفهي</label><input class="in" id="coV" value="${esc(d.verbal)}" placeholder="اختياري: الاسم والوقت">
+      <div class="err" id="coE"></div>
+      ${role() === 'supervisor' || role() === 'accountant' ? '' : `<button class="btn gold" id="coGo" style="margin-top:8px">احفظ</button>`}
+      ${ex && canSt && NEXT[st].length ? `<div class="row" style="gap:6px;margin-top:8px">${NEXT[st].map(n => `<button class="btn ${n === 'اترفض' ? 'ghost' : 'pri'}" data-cs="${n}" style="flex:1">${n === 'اتبعت' ? '📤 اتبعت للعميل' : n === 'وافق' ? '✓ العميل وافق' : n === 'اترفض' ? '✗ اترفض' : '🔨 اتنفذ'}</button>`).join('')}</div>` : ''}
+      ${ex ? `<button class="btn ghost" id="coCl" style="margin-top:8px">👁️ اللي العميل بيشوفه / اطبع</button>` : ''}
+      ${ex && ex.data.hist ? `<div class="sline">${ex.data.hist.map(h => `${esc(h.st)} · ${esc(h.by)} · ${esc((h.at || '').slice(0, 10))}${h.verbal ? ' (شفهي: ' + esc(h.verbal) + ')' : ''}`).join('<br>')}</div>` : ''}`);
+    const keep = () => { title = $('#coT').value; d.desc = $('#coD').value; d.verbal = $('#coV').value; d.dlater = $('#coDL').checked;
+      if ($('#coP1')) { d.pmin = numIn($('#coP1').value); d.pmax = numIn($('#coP2').value); } if ($('#coPF')) d.pfin = numIn($('#coPF').value);
+      if ($('#coD1')) { d.dmin = numIn($('#coD1').value); d.dmax = numIn($('#coD2').value); }
+      document.querySelectorAll('[data-cln]').forEach(i => d.lines[i.dataset.cln].name = i.value); document.querySelectorAll('[data-clq]').forEach(i => d.lines[i.dataset.clq].qty = numIn(i.value)); document.querySelectorAll('[data-clu]').forEach(i => d.lines[i.dataset.clu].unit = i.value); };
+    document.querySelectorAll('[data-ck]').forEach(b => b.onclick = () => { keep(); d.kind = b.dataset.ck; draw(); });
+    document.querySelectorAll('[data-cg]').forEach(b => b.onclick = () => { keep(); d.grade = b.dataset.cg; draw(); });
+    $('#coDL').onchange = () => { keep(); draw(); }; $('#coL').onclick = () => { keep(); d.lines.push({name: '', unit: '', qty: ''}); draw(); };
+    const save = async stNew => { keep(); if (!title.trim()) { $('#coE').textContent = 'اكتب العنوان'; return; }
+      d.lines = d.lines.filter(l => String(l.name).trim());
+      const r = await siteSave('saveForm', {form: {id: ex ? ex.id : undefined, type: 'CO', project: code, title, st: stNew || st, data: d}}, 'أمر تغيير ' + title);
+      if (!r.ok) return; if (r.form) putForm(r.form); if (stNew === 'وافق' && !r.queued) await board(true);
+      toast(r.queued ? QMSG : stNew === 'وافق' ? 'اتوافق ✓ والبنود دخلت المقايسة والجدول' : 'اتحفظ ✓'); coSheet(code); };
+    if ($('#coGo')) $('#coGo').onclick = () => save();
+    document.querySelectorAll('[data-cs]').forEach(b => b.onclick = () => save(b.dataset.cs));
+    if ($('#coCl')) $('#coCl').onclick = async () => printHtml(coClient(ex, p, await logoURL()), ex.no);
+  };
+  draw();
+}
+function coClient(f, p, logo){
+  const d = f.data || {}, all = bForms(p.code, 'CO').filter(x => ['وافق', 'اتنفذ'].includes(x.st));
+  return `<div style="${PSTY};font-size:13px">${pTop('أمر تغيير', f.no, p, logo, f)}<h3 style="margin:4px 0">${esc(f.title)}</h3><p>${esc(d.desc || '')}</p>
+    ${(d.lines || []).length ? `<table style="${pTb}"><tr><th style="${pTd}">البند</th><th style="${pTd}">الكمية</th></tr>${d.lines.map(l => `<tr><td style="${pTd}">${esc(l.name)}</td><td style="${pTd}">${esc(l.qty)} ${esc(l.unit)}</td></tr>`).join('')}</table>` : ''}
+    ${d.pmax ? `<p><b>السعر التقريبي:</b> من ${nf(d.pmin)} لحد ${nf(d.pmax)} جنيه <span style="color:#666">(غير ملزم · درجة الدقة ${esc(d.grade)})</span>${d.pfin ? `<br><b>السعر النهائي:</b> ${nf(d.pfin)} جنيه` : ''}</p>` : ''}
+    <p><b>المدة:</b> ${d.dlater ? 'تتحدد بعد التنفيذ' : `من ${esc(d.dmin || '?')} لحد ${esc(d.dmax || '?')} يوم`}</p>
+    <p style="background:#F3F6FA;padding:6px;border-radius:6px"><b>إجمالي أوامر التغيير اللي اتوافق عليها:</b> ${all.length} · ${nf(all.reduce((s, x) => s + (Number(x.data.pfin) || Number(x.data.pmax) || 0), 0))} جنيه · ${all.reduce((s, x) => s + (Number(x.data.dmax) || 0), 0)} يوم</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;font-size:11px;margin-top:26px"><div style="border-top:1px solid #888;padding-top:4px">الشركة</div><div style="border-top:1px solid #888;padding-top:4px">موافقة العميل</div></div></div>`;
+}
+
+/* ---------- 📖 المكتبة الفنية (المالك والمدير) ---------- */
+const LT = [['فهرس', '📁 الفهرس'], ['فحص', '✓ الفحص'], ['خبرة', '💡 من الخبرة'], ['خامة', '📦 استلام الخامات'], ['استرشادي', '🔢 الأرقام الاسترشادية'], ['إجازة', '🗓️ أيام الإجازة'], ['اقتراح معدل', '📈 اقتراحات المعدلات']];
+async function libSheet(tab, q){
+  await board(false); const T = tab || store.get('lbT', 'فهرس'); store.set('lbT', T); q = q || '';
+  const L = B().lib.filter(x => x.type === T && (!q || nrm(x.text + ' ' + x.key + ' ' + JSON.stringify(x.x || {})).includes(nrm(q))));
+  const can = isOwner() || (role() === 'manager' && T === 'فهرس');
+  openSheet(`<h3>📖 المكتبة الفنية</h3>
+    <div class="row" style="gap:6px"><input class="in" id="lbAsk" placeholder="اسأل المكتبة: سمك العزل على حيطة الدش كام؟" style="flex:1">${micBtn('lbAsk')}<button class="mic" id="lbAskGo" aria-label="اسأل">${ic('search')}</button></div><div id="lbAns"></div>
+    <div class="tabs" style="margin-top:8px">${LT.filter(t => t[0] !== 'اقتراح معدل' || isOwner()).map(([k, n]) => `<button class="tab ${T === k ? 'on' : ''}" data-lt="${k}">${n}</button>`).join('')}</div>
+    <input class="in" id="lbQ" value="${esc(q)}" placeholder="دوّر في ${esc(T)}">
+    <div style="margin-top:8px">${T === 'إجازة' ? `<div class="sline" style="margin-bottom:6px">الجمعة والإجازات الرسمية (من تقويم جوجل) مش أيام شغل. ضيف إجازات الشركة هنا.</div>${(B().hol || []).filter(h => h.date >= tdy()).slice(0, 12).map(h => `<div class="sr" style="font-size:13px"><span>${dd(h.date)}</span><span class="muted">${esc(h.why)}</span></div>`).join('')}` : ''}
+      ${L.map(x => `<div class="card" style="padding:10px;margin-bottom:6px"><div class="sr" style="padding:0;align-items:flex-start"><span style="font-size:13.5px;flex:1">${x.must ? '🔴 ' : ''}${esc(x.text)}
+        <br><small class="muted">${esc([x.key, x.stage, x.x && x.x.value !== undefined ? x.x.value + ' ' + (x.x.unit || '') : '', x.x && x.x.page ? 'ص ' + x.x.page : '', x.x && x.x.folder || '', x.x && x.x.st || ''].filter(Boolean).join(' · '))}</small></span>
+        ${x.x && x.x.link ? `<a class="more" href="${esc(x.x.link)}" target="_blank" rel="noopener">افتح</a>` : ''}${can ? `<button class="ibtn" data-le="${esc(x.id)}" aria-label="تعديل">${ic('edit')}</button>` : ''}</div>
+        ${isOwner() && x.x && x.x.st === 'مقترح' ? `<div class="row" style="gap:6px;margin-top:6px"><button class="chip" data-ld="${esc(x.id)}" data-ok="1">✓ اعتمد</button><button class="chip" data-ld="${esc(x.id)}" data-ok="">✗ ارفض</button><small class="muted">${esc(x.x.from || '')}</small></div>` : ''}</div>`).join('') || emptyBox('doc', 'مفيش حاجة هنا لسه')}</div>
+    ${can || (T === 'خبرة') ? `<button class="btn gold" id="lbNew" style="margin-top:8px">${ic('plus')} ${T === 'خبرة' && !isOwner() ? 'اقترح نصيحة' : 'ضيف'}</button>` : ''}`);
+  document.querySelectorAll('[data-lt]').forEach(b => b.onclick = () => libSheet(b.dataset.lt));
+  $('#lbQ').onchange = e => libSheet(T, e.target.value);
+  document.querySelectorAll('[data-le]').forEach(b => b.onclick = () => libForm(T, B().lib.find(x => x.id === b.dataset.le)));
+  if ($('#lbNew')) $('#lbNew').onclick = () => libForm(T);
+  document.querySelectorAll('[data-ld]').forEach(b => b.onclick = async () => { const ok = !!b.dataset.ok; const why = ok ? '' : (prompt('السبب؟') || '');
+    if (!navigator.onLine) { toast('محتاج نت'); return; } const r = await api('decideLib', {id: b.dataset.ld, approve: ok, why}); if (!r.ok) { toast(errMsg(r)); return; }
+    S.board.lib = S.board.lib.map(x => x.id === r.lib.id ? r.lib : x); libSheet(T); });
+  $('#lbAskGo').onclick = async () => { const v = $('#lbAsk').value.trim(); if (!v) return; if (!navigator.onLine) { toast('«اسأل المكتبة» محتاجة نت'); return; }
+    $('#lbAns').innerHTML = '<div class="muted" style="margin-top:6px">بيدوّر…</div>'; const r = await api('askLib', {q: v}); if (!$('#lbAns')) return;
+    $('#lbAns').innerHTML = r.ok ? `<div class="card" style="margin-top:6px;background:#FFF8E6;border-color:#F0DCA6;font-size:13.5px;white-space:pre-wrap">${esc(r.answer)}${(r.refs || []).map(id => B().lib.find(x => x.id === id)).filter(Boolean).map(x => `<div class="sline">📖 ${esc(x.text)}${x.x.page ? ' · ص ' + esc(x.x.page) : ''}</div>`).join('')}</div>`
+      : `<div class="err">${esc(r.error === 'noAI' ? 'مفتاح Gemini مش متركّب' : errMsg(r))}</div>`; };
+}
+function libForm(T, x){
+  const v = Object.assign({type: T, key: '', stage: T === 'فحص' ? 'الاستلام' : T === 'خامة' ? 'لازم' : '', text: '', must: false, x: {}}, x ? JSON.parse(JSON.stringify(x)) : {});
+  const F = {فهرس: [['folder', 'الفولدر'], ['page', 'رقم الصفحة'], ['link', 'لينك Drive'], ['mlink', 'لينك الشركة المصنّعة'], ['kw', 'كلمات البحث'], ['sum', 'ملخص سطرين']], استرشادي: [['value', 'الرقم'], ['unit', 'الوحدة']]}[T] || [];
+  openSheet(`<h3>${x ? 'تعديل' : 'ضيف'} · ${esc(T)}</h3>
+    <label class="f">${T === 'فهرس' ? 'اسم الملف (القسم - الموضوع - المصدر - السنة)' : T === 'إجازة' ? 'سبب الإجازة' : 'النص'}</label><textarea class="in" id="lfT">${esc(v.text)}</textarea>
+    ${T === 'إجازة' ? `<label class="f">اليوم</label><input class="in" type="date" id="lfK" value="${esc(v.key)}">` : T === 'استرشادي' ? '' : `<label class="f">${T === 'خامة' ? 'الخامة (كلمات بينهم |)' : 'البند أو القسم (زي PL|محاره)'}</label><input class="in" id="lfK" value="${esc(v.key)}">`}
+    ${T === 'فحص' ? `<label class="f">المرحلة</label><div class="chips" style="flex-wrap:wrap">${STG.map(s => `<button class="chip ${v.stage === s ? 'on' : ''}" data-lfs="${s}">${s}</button>`).join('')}</div>` : ''}
+    ${T === 'خامة' ? `<label class="f">تظهر فين</label><div class="chips">${['لازم', 'تاب'].map(s => `<button class="chip ${v.stage === s ? 'on' : ''}" data-lfs="${s}">${s}</button>`).join('')}</div>` : ''}
+    ${['فحص', 'خامة'].includes(T) ? `<label class="row" style="gap:6px;font-size:13px;margin-top:8px"><input type="checkbox" id="lfM" ${v.must ? 'checked' : ''}> 🔴 لازم</label>` : ''}
+    ${F.map(([k, n]) => `<label class="f">${n}</label><input class="in" data-lfx="${k}" value="${esc(v.x[k] === undefined ? '' : v.x[k])}" ${/link/.test(k) ? 'dir="ltr"' : ''}>`).join('')}
+    <div class="err" id="lfE"></div><div class="row" style="gap:6px;margin-top:8px"><button class="btn gold" id="lfGo" style="flex:2">احفظ</button>${x && (isOwner() || role() === 'manager' && T === 'فهرس') ? `<button class="btn ghost" id="lfDel" style="flex:1;color:var(--bad)">امسح</button>` : ''}</div>`);
+  document.querySelectorAll('[data-lfs]').forEach(b => b.onclick = () => { document.querySelectorAll('[data-lfs]').forEach(c => c.classList.toggle('on', c === b)); v.stage = b.dataset.lfs; });
+  $('#lfGo').onclick = async () => { v.text = $('#lfT').value.trim(); if ($('#lfK')) v.key = $('#lfK').value.trim(); if ($('#lfM')) v.must = $('#lfM').checked;
+    document.querySelectorAll('[data-lfx]').forEach(i => { v.x[i.dataset.lfx] = i.value.trim(); }); if (!v.text) { $('#lfE').textContent = 'اكتب النص'; return; }
+    const r = await siteSave('saveLib', {lib: v}, 'المكتبة الفنية'); if (!r.ok) return; if (r.lib && S.board) S.board.lib = S.board.lib.filter(y => y.id !== r.lib.id).concat([r.lib]);
+    toast(r.queued ? QMSG : r.lib && r.lib.x.st === 'مقترح' ? 'اتبعت للمالك يعتمدها ✓' : 'اتحفظ ✓'); libSheet(T); };
+  if ($('#lfDel')) $('#lfDel').onclick = async () => { if (!confirm('تمسحها؟')) return; const r = await siteSave('delLib', {id: x.id}, 'مسح من المكتبة'); if (r.ok && S.board) S.board.lib = S.board.lib.filter(y => y.id !== x.id); libSheet(T); };
+}
+
+/* ---------- 📋 سجل نماذج الجودة (للمالك) ---------- */
+async function regSheet(code, type, stF){
+  await board(false); const T = type || store.get('rgT', 'IR'); store.set('rgT', T); const sf = stF || '', t = tdy();
+  const late = x => x.due && x.due < t && !/مقفول|مقبول$|وافق|اتنفذ/.test(x.st);
+  const L = bForms(code, T).filter(x => !sf || (sf === 'متأخر' ? late(x) : sf === 'مقفول' ? /مقفول|مقبول$|اتنفذ/.test(x.st) : !/مقفول|مقبول$|اتنفذ/.test(x.st))).sort((a, b) => b.at.localeCompare(a.at));
+  const p = code ? findProject(code) || {} : null;
+  openSheet(`<h3>📋 نماذج الجودة${p ? ' · ' + esc(p.short || p.name) : ''}</h3>
+    <div class="tabs">${Object.keys(FT).filter(k => !['DEC', 'DLY'].includes(k)).map(k => `<button class="tab ${T === k ? 'on' : ''}" data-rt="${k}">${k} <small class="muted">${bForms(code, k).length}</small></button>`).join('')}</div>
+    <div class="chips" style="margin-bottom:8px">${['', 'مفتوح', 'مقفول', 'متأخر'].map(s => `<button class="chip ${sf === s ? 'on' : ''}" data-rs="${s}">${s || 'الكل'}</button>`).join('')}</div>
+    ${L.map(x => `<button class="li" data-rf="${esc(x.id)}"><span class="t"><b style="white-space:normal">${esc(x.no || '⏳')} · ${esc(x.item || x.title)}</b><small>${esc((findProject(x.proj) || {}).short || x.proj)} · ${esc((x.at || '').slice(0, 10))}${x.due ? ` · ميعاد <span class="${late(x) ? 'redd' : ''}">${dd(x.due)}</span>` : ''}</small></span>${fPill(late(x) ? 'متأخر' : x.st)}</button>`).join('') || emptyBox('doc', 'مفيش نماذج')}
+    <div class="row" style="gap:6px;margin-top:10px">${code && ['SI', 'MOM', 'HO', 'FHO', 'MAR'].includes(T) ? `<button class="btn gold" id="rgNew" style="flex:1">${ic('plus')} ${esc(FT[T])}</button>` : ''}${L.length ? `<button class="btn ghost" id="rgX" style="flex:1">📊 إكسيل</button>` : ''}</div>`);
+  document.querySelectorAll('[data-rt]').forEach(b => b.onclick = () => regSheet(code, b.dataset.rt));
+  document.querySelectorAll('[data-rs]').forEach(b => b.onclick = () => regSheet(code, T, b.dataset.rs));
+  document.querySelectorAll('[data-rf]').forEach(b => b.onclick = () => formView(b.dataset.rf, () => regSheet(code, T, sf)));
+  if ($('#rgNew')) $('#rgNew').onclick = () => simpleForm(code, T);
+  if ($('#rgX')) $('#rgX').onclick = async () => { if (!await exportFile('سجل ' + FT[T], p ? p.name : 'كل المشاريع', ['الرقم', 'المشروع', 'البند / العنوان', 'المناطق', 'الحالة', 'الميعاد', 'عمله', 'التاريخ'],
+    L.map(x => [x.no, (findProject(x.proj) || {}).short || x.proj, x.item || x.title, x.zones.join('، '), late(x) ? 'متأخر' : x.st, x.due, x.by, (x.at || '').slice(0, 10)]), 'سجل-' + T)) toast('التصدير محتاج نت'); };
+}
+function formView(id, back){
+  const f = B().forms.find(x => x.id === id); if (!f) return; const p = findProject(f.proj) || {};
+  openSheet(`<h3>${esc(f.no || '')} · ${esc(FT[f.type] || f.title)} ${fPill(f.st)}</h3>
+    <div class="card" style="padding:10px;font-size:13.5px">${f.item ? `<div><b>البند:</b> ${esc(f.item)}</div>` : ''}${f.zones.length ? `<div><b>المناطق:</b> ${esc(f.zones.join('، '))}</div>` : ''}<div><b>المشروع:</b> ${esc(p.name || f.proj)}</div>
+      ${f.data.text ? `<div style="white-space:pre-wrap;margin-top:6px">${esc(f.data.text)}</div>` : ''}${(f.data.items || []).length ? `<div style="margin-top:6px">${f.data.items.map(t => '• ' + esc(t)).join('<br>')}</div>` : ''}
+      ${(f.data.checks || []).map(c => `<div class="sr"><span>${c.must ? '🔴' : '⚪'} ${esc(c.t)}</span>${c.v === 'ok' ? '<span class="pill p-ok">✓</span>' : '<span class="pill p-bad">✗</span>'}</div>`).join('')}
+      ${f.data.who ? `<div class="sline">المسؤول: ${esc(f.data.who)}</div>` : ''}${f.data.note ? `<div class="sline">${esc(f.data.note)}</div>` : ''}
+      ${(f.data.photos || []).length ? `<div class="row" style="gap:6px;margin-top:6px">${f.data.photos.map(x => `<a href="${esc(x.link || x.url)}" target="_blank" rel="noopener"><img src="${esc(x.url)}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px"></a>`).join('')}</div>` : ''}</div>
+    <div class="row" style="gap:6px;margin-top:10px">${f.type === 'NCR' && f.st !== 'مقفول' ? `<button class="btn gold" id="fvC" style="flex:1">✓ اتقفل</button>` : ''}
+      ${f.type === 'IR' && f.st === 'مرفوض' ? `<button class="btn gold" id="fvR" style="flex:1">🔁 إعادة فحص</button>` : ''}<button class="btn ghost" id="fvP" style="flex:1">🖨️ PDF</button><button class="btn ghost" id="fvB" style="flex:1">رجوع</button></div>`);
+  $('#fvB').onclick = back || closeSheet;
+  $('#fvP').onclick = async () => printHtml(f.type === 'CO' ? coClient(f, p, await logoURL()) : paperGen(f, p, await logoURL()), f.no || f.title);
+  if ($('#fvC')) $('#fvC').onclick = async () => { const r = await siteSave('saveForm', {form: {id: f.id, type: f.type, project: f.proj, st: 'مقفول'}}, 'قفل ' + f.no); if (r.ok) { putForm(r.form || Object.assign({}, f, {st: 'مقفول'})); (back || closeSheet)(); } };
+  if ($('#fvR')) $('#fvR').onclick = () => { const it = bItems(f.proj).find(x => x.name === f.item); if (it) inspectSheet(f.proj, it.id, f.id); };
+}
+const paperGen = (f, p, logo) => ['IR', 'MIR'].includes(f.type) ? paperA(f, p, logo) : `<div style="${PSTY}">${pTop(FT[f.type] || f.title, f.no, p, logo, f)}<h3>${esc(f.title)}</h3>
+  ${f.item ? `<p><b>البند:</b> ${esc(f.item)}</p>` : ''}${(f.data.items || []).length ? `<ul>${f.data.items.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}${f.data.text ? `<p style="white-space:pre-wrap">${esc(f.data.text)}</p>` : ''}
+  ${f.data.people ? `<p><b>الحضور / المطلوب منهم:</b> ${esc(f.data.people)}</p>` : ''}${f.due ? `<p><b>الميعاد:</b> ${esc(f.due)}</p>` : ''}${f.data.who ? `<p><b>المسؤول:</b> ${esc(f.data.who)}</p>` : ''}${pSig()}</div>`;
+function simpleForm(code, T){
+  openSheet(`<h3>${esc(FT[T])}</h3><label class="f">العنوان</label><input class="in" id="sfT">
+    <label class="f">${T === 'MOM' ? 'النقط والقرارات' : T === 'MAR' ? 'الخامة والماركة والعينة' : T === 'SI' ? 'المطلوب والسبب' : 'البنود والملاحظات المفتوحة'}</label><div class="row" style="gap:6px"><textarea class="in" id="sfX" style="flex:1"></textarea>${micBtn('sfX')}</div>
+    <label class="f">${T === 'MOM' ? 'الحضور' : T === 'SI' ? 'لمين (المقاول / الصنايعي)' : T === 'MAR' ? 'قرار العميل' : 'التوقيعات'}</label><input class="in" id="sfP">
+    <label class="f">الميعاد</label><input class="in" type="date" id="sfD">
+    <div class="err" id="sfE"></div><button class="btn gold" id="sfGo" style="margin-top:8px">احفظ</button>`);
+  $('#sfGo').onclick = async () => { const title = $('#sfT').value.trim(); if (!title) { $('#sfE').textContent = 'اكتب العنوان'; return; }
+    const r = await siteSave('saveForm', {form: {type: T, project: code, title, due: $('#sfD').value, data: {text: $('#sfX').value, people: $('#sfP').value}}}, FT[T]); if (!r.ok) return;
+    if (r.form) putForm(r.form); toast(r.queued ? QMSG : (r.form ? r.form.no : '') + ' اتحفظ ✓'); regSheet(code, T); };
+}
+
+/* ---------- 📈 المتابعة (تاب في «كام جالي؟») ---------- */
+function trackHtml(D, F){
+  if (!S.board) { board(false).then(() => { if ($('#kmBody') && S.board) kamSheet({}); }); return `<div class="muted" style="margin-top:10px">بيحمّل الجدول…</div>`; }
+  const P = S.projects.filter(p => (!F.proj || p.code === F.proj) && (B().proj[p.code] || {}).evm);
+  if (!P.length) return emptyBox('chart', 'المنحنيات بتظهر أول ما المقايسة والجدول يتعملوا للمشروع');
+  return P.map(p => { const e = B().proj[p.code].evm, verdict = e.spi == null ? '' : e.spi >= 1 ? 'قدام الجدول 👍' : `متأخرين حوالي ${Math.round((1 - e.spi) * 100)}%`;
+    const cc = e.cpi == null ? '' : e.cpi >= 1 ? 'التكلفة أقل من المخطط 👍' : `كل 100 ج شغل بتكلّف ${Math.round(100 / e.cpi)}`;
+    const sc = v => v == null ? 'var(--muted)' : v >= .95 ? 'var(--ok)' : v >= .85 ? 'var(--warn)' : 'var(--bad)';
+    return `${P.length > 1 ? `<h4 class="ksec" style="--kc:#3B7DD8">${esc(p.short || p.name)}</h4>` : ''}<div class="kp2" style="margin-top:8px">
+      <div class="kpc"><small class="muted">SPI مؤشر الوقت</small><b style="color:${sc(e.spi)}">${e.spi == null ? '—' : e.spi}</b><small class="muted">${esc(verdict)}</small></div>
+      <div class="kpc"><small class="muted">${e.cpi !== undefined ? 'CPI مؤشر التكلفة' : 'المخطط / المنفذ'}</small><b style="color:${sc(e.cpi)};${e.cpi !== undefined ? '' : 'font-size:17px'}">${e.cpi !== undefined ? (e.cpi == null ? '—' : e.cpi) : e.pvNow + '% / ' + e.evNow + '%'}</b><small class="muted">${esc(e.cpi !== undefined ? cc : 'لحد النهارده')}</small></div></div>
+      ${e.eac ? `<div class="kpc" style="margin-top:8px"><small class="muted">هيقفل على كام (EAC)</small><b>${nf(e.eac)} <small style="font-size:12px">من ${nf(e.bac)}</small></b></div>` : ''}
+      <div class="card" style="margin-top:8px;padding:8px">${sCurve(e)}<div class="sline">— — المخطط PV · ━ المنفذ EV (أزرق)${e.ac ? ' · ··· المصروف AC (برتقاني)' : ''}</div>
+      <div style="font-size:13px;margin-top:6px"><b>الخلاصة:</b> المخطط لحد النهارده ${e.pvNow}% والمنفذ ${e.evNow}%${e.late ? `، و${e.late} بند متأخر` : ''}${e.endNow && e.endPlan && e.endNow !== e.endPlan ? `، والخلصان المتوقع ${dd(e.endNow)} بدل ${dd(e.endPlan)}` : ''}.</div></div>
+      ${e.priced ? '' : '<div class="sline">النسب بالمدة لأن أسعار البنود مش كاملة. حط سعر الوحدة في المقايسة عشان CPI وEAC.</div>'}`; }).join('');
+}
+function sCurve(e){
+  const W = 320, H = 180, n = e.weeks.length, x = i => 30 + (n <= 1 ? 0 : i / (n - 1) * 280), y = v => 160 - Math.max(0, Math.min(100, v)) * 1.5;
+  const pl = (A, c, w, da) => { const pts = A.map((v, i) => v == null ? null : `${x(i).toFixed(1)},${y(v).toFixed(1)}`).filter(Boolean).join(' '); return pts ? `<polyline fill="none" stroke="${c}" stroke-width="${w}" ${da ? `stroke-dasharray="${da}"` : ''} points="${pts}"/>` : ''; };
+  const now = e.now >= 0 ? e.now : n - 1;
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;direction:ltr" role="img" aria-label="منحنى S"><line x1="30" y1="160" x2="310" y2="160" stroke="#B4B2A9"/><line x1="30" y1="10" x2="30" y2="160" stroke="#B4B2A9"/>
+    ${[25, 50, 75, 100].map(v => `<line x1="30" x2="310" y1="${y(v)}" y2="${y(v)}" stroke="#EEF1F4"/><text x="4" y="${y(v) + 3}" font-size="8" fill="#888780">${v}%</text>`).join('')}
+    ${pl(e.pv, '#888780', 2, '6 4')}${pl(e.ev, '#2a78d6', 2.5)}${e.ac ? pl(e.ac, '#eb6834', 2, '2 3') : ''}
+    <line x1="${x(now)}" y1="10" x2="${x(now)}" y2="160" stroke="#E24B4A" stroke-dasharray="3 3"/><text x="${x(now) + 3}" y="20" font-size="9" fill="#A32D2D">النهارده</text>
+    <text x="240" y="175" font-size="9" fill="#888780">الأسابيع ←</text></svg>`;
+}
+
+/* ================= 0.11.1: 🔔 إشعارات على الموبايل (Firebase) =================
+   الإعدادات العامة بس هنا (مش سرية). المفتاح السري على جوجل في خصائص السكريبت. */
+const FB_CFG = {apiKey: 'AIzaSyAihZjVanmLdcpJBbvLznEBgqezUAQgETc', authDomain: 'mec-app-a1d5e.firebaseapp.com', projectId: 'mec-app-a1d5e',
+  storageBucket: 'mec-app-a1d5e.firebasestorage.app', messagingSenderId: '200994753999', appId: '1:200994753999:web:7a101d8cf599b3828056ba'};
+const FB_VAPID = 'BIWqAW2eO6cDTB5TjObvQJED-RzslvirXpLyJN9SzWZN80vmXlxESmcDnB4vwnOoQzd-J5XyoY7qUYrHsDqXPeI';
+const FB_V = '10.12.2';
+const pushOK = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const pushOn = () => pushOK() && Notification.permission === 'granted' && !!store.get('pushTok', '');
+function loadJs(src){ return new Promise((res, rej) => { if (document.querySelector(`script[src="${src}"]`)) return res(); const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
+async function fbToken(){
+  await loadJs(`https://www.gstatic.com/firebasejs/${FB_V}/firebase-app-compat.js`); await loadJs(`https://www.gstatic.com/firebasejs/${FB_V}/firebase-messaging-compat.js`);
+  if (!firebase.apps.length) firebase.initializeApp(FB_CFG);
+  const reg = await navigator.serviceWorker.ready;
+  return firebase.messaging().getToken({vapidKey: FB_VAPID, serviceWorkerRegistration: reg});
+}
+async function pushEnable(){
+  if (!pushOK()) return {ok: false, error: 'unsupported'};
+  if (!navigator.onLine) return {ok: false, error: 'net'};
+  const perm = await Notification.requestPermission(); if (perm !== 'granted') return {ok: false, error: 'denied'};
+  let token = ''; try { token = await fbToken(); } catch (e) { return {ok: false, error: 'fb', detail: String(e && e.message || e).slice(0, 120)}; }
+  if (!token) return {ok: false, error: 'fb'};
+  const r = await api('pushReg', {token}); if (r.ok) { store.set('pushTok', token); store.set('pushAt', Date.now()); } return r;
+}
+// مرة في اليوم: لو التوكن اتغير يتسجل تاني (من غير ما يسأل)
+async function pushRefresh(){
+  if (S.pushTried || !pushOn() || !navigator.onLine || Date.now() - store.get('pushAt', 0) < 864e5) return; S.pushTried = true;
+  try { const t = await fbToken(); if (t) { if (t !== store.get('pushTok', '')) { const r = await api('pushReg', {token: t}); if (r.ok) store.set('pushTok', t); } store.set('pushAt', Date.now()); } } catch (e) {}
+}
+const PUSH_ERR = {unsupported: 'الموبايل أو المتصفح ده مش بيدعم الإشعارات. على الآيفون لازم التطبيق يكون متثبت على الشاشة الرئيسية (iOS 16.4 أو أحدث).',
+  denied: 'الإشعارات مقفولة للتطبيق. افتحها من إعدادات الموبايل ← التطبيقات ← Chrome (أو MEC-APP) ← الإشعارات، وجرّب تاني.', net: 'تفعيل الإشعارات محتاج نت.',
+  fb: 'Firebase ما ردش. جرّب تاني بعد شوية.', noPush: 'لسه مفتاح الإشعارات ما اتحطش على جوجل (setupPush).', noDevice: 'فعّل الإشعارات على الموبايل ده الأول.', pushFail: 'الإشعار ما وصلش. جرّب «فعّل الإشعارات» تاني.'};
+function pushCard(){
+  return `<div class="card" style="margin-top:12px"><b>🔔 الإشعارات على الموبايل</b>
+    <div class="muted" id="puInfo" style="font-size:13px;margin:6px 0 10px">${!pushOK() ? esc(PUSH_ERR.unsupported) : pushOn() ? 'شغالة على الموبايل ده ✓ هيوصلك كل تنبيه حتى لو التطبيق مقفول.' : 'مقفولة. فعّلها عشان يوصلك كل تنبيه حتى لو التطبيق مقفول.'}</div>
+    ${pushOK() ? `<div class="row" style="gap:6px"><button class="btn ${pushOn() ? 'ghost' : 'gold'}" id="puOn" style="flex:1">${pushOn() ? '🔄 فعّلها تاني' : '🔔 فعّل الإشعارات'}</button>${pushOn() ? '<button class="btn ghost" id="puTest" style="flex:1">ابعت إشعار تجربة</button>' : ''}</div>` : ''}</div>`;
+}
+function wirePush(){
+  if ($('#puOn')) $('#puOn').onclick = async () => { const b = $('#puOn'); busy(b, true); b.textContent = 'بيفعّل… ⏳'; const r = await pushEnable(); if (!$('#puOn')) return;
+    if (r.ok) { toast('الإشعارات اتفعلت ✓'); settingsSheet(); } else { busy(b, false); b.textContent = '🔔 فعّل الإشعارات'; $('#puInfo').textContent = PUSH_ERR[r.error] || errMsg(r); $('#puInfo').style.color = 'var(--bad)'; } };
+  if ($('#puTest')) $('#puTest').onclick = async () => { const b = $('#puTest'); busy(b, true); const r = await api('pushTest'); busy(b, false);
+    $('#puInfo').textContent = r.ok ? 'اتبعت ✓ لازم يوصلك إشعار دلوقتي.' : (PUSH_ERR[r.error] || errMsg(r)); $('#puInfo').style.color = r.ok ? 'var(--ok)' : 'var(--bad)'; };
+}
+// لما تدوس على الإشعار: يفتح الشاشة بتاعته
+function pushOpen(d){
+  if (!S.user || !d) return; const ref = d.ref || '';
+  if (ref === 'night' && typeof nightSheet === 'function') { const p = S.projects.find(x => x.status === 'جاري' && bItems(x.code).length); if (p) return board(false).then(() => nightSheet(p.code)); }
+  if (typeof notesSheet === 'function') notesSheet();
+}
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', ev => { if (ev.data && ev.data.push) pushOpen(ev.data.push); });
+
 
 /* ================= البداية ================= */
 (function boot(){

@@ -1,5 +1,5 @@
 // MEC-APP service worker: الصفحة نفسها دايما من النت لو متاح (عشان التحديث يوصل)، والباقي من الكاش
-const CACHE = 'mec-app-v0.10.8';
+const CACHE = 'mec-app-v0.11.1';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './logo-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
@@ -22,4 +22,16 @@ self.addEventListener('fetch', e => {
     if (r.ok || r.type === 'opaque') { const c = r.clone(); caches.open(CACHE).then(x => x.put(req, c)); }
     return r;
   })));
+});
+
+// 0.11.1: الإشعارات (Firebase بيبعت data بس، والـ service worker بيعرضها)
+self.addEventListener('push', e => {
+  let d = {}; try { const j = e.data ? e.data.json() : {}; d = j.data || j.notification || j; } catch (x) { d = {body: e.data ? e.data.text() : ''}; }
+  e.waitUntil(self.registration.showNotification(d.title || 'MEC-APP', {body: d.body || '', icon: './icon-192.png', badge: './icon-192.png', tag: d.tag || 'mec', renotify: true,
+    dir: 'rtl', lang: 'ar', data: {ref: d.ref || '', url: './' + (d.ref === 'night' ? '#night' : '')}}));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close(); const data = e.notification.data || {};
+  e.waitUntil(clients.matchAll({type: 'window', includeUncontrolled: true}).then(L => { const c = L.find(x => x.url.indexOf(self.registration.scope) === 0);
+    if (c) { c.postMessage({push: data}); return c.focus(); } return clients.openWindow(data.url || './'); }));
 });
