@@ -231,6 +231,21 @@ h3 svg.art{margin:0}
 .wktabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:8px 10px;background:#fff;border-bottom:1px solid #E6EAF0;align-items:center}.wktabs::-webkit-scrollbar{display:none}.wktabs .tab{flex:none;margin:0}.wktabs .chip{flex:none;font-size:12px}
 .aic{border-inline-start:4px solid var(--c-prod);background:#FBFAFF}
 .ideaHome{border-inline-start:4px solid var(--gold);background:linear-gradient(90deg,#FFFBF0,#fff)}
+
+/* 0.12.1: إحساس التطبيق */
+html,body{overscroll-behavior-y:contain}
+button,.btn,.chip,.li,.card,nav.bn,.top,.tab,.mi,.ibtn{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,select,.in{font-size:16px!important;-webkit-user-select:text;user-select:text}
+main.vin{animation:vin .22s ease-out}@keyframes vin{from{opacity:.4;transform:translateY(8px)}to{opacity:1;transform:none}}
+.skel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}.skel i{display:block;height:12px;border-radius:6px;margin:6px 0;background:linear-gradient(90deg,#EEF1F4 25%,#E2E7EE 50%,#EEF1F4 75%);background-size:200% 100%;animation:sk 1.2s infinite}
+@keyframes sk{from{background-position:200% 0}to{background-position:-200% 0}}
+.ptr{position:fixed;top:calc(60px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:25;width:38px;height:38px;border-radius:50%;background:#fff;box-shadow:0 2px 8px #0002;display:grid;place-items:center;font-size:20px;color:var(--navy);opacity:0;transition:opacity .2s;pointer-events:none}
+.ptr.spin{animation:ptrs .8s linear infinite}@keyframes ptrs{to{transform:translateX(-50%) translateY(40px) rotate(360deg)}}
+.navdlg{position:fixed;inset:0;z-index:95;background:rgba(15,22,38,.45);display:flex;align-items:flex-end}.navdlg-b{background:#fff;width:100%;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));animation:up .2s}
+@keyframes up{from{transform:translateY(40%)}to{transform:none}}
+.biolock{position:fixed;inset:0;z-index:99;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.ctbtn{margin-top:6px;border:1px solid #C6D7F0;background:#F5F9FF;color:var(--navy2);border-radius:10px;padding:6px 10px;font-size:13px}
+.sheet{overscroll-behavior:contain}
 </style>
 </head>
 <body>
@@ -288,9 +303,9 @@ h3 svg.art{margin:0}
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.12';
-const APP_NOTES = ['📦 «الخامات»: المطلوب لأسبوع لـ 4، واللي في الموقع يكفي كام يوم.', '📐 «التجهيز وقرارات العميل»: تذكرة قبل البند، ولينك للعميل يوافق أو يختار ويوقّع بصباعه.',
-  '👷 «المقاولين النهارده» و📊 تقييم المقاولين والموردين.', '📸 صورة إنجاز: Gemini يقترح النسبة وانت تأكد.', '🧮 حاسبة الباقة، و🏢 الأدوار والمحطات، ونوع مشروع «صيانة وترميم»، و«مكتب فني».'];
+const APP_VERSION = '0.12.1';
+const APP_NOTES = ['↩️ زرار الرجوع بقى جوه التطبيق: بيرجع للشاشة اللي قبلها وبيقفل النوافذ، ومن الرئيسية «دوس تاني للخروج».', '↻ اسحب لتحت في أي شاشة = تحديث البيانات.',
+  '👇 النافذة اللي من تحت تتقفل بالسحب لتحت.', '📥 شارك صورة من الواتساب أو المعرض لـ MEC-APP على طول.', '🔐 قفل بالبصمة (اختياري) من الإعدادات، و«👤 من الأسماء» جنب خانات التليفون.'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
 
@@ -1014,8 +1029,9 @@ function settingsSheet(){
     <div class="row" style="margin-top:6px"><button class="btn ghost" id="sTest">اختبار الاتصال</button>${isOwner() ? '<button class="btn pri" id="sSave">حفظ</button>' : ''}</div>
     <div class="card" style="margin-top:14px"><b>البيانات على الموبايل (عشان يشتغل من غير نت)</b>
       <div class="muted" id="sSyncInfo" style="font-size:13px;margin:6px 0 10px">${syncInfo()}</div>
-      <button class="btn gold" id="sSync">⬇️ نزّل كل البيانات دلوقتي</button></div>${typeof pushCard === 'function' ? pushCard() : ''}`);
+      <button class="btn gold" id="sSync">⬇️ نزّل كل البيانات دلوقتي</button></div>${typeof pushCard === 'function' ? pushCard() : ''}${typeof bioCard === 'function' ? bioCard() : ''}`);
   if (typeof wirePush === 'function') wirePush();
+  if (typeof wireBio === 'function') wireBio();
   $('#sSync').onclick = async () => { const b = $('#sSync'), info = $('#sSyncInfo');
     if (!navigator.onLine) { info.textContent = 'مفيش نت دلوقتي. التحميل محتاج نت.'; return; }
     if (syncing) { info.textContent = 'بينزّل دلوقتي في الخلفية… استنى دقيقة وافتح الإعدادات تاني.'; return; }
@@ -3367,8 +3383,8 @@ async function ideasSheet(fl){
   $('#idQ').onchange = e => ideasSheet({q: e.target.value});
   if ($('#idCopyAll')) $('#idCopyAll').onclick = () => copyClaude(L);
 }
-function ideaForm(x){
-  const f = {text: x ? x.text : '', cat: x ? x.cat : (S.idF && S.idF.cat) || ID_CATS[0], prio: x ? x.prio : 'مهمة', photo: ''};
+function ideaForm(x, preset){
+  const f = {text: x ? x.text : '', cat: x ? x.cat : (S.idF && S.idF.cat) || ID_CATS[0], prio: x ? x.prio : 'مهمة', photo: preset && preset.photo || ''};
   const draw = () => {
     openSheet(`<h3>${x ? 'تعديل الفكرة' : '💡 فكرة جديدة'}</h3>
       <div class="row" style="gap:6px;align-items:flex-start"><textarea class="in" id="ifT" placeholder="اكتب الفكرة أو الملاحظة زي ما هي… (أو قولها بالمايك)" style="min-height:130px">${esc(f.text)}</textarea>${micBtn('ifT')}</div>
@@ -5494,7 +5510,7 @@ async function bldSheet(code){
 }
 
 /* ---------- 📸 صورة إنجاز: الصورة اللي فاتت شفافة + Gemini يقترح النسبة والمهندس يأكد ---------- */
-async function photoSheet(code, id){
+async function photoSheet(code, id, initB64){
   const it = bItems(code).find(x => x.id === id); if (!it) return;
   const prev = bForms(code, 'PH').filter(f => f.item === id).sort((a, b) => b.at.localeCompare(a.at))[0];
   openSheet(`<h3>📸 صورة إنجاز · ${esc(it.name)}</h3><div style="position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:3/4">
@@ -5514,6 +5530,7 @@ async function photoSheet(code, id){
   $('#phShot').onclick = () => { const v = $('#phV'); if (!v || !v.videoWidth) return; const c = document.createElement('canvas'), k = Math.min(1, 1280 / v.videoWidth); c.width = v.videoWidth * k; c.height = v.videoHeight * k; c.getContext('2d').drawImage(v, 0, 0, c.width, c.height); go(c.toDataURL('image/jpeg', .8)); };
   $('#phF').onchange = async e => { const f = e.target.files[0]; if (f) go(await shrinkImage(f, 1280)); };
   const cl = $('#sheet .x, #sheetX'); if (cl) cl.addEventListener('click', stop, {once: true});
+  if (initB64) go(initB64);
 }
 
 /* ---------- 🧮 حاسبة الباقة + أسئلة الإضافات ---------- */
@@ -5669,6 +5686,169 @@ function wireSetup(){
     if (r.ok) { toast('الإشعارات اتفعلت ✓'); render(); } else { b.disabled = false; b.textContent = 'فعّل'; toast(PUSH_ERR[r.error] || errMsg(r)); } };
   if ($('#suLater')) $('#suLater').onclick = () => { store.set('setupLater', Date.now() + 864e5); render(); };
 }
+
+
+/* ================= 0.12.1: شكل وإحساس تطبيق (من غير مكتبات) =================
+   زرار الرجوع جوه التطبيق · سحب لتحت للتحديث · قفل النافذة بالسحب · رقم على الأيقونة · المشاركة لـ MEC-APP ·
+   قفل بالبصمة (اختياري) · جهات الاتصال · مكانك في الصفحة · شكل التحميل · اهتزازة · الكيبورد ما يغطيش الخانة · اختصارات الأيقونة */
+const NAV = {last: '', popping: false, exitAt: 0, scroll: {}, started: false};
+const navKey = () => (S.tab || 'home') + '|' + (S.project || '');
+const navState = () => ({mec: 1, tab: S.tab || 'home', project: S.project || ''});
+const buzz = p => { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} };
+const SKEL = '<div class="skel"><i></i><i style="width:70%"></i><i style="width:85%"></i></div><div class="skel"><i></i><i style="width:60%"></i></div>';
+
+// بعد كل رسم للشاشة: تسجيل النقلة في تاريخ التنقل + الانتقال الناعم + الرقم على الأيقونة
+function navAfterRender(){
+  if (!S.user || S.publicMode) return;
+  const k = navKey();
+  if (!NAV.started) { NAV.started = true; history.replaceState({mec: 1, root: 1}, ''); history.pushState({mec: 1, tab: 'home', project: ''}, ''); if (k !== 'home|') history.pushState(navState(), ''); NAV.last = k; }
+  else if (k !== NAV.last) {
+    NAV.scroll[NAV.last] = NAV.lastY || 0;
+    if (!NAV.popping) history.pushState(navState(), '');
+    NAV.last = k; const m = document.querySelector('main'); if (m) { m.classList.remove('vin'); void m.offsetWidth; m.classList.add('vin'); }
+  }
+  try { if (navigator.setAppBadge) { const n = typeof unreadCount === 'function' ? unreadCount() : 0; n ? navigator.setAppBadge(n) : navigator.clearAppBadge(); } } catch (e) {}
+}
+addEventListener('scroll', () => { NAV.lastY = scrollY; }, {passive: true});
+
+// أعلى حاجة مفتوحة تتقفل هي بس (ترجع true لو قفلت حاجة أو سألت)
+function navCloseTop(){
+  if ($('#navDlg')) { $('#navDlg').remove(); return true; }
+  if ($('#bioLock')) return true;
+  if ($('#bigN')) { const x = $('#bigX'); if (x) x.click(); else $('#bigN').remove(); return true; }
+  if ($('#wkOv')) { const x = $('#wkX'); if (x) x.click(); else $('#wkOv').remove(); return true; }
+  if ($('#sheet') && $('#sheet').classList.contains('on')) { sheetLeave(); return true; }
+  return false;
+}
+// الفورمة المتملية نصها: «تحفظها مسودة؟»
+function sheetLeave(){
+  const body = $('#sheetBody');
+  if (!S.sheetDirty) { closeSheet(); return; }
+  const ak = [...body.querySelectorAll('[data-ak]')].filter(e => String(e.value || '').trim());
+  navDialog(ak.length ? 'تحفظها مسودة؟' : 'تخرج من غير حفظ؟', ak.length ? 'اللي كتبته هيفضل محفوظ لما ترجع تفتحها' : 'اللي كتبته في الفورمة دي هيضيع',
+    ak.length ? [['💾 احفظ مسودة', () => closeSheet()], ['🗑️ امسح', () => { ak.forEach(e => store.del('ak.' + e.dataset.ak)); closeSheet(); }], ['كمّل', null]]
+      : [['اخرج', () => closeSheet()], ['كمّل', null]]);
+}
+function navDialog(t, sub, btns){
+  const d = document.createElement('div'); d.id = 'navDlg'; d.className = 'navdlg';
+  d.innerHTML = `<div class="navdlg-b"><b>${esc(t)}</b><div class="muted" style="font-size:13px;margin:4px 0 12px">${esc(sub)}</div>${btns.map((b, i) => `<button class="btn ${i === 0 ? 'gold' : 'ghost'}" data-nd="${i}" style="margin-top:6px">${esc(b[0])}</button>`).join('')}</div>`;
+  document.body.appendChild(d); buzz(10);
+  d.querySelectorAll('[data-nd]').forEach(b => b.onclick = () => { d.remove(); const f = btns[Number(b.dataset.nd)][1]; if (f) f(); });
+  d.onclick = e => { if (e.target === d) d.remove(); };
+}
+addEventListener('popstate', e => {
+  if (!S.user || S.publicMode || NAV.exiting) return;
+  if (navCloseTop()) { history.pushState(navState(), ''); return; }
+  const st = e.state || {};
+  if (st.root || !st.mec) {
+    if (Date.now() - NAV.exitAt < 2000) { NAV.exiting = true; history.back(); return; }
+    NAV.exitAt = Date.now(); toast('دوس رجوع تاني للخروج'); history.pushState({mec: 1, tab: 'home', project: ''}, '');
+    if (S.tab !== 'home' || S.project) { NAV.popping = true; S.tab = 'home'; S.project = null; render(); NAV.popping = false; }
+    return;
+  }
+  NAV.popping = true; S.tab = st.tab || 'home'; S.project = st.project || null; render(); NAV.popping = false;
+  const y = NAV.scroll[navKey()] || 0; requestAnimationFrame(() => scrollTo(0, y));
+});
+
+// النافذة: فورمة اتغيرت؟ + جهات الاتصال + شكل التحميل + قفل بالسحب
+function enhanceSheet(root){
+  S.sheetDirty = false;
+  root.addEventListener('input', e => { if (e.target.matches('input:not([type=search]),textarea,select')) S.sheetDirty = true; }, {once: false});
+  root.querySelectorAll('.muted').forEach(el => { if (el.textContent.trim() === 'بيحمّل…') el.innerHTML = SKEL; });
+  if ('contacts' in navigator && 'ContactsManager' in window) root.querySelectorAll('input[type=tel]').forEach(inp => {
+    if (inp.dataset.ct || /^[lro]Phone$/.test(inp.id)) return; inp.dataset.ct = 1;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'ctbtn'; b.textContent = '👤 من الأسماء'; inp.insertAdjacentElement('afterend', b);
+    b.onclick = async () => { try { const [c] = await navigator.contacts.select(['name', 'tel'], {multiple: false}); if (!c) return;
+      const tel = digits((c.tel || [])[0] || '').replace(/^\+?20/, '0').replace(/\D/g, ''); inp.value = tel; inp.dispatchEvent(new Event('input', {bubbles: true}));
+      const nm = root.querySelector('#xName,#aName,#fClient'); if (nm && !nm.value && c.name && c.name[0]) { nm.value = c.name[0]; nm.dispatchEvent(new Event('input', {bubbles: true})); } } catch (e) {} };
+  });
+}
+(function sheetSwipe(){
+  const sh = $('#sheet'); if (!sh) return; let y0 = null, dy = 0, ok = false;
+  sh.addEventListener('touchstart', e => { ok = sh.scrollTop <= 0 && !e.target.closest('input,textarea,select,canvas,.cols4,[style*="overflow-x"]'); y0 = e.touches[0].clientY; dy = 0; }, {passive: true});
+  sh.addEventListener('touchmove', e => { if (!ok || y0 == null) return; dy = e.touches[0].clientY - y0; if (dy > 0) { sh.style.transition = 'none'; sh.style.transform = `translateY(${dy}px)`; } }, {passive: true});
+  sh.addEventListener('touchend', () => { if (y0 == null) return; sh.style.transition = ''; sh.style.transform = '';
+    if (ok && dy > 110) { if (history.state && history.state.mec) sheetLeave(); else closeSheet(); } y0 = null; });
+})();
+
+// سحب لتحت = تحديث البيانات (بدل إعادة تحميل الصفحة)
+(function pullRefresh(){
+  let y0 = null, dy = 0; const ind = document.createElement('div'); ind.className = 'ptr'; ind.innerHTML = '↻'; document.body.appendChild(ind);
+  addEventListener('touchstart', e => { if (scrollY > 0 || !S.user || S.publicMode || $('#sheet').classList.contains('on') || $('#wkOv') || e.target.closest('input,textarea,.cols4')) { y0 = null; return; } y0 = e.touches[0].clientY; dy = 0; }, {passive: true});
+  addEventListener('touchmove', e => { if (y0 == null) return; dy = e.touches[0].clientY - y0; if (dy > 10) { ind.style.opacity = Math.min(1, dy / 90); ind.style.transform = `translateX(-50%) translateY(${Math.min(dy, 110) * .6}px) rotate(${dy * 2}deg)`; } }, {passive: true});
+  addEventListener('touchend', async () => { if (y0 == null) return; const go = dy > 90; y0 = null; ind.style.transform = ''; ind.style.opacity = 0; if (!go) return;
+    if (!navigator.onLine) { toast('📴 مفيش نت، البيانات من آخر تحديث'); return; }
+    ind.classList.add('spin'); ind.style.opacity = 1; buzz(10);
+    try { await syncAll(true); if (typeof board === 'function' && typeof siteOK === 'function' && siteOK()) await board(true); } catch (e) {}
+    ind.classList.remove('spin'); ind.style.opacity = 0; render(); toast('اتحدّث ✓'); });
+})();
+
+// الكيبورد ما يغطيش الخانة
+addEventListener('focusin', e => { if (e.target.matches('input,textarea')) setTimeout(() => { try { e.target.scrollIntoView({block: 'center', behavior: 'smooth'}); } catch (x) {} }, 320); });
+if (window.visualViewport) visualViewport.addEventListener('resize', () => { const a = document.activeElement; if (a && a.matches && a.matches('input,textarea')) a.scrollIntoView({block: 'center'}); });
+
+// اختصارات الأيقونة (?s=att|del|kam) والمشاركة لـ MEC-APP (?shared=1)
+function navLaunch(){
+  const q = new URLSearchParams(location.search), s = q.get('s'), sh = q.get('shared');
+  if (!s && !sh) return; history.replaceState(history.state, '', location.pathname);
+  if (sh) return setTimeout(sharedIn, 500);
+  if (s === 'kam') return setTimeout(() => kamSheet({}), 400);
+  const fn = s === 'att' ? attendanceSheet : s === 'del' ? deliveryForm : null; if (!fn) return;
+  const P = S.projects.filter(p => p.status === 'جاري');
+  if (P.length === 1) return setTimeout(() => fn(P[0].code), 400);
+  setTimeout(() => { openSheet(`<h3>${s === 'att' ? 'يوميات العمال' : 'استلام توريدة'} · أنهي مشروع؟</h3>${P.map(p => `<button class="li" data-lp="${esc(p.code)}"><span class="t"><b>${esc(p.short || p.name)}</b><small>${esc(p.code)}</small></span></button>`).join('') || emptyBox('folder', 'مفيش مشاريع جارية')}`);
+    document.querySelectorAll('[data-lp]').forEach(b => b.onclick = () => { closeSheet(); setTimeout(() => fn(b.dataset.lp), 260); }); }, 400);
+}
+async function sharedIn(){
+  let files = []; try { const c = await caches.open('mec-share'), ks = await c.keys(); for (const k of ks) { const r = await c.match(k); files.push(await r.blob()); await c.delete(k); } } catch (e) {}
+  const img = files.find(f => /^image\//.test(f.type)); if (!img) { toast('مفيش صورة وصلت'); return; }
+  const b64 = await shrinkImage(img, 1400), P = S.projects.filter(p => p.status === 'جاري');
+  openSheet(`<h3>📥 صورة وصلت لـ MEC-APP</h3><img src="${b64}" alt="" style="width:100%;max-height:240px;object-fit:contain;border-radius:10px;background:#F3F6FA">
+    <h2 class="sec">تعمل بيها إيه؟</h2>
+    ${P.length && typeof photoSheet === 'function' ? `<label class="f">صورة إنجاز لبند في مشروع</label><select class="in" id="shP">${P.map(p => `<option value="${esc(p.code)}">${esc(p.short || p.name)}</option>`).join('')}</select><button class="btn gold" id="shPh" style="margin-top:6px">📸 صورة إنجاز</button>` : ''}
+    ${isOwner() ? `<button class="btn ghost" id="shIdea" style="margin-top:8px">💡 فكرة في دفتري</button>` : ''}`);
+  if ($('#shPh')) $('#shPh').onclick = async () => { const code = $('#shP').value; await board(false); const L = bItems(code);
+    openSheet(`<h3>أنهي بند؟</h3>${L.map(x => `<button class="li" data-si="${esc(x.id)}"><span class="t"><b>${esc(x.name)}</b></span></button>`).join('') || emptyBox('doc', 'المشروع ده مفيهوش مقايسة')}`);
+    document.querySelectorAll('[data-si]').forEach(b => b.onclick = () => photoSheet(code, b.dataset.si, b64)); };
+  if ($('#shIdea')) $('#shIdea').onclick = () => { closeSheet(); setTimeout(() => { if (typeof ideaForm === 'function') ideaForm(null, {photo: b64}); }, 260); };
+}
+
+// 🔐 قفل التطبيق بالبصمة (اختياري، من الإعدادات): عند الفتح وبعد 5 دقايق في الخلفية
+const bioOK = () => !!(window.PublicKeyCredential && navigator.credentials);
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+async function bioEnable(){
+  try { const id = crypto.getRandomValues(new Uint8Array(16)), c = await navigator.credentials.create({publicKey: {challenge: crypto.getRandomValues(new Uint8Array(32)), rp: {name: 'MEC-APP'},
+      user: {id, name: S.user.phone || S.user.id, displayName: dn(S.user)}, pubKeyCredParams: [{type: 'public-key', alg: -7}, {type: 'public-key', alg: -257}],
+      authenticatorSelection: {authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged'}, timeout: 60000}});
+    store.set('bioId', b64u(c.rawId)); buzz(15); toast('القفل بالبصمة اتفعل ✓'); return true; } catch (e) { toast('البصمة ما اتفعلتش: الموبايل مش بيدعمها أو اتلغت'); return false; }
+}
+async function bioCheck(){
+  const id = store.get('bioId', ''); if (!id || !bioOK()) return true;
+  try { await navigator.credentials.get({publicKey: {challenge: crypto.getRandomValues(new Uint8Array(32)), allowCredentials: [{type: 'public-key', id: unb64u(id)}], userVerification: 'required', timeout: 60000}}); return true; } catch (e) { return false; }
+}
+function bioLock(){
+  if (!store.get('bioId', '') || $('#bioLock') || !S.user) return;
+  const d = document.createElement('div'); d.id = 'bioLock'; d.className = 'biolock';
+  d.innerHTML = `<img src="icon-192.png" alt="MEC" style="width:96px;height:96px;border-radius:50%"><b style="font-size:18px;margin-top:14px">MEC-APP مقفول</b>
+    <button class="btn gold" id="bioGo" style="margin-top:22px;max-width:260px">👆 افتح بالبصمة</button><button class="more" id="bioOut" style="margin-top:14px">مش شغالة؟ اخرج وادخل بالرقم السري</button>`;
+  document.body.appendChild(d);
+  const go = async () => { if (await bioCheck()) { d.remove(); store.set('bioAt', Date.now()); buzz(10); } else buzz([30, 40, 30]); };
+  $('#bioGo').onclick = go; $('#bioOut').onclick = () => { if (confirm('هتخرج من الحساب وتدخل تاني بالرقم السري؟')) { store.del('bioId'); d.remove(); signOut('ادخل بالرقم السري'); } };
+  setTimeout(go, 300);
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) store.set('bioAt', Date.now()); else if (Date.now() - store.get('bioAt', 0) > 5 * 60000) bioLock(); });
+function bioCard(){
+  if (!bioOK()) return '';
+  return `<div class="card" style="margin-top:12px"><b>🔐 قفل التطبيق بالبصمة</b><div class="muted" style="font-size:13px;margin:6px 0 10px">${store.get('bioId', '') ? 'شغال ✓ التطبيق بيطلب البصمة لما يتفتح أو بعد 5 دقايق في الخلفية.' : 'اختياري: التطبيق يطلب بصمتك أو وشك لما يتفتح، عشان لو الموبايل في إيد حد تاني.'}</div>
+    <button class="btn ${store.get('bioId', '') ? 'ghost' : 'gold'}" id="bioT">${store.get('bioId', '') ? 'وقّف القفل' : '👆 فعّل القفل بالبصمة'}</button></div>`;
+}
+function wireBio(){ if ($('#bioT')) $('#bioT').onclick = async () => { if (store.get('bioId', '')) { store.del('bioId'); toast('القفل اتشال'); } else await bioEnable(); settingsSheet(); }; }
+
+// الربط: بعد كل رسم + كل نافذة + الاهتزازة مع الرسايل
+const _rawRender = render; render = function(){ _rawRender(); navAfterRender(); if (!S.launched && S.user && !S.publicMode) { S.launched = true; navLaunch(); if (store.get('bioId', '')) bioLock(); } };
+const _rawOpen = openSheet; openSheet = function(h){ _rawOpen(h); enhanceSheet($('#sheetBody')); };
+const _rawToast = toast; toast = function(m){ _rawToast(m); const s = String(m || ''); if (/✓/.test(s)) buzz(15); else if (/مشكلة|غلط|خطأ|✗|ما اتحفظ|ما وصل|مرفوض|اترفض/.test(s)) buzz([30, 40, 30]); };
 
 
 /* ================= البداية ================= */

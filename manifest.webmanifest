@@ -1,6 +1,6 @@
 {
   "name": "MEC-APP · الشرق الأوسط للإنشاءات",
-  "short_name": "MEC-APP",
+  "short_name": "MEC",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -9,8 +9,81 @@
   "background_color": "#FFFFFF",
   "theme_color": "#1D2E4F",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "./",
+  "display_override": [
+    "standalone"
+  ],
+  "orientation": "portrait",
+  "shortcuts": [
+    {
+      "name": "يوميات العمال",
+      "short_name": "اليوميات",
+      "url": "./?s=att",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "استلام توريدة",
+      "short_name": "توريدة",
+      "url": "./?s=del",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "📊 كام جالي",
+      "short_name": "كام جالي",
+      "url": "./?s=kam",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "./share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "f",
+          "accept": [
+            "image/*"
+          ]
+        }
+      ]
+    }
+  }
 }
