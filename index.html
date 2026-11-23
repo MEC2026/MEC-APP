@@ -288,9 +288,9 @@ h3 svg.art{margin:0}
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.11.2';
-const APP_NOTES = ['🗓️ الجدول الزمني بيتعمل لوحده من المقايسة، وبـ 4 أشكال (Gantt، أجندة، أسابيع، أعمدة الحالة).', '📈 «المتابعة» بقت تاب في «كام جالي؟»: SPI وCPI ومنحنى S.',
-  '✅ «جاهز يبدأ؟» و🌙 «خطة بكرة» و🏁 الاستلام بالمناطق ونماذج الجودة (للمالك).', '🔁 أوامر التغيير، و📖 المكتبة الفنية و«اسأل المكتبة».', '🔔 الإشعارات على الموبايل حتى لو التطبيق مقفول: فعّلها من كارت «📲 جهّز الموبايل».'];
+const APP_VERSION = '0.12';
+const APP_NOTES = ['📦 «الخامات»: المطلوب لأسبوع لـ 4، واللي في الموقع يكفي كام يوم.', '📐 «التجهيز وقرارات العميل»: تذكرة قبل البند، ولينك للعميل يوافق أو يختار ويوقّع بصباعه.',
+  '👷 «المقاولين النهارده» و📊 تقييم المقاولين والموردين.', '📸 صورة إنجاز: Gemini يقترح النسبة وانت تأكد.', '🧮 حاسبة الباقة، و🏢 الأدوار والمحطات، ونوع مشروع «صيانة وترميم»، و«مكتب فني».'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
 
@@ -300,6 +300,7 @@ const ROLES = {
   accountant: {name:'محاسب'},
   supervisor2: {name:'مشرف 2'},
   engineer:   {name:'مهندس'},
+  tech:       {name:'مكتب فني'},
   supervisor: {name:'مشرف'},
   contractor: {name:'مقاول'}
 };
@@ -460,6 +461,7 @@ async function refreshMe(){
 function isStandalone(){ return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
 
 function render(){
+  if (S.publicMode) return;   // صفحة العميل
   const app = $('#app');
   if (S.invite) { app.innerHTML = inviteView(); wireInvite(); return; }
   if (!S.session || !S.user) { app.innerHTML = loginView(); wireLogin(); return; }
@@ -797,6 +799,7 @@ function moreView(){
     ${isOwner() ? `<button class="mi" id="ideasMore">💡 دفتري (أفكارك وملاحظاتك)</button>` : ''}
     ${isBoss() ? `<button class="mi" data-site="lib" data-sp="">📖 المكتبة الفنية</button>` : ''}
     ${isOwner() ? `<button class="mi" data-site="regAll" data-sp="">📋 سجل نماذج الجودة</button>` : ''}
+    ${isBoss() || isTech() ? `<button class="mi" data-p12="pkg" data-sp="">🧮 حاسبة الباقة</button>` : ''}
     <button class="mi" id="items">${ic('doc')}بنود الشركة</button>
     ${MORE.map(m => `<button class="mi" data-soon="${esc(m.n)}">${ic(m.i)}${esc(m.n)}<span class="soon">قريبًا</span></button>`).join('')}
   </div>
@@ -821,13 +824,14 @@ async function projectForm(code){
   openSheet(`<h3>${p ? 'تعديل ' + esc(p.name) : 'مشروع جديد'}</h3>
     ${p ? `<p class="muted" style="margin:-6px 0 6px">${esc(p.code)}</p>` : '<p class="muted" style="margin:-6px 0 6px;font-size:12.5px">الكود بيطلع لوحده</p>'}
     <label class="f">اسم المشروع *</label><input class="in" id="fName" data-ak="${k}name" placeholder="مثلا: شقة التجمع الخامس - عمارة 12">
-    <label class="f">النوع *</label><select class="in" id="fType" data-ak="${k}type">${['تشطيب عميل','مقاولة بمقايسة'].map(v => opt(v, p ? p.type : 'تشطيب عميل')).join('')}</select>
+    <label class="f">النوع *</label><select class="in" id="fType" data-ak="${k}type">${['تشطيب عميل','مقاولة بمقايسة','صيانة وترميم'].map(v => opt(v, p ? p.type : 'تشطيب عميل')).join('')}</select>
     <div id="fCalcBox"><label class="f">طريقة الحساب</label><select class="in" id="fCalc" data-ak="${k}calc">${['من غير إشراف','Cost Plus','نسبة على المشروع'].map(v => opt(v, p && p.calc ? p.calc : 'من غير إشراف')).join('')}<option disabled>باكدجات (قريبًا)</option></select>
     <div id="fPctBox"><label class="f">نسبة الإشراف %</label><input class="in" id="fPct" inputmode="decimal" dir="ltr" data-ak="${k}pct" placeholder="مثلا 15"></div></div>
     <p class="muted" id="fBoqNote" style="font-size:12.5px;margin:6px 0 0">البنود هتتاخد من مقايسة العقد زي ما هي، وكل بند بتكلفته المباشرة (مع المقايسات).</p>
     <label class="f">اسم مختصر (للإيصالات والكروت)</label><input class="in" id="fShort" maxlength="20" data-ak="${k}short" placeholder="مثلا: التجمع">
     <label class="f">العميل</label><input class="in" id="fClient" data-ak="${k}client">
     <label class="f">تليفون العميل</label><input class="in" id="fCPhone" type="tel" dir="ltr" data-ak="${k}cphone" placeholder="01xxxxxxxxx">
+    <label class="f">إيميل العميل (اختياري: التأكيدات بتتبعتله لوحدها)</label><input class="in" id="fCMail" type="email" dir="ltr" placeholder="name@mail.com" value="${esc(p ? p.clientEmail || '' : '')}">
     <label class="f">العنوان</label><input class="in" id="fAddr" data-ak="${k}addr">
     <label class="f">المنطقة (أسعار المشروع بتتسجل بيها)</label><div class="chips" id="fRegion">${['القاهرة','إسكندرية','الساحل'].map(v => `<button class="chip ${((p && p.region) || 'القاهرة') === v ? 'on' : ''}" data-reg="${v}" style="${((p && p.region) || 'القاهرة') === v ? 'background:var(--navy);color:#fff' : ''}">${v}</button>`).join('')}</div>
     <label class="f">لينك الموقع على خرايط جوجل (اختياري)</label><input class="in" id="fMap" dir="ltr" data-ak="${k}map" placeholder="https://maps.app.goo.gl/…" ${p && located(p) && !isOwner() ? 'readonly' : ''}>${p && located(p) && !isOwner() ? '<p class="muted" style="font-size:12px;margin:4px 0 0">مكان الموقع متسجل، وتغييره عند المالك بس.</p>' : ''}
@@ -865,7 +869,7 @@ async function projectForm(code){
   $('#fSup').innerHTML = people(['supervisor','engineer'], draftSup !== null ? draftSup : (p ? p.supId : ''));
   $('#fSave').onclick = async () => {
     const data = {code: p ? p.code : '', name: $('#fName').value, type: $('#fType').value, client: $('#fClient').value,
-      clientPhone: digits($('#fCPhone').value), address: $('#fAddr').value, engId: $('#fEng').value, supId: $('#fSup').value,
+      clientPhone: digits($('#fCPhone').value), clientEmail: $('#fCMail') ? $('#fCMail').value.trim() : undefined, address: $('#fAddr').value, engId: $('#fEng').value, supId: $('#fSup').value,
       start: $('#fStart').value, status: $('#fStatus').value, notes: $('#fNotes').value,
       short: $('#fShort').value, calc: $('#fCalc').value, supPct: digits($('#fPct').value), value: digits($('#fValue').value),
       advance: digits($('#fAdv').value), retention: digits($('#fRet').value), end: $('#fEnd').value, map: $('#fMap').value.trim(), region};
@@ -1147,7 +1151,7 @@ async function backupSheet(){
 
 /* ---------- العمال والمقاولين والموردين ---------- */
 const PPL = {L:{n:'العمال', one:'عامل'}, C:{n:'المقاولين', one:'مقاول'}, S:{n:'الموردين', one:'مورد'}, E:{n:'المعدات', one:'معدة'}};
-const role = () => S.user ? S.user.role : '';
+const role = () => S.user ? (S.user.role === 'tech' ? 'engineer' : S.user.role) : '';   // 0.12: المكتب الفني = مهندس + الأسعار وإشعارات المالك
 const canPay = () => ['owner','manager','accountant','engineer'].includes(role());
 const canMoney = () => ['owner','manager','accountant'].includes(role());
 const canAddP = t => ['owner','manager','accountant','engineer'].includes(role()) || (['L','E','S'].includes(t) && role() === 'supervisor');
@@ -4775,12 +4779,13 @@ function siteCard(p){
   const b = (id, t, show) => show ? `<button class="chip" data-site="${id}" data-sp="${esc(p.code)}">${t}</button>` : '';
   return `<div class="card" style="margin-top:10px"><div class="row" style="gap:8px;align-items:center"><b style="flex:1">🗓️ الجدول والمتابعة</b>
     ${its.length ? `<small class="muted">${its.length} بند${ev && ev.spi != null ? ` · SPI ${ev.spi}` : ''}${late ? ` · <span class="redd">${late} متأخر</span>` : ''}</small>` : `<small class="muted">لسه مفيش مقايسة</small>`}</div>
-    <div class="chips" style="flex-wrap:wrap;margin-top:8px">${b('sch', '🗓️ الجدول الزمني', true)}${b('boq', '📝 المقايسة', true)}${b('rdy', `✅ جاهز يبدأ؟${nBlk ? ` <small class="redd">${nBlk}</small>` : ''}`, o)}
-      ${b('zon', `🏁 الاستلام بالمناطق${nNcr ? ` <small class="redd">${nNcr}</small>` : ''}`, o)}${b('co', '🔁 أوامر التغيير', role() !== 'supervisor2')}${b('reg', '📋 نماذج الجودة', o)}${b('night', '🌙 خطة بكرة', o)}</div></div>`;
+    <div class="chips" style="flex-wrap:wrap;margin-top:8px">${b('sch', '🗓️ الجدول الزمني', p.type !== 'صيانة وترميم')}${b('boq', '📝 المقايسة', true)}${b('rdy', `✅ جاهز يبدأ؟${nBlk ? ` <small class="redd">${nBlk}</small>` : ''}`, o)}
+      ${b('zon', `🏁 الاستلام بالمناطق${nNcr ? ` <small class="redd">${nNcr}</small>` : ''}`, o)}${b('co', '🔁 أوامر التغيير', role() !== 'supervisor2')}${b('reg', '📋 نماذج الجودة', o)}${b('night', '🌙 خطة بكرة', o)}</div>${typeof p12Card === 'function' ? p12Card(p) : ''}</div>`;
 }
 function wireSite(v){
   (v || document).querySelectorAll('[data-site]').forEach(b => b.onclick = () => { const c = b.dataset.sp, k = b.dataset.site;
     ({sch: () => schedSheet(c), boq: () => boqSheet(c), rdy: () => readySheet(c), zon: () => zonesSheet(c), co: () => coSheet(c), reg: () => regSheet(c), night: () => nightSheet(c), lib: () => libSheet(), regAll: () => regSheet('')})[k](); });
+  if (typeof wireP12 === 'function') wireP12(v);
   if (siteOK() && !S.boardTried && navigator.onLine) { S.boardTried = true; board(false).then(() => { if (!$('#sheet').classList.contains('on') && !$('#wkOv') && (S.project || isOwner())) render(); }); }
 }
 // كارت 8 بالليل على الرئيسية (للمالك): الحوار بدل كارت 7
@@ -4912,7 +4917,11 @@ function itemSheet(code, id){
     ${tip ? `<div class="card" style="margin-top:8px;padding:10px;background:#FFF8E6;border-color:#F0DCA6;font-size:13px">💡 <b>من الخبرة:</b> ${esc(tip)}</div>` : ''}
     ${irs.length ? `<div class="sline">آخر فحص: ${esc(irs[0].no)} ${fPill(irs[0].st)}</div>` : ''}
     ${refs.length ? `<div class="card" style="margin-top:8px;padding:10px"><b style="font-size:13px">📖 المرجع</b>${refs.map(r => `<div class="sr"><span style="font-size:13px">${esc(r.text)}${r.x.page ? ` <small class="muted">ص ${esc(r.x.page)}</small>` : ''}</span>${r.x.link ? `<a class="more" href="${esc(r.x.link)}" target="_blank" rel="noopener">افتح</a>` : ''}</div>`).join('')}</div>` : ''}
-    <div class="row" style="gap:6px;margin-top:10px;flex-wrap:wrap">${isOwner() ? `<button class="btn gold" id="itIr" style="flex:1">✓ فحص واستلام</button><button class="btn ghost" id="itRdy" style="flex:1">جاهز يبدأ؟</button>` : ''}</div>`);
+    <div class="row" style="gap:6px;margin-top:10px;flex-wrap:wrap">${isOwner() ? `<button class="btn gold" id="itIr" style="flex:1">✓ فحص واستلام</button><button class="btn ghost" id="itRdy" style="flex:1">جاهز يبدأ؟</button>` : ''}
+      ${['owner', 'manager', 'engineer', 'supervisor'].includes(role()) ? `<button class="btn ghost" id="itPh" style="flex:1">📸 صورة إنجاز</button>` : ''}${isBoss() && P.pct < 100 ? `<button class="btn ghost" id="itFd" style="flex:1">خلص (من غير فحص)</button>` : ''}</div>`);
+  if ($('#itPh')) $('#itPh').onclick = () => photoSheet(code, id);
+  if ($('#itFd')) $('#itFd').onclick = async () => { const why = prompt('ليه هيتقفل من غير فحص؟ (السبب بيتسجل)'); if (!why || !why.trim()) return;
+    if (!navigator.onLine) { toast('محتاج نت'); return; } const r = await api('forceDone', {id, why}); if (!r.ok) { toast(errMsg(r)); return; } toast('اتقفل ✓'); await board(true); itemSheet(code, id); };
   if ($('#itIr')) $('#itIr').onclick = () => inspectSheet(code, id);
   if ($('#itRdy')) $('#itRdy').onclick = () => readyItem(code, id);
 }
@@ -5096,7 +5105,7 @@ async function zonesSheet(code, tab){
         ${s.nc.length ? `<details style="font-size:13px;margin-top:4px"><summary style="color:var(--pri)">اعرضهم</summary>${s.nc.map(n => `<div style="padding:3px 0">• ${esc((n.data.items || []).join('، ') || n.title)} <small class="muted">${esc(n.no)} · ${esc(n.data.who || '')} · ${dd(n.due)}</small></div>`).join('')}</details>` : ''}
         ${(() => { const its = bItems(code).filter(x => s.irs.some(f => f.item === x.name)); const tp = its.map(tipOf).find(Boolean); return tp ? `<div class="sline">💡 ${esc(tp)}</div>` : ''; })()}
         <div class="row" style="gap:6px;margin-top:6px">${s.nc.length ? `<button class="chip" data-zr="${esc(s.z.name)}">🔁 إعادة فحص</button>` : ''}<button class="chip" data-zpr="${esc(s.z.name)}">🖨️ اطبع ▾</button></div></div>`).join('') || emptyBox('folder', 'لسه مفيش مناطق')}
-      <div style="font-size:13px;margin-top:8px"><b>ضيف مناطق</b></div><div class="chips" style="flex-wrap:wrap">${ZQ.filter(z => !ZS.some(s => s.z.name === z)).map(z => `<button class="chip" data-za="${esc(z)}">+ ${esc(z)}</button>`).join('')}</div>
+      <div style="font-size:13px;margin-top:8px"><b>ضيف مناطق</b></div><div class="chips" style="flex-wrap:wrap">${(p.type && p.type !== 'تشطيب عميل' ? [] : ZQ).filter(z => !ZS.some(s => s.z.name === z)).map(z => `<button class="chip" data-za="${esc(z)}">+ ${esc(z)}</button>`).join('')}</div>
       <div class="row" style="gap:6px;margin-top:6px"><input class="in" id="znNew" placeholder="منطقة تانية" style="flex:1"><button class="btn ghost" id="znAdd" style="width:auto">ضيف</button></div>`}
     </div>
     <div class="row" style="gap:6px"><button class="btn gold" id="znIr" style="flex:1">✓ فحص بند</button><button class="btn ghost" id="znPrint" style="flex:1">🖨️ اطبع الكل ▾</button></div>`);
@@ -5192,7 +5201,7 @@ function coForm(code, fid){
       <div class="err" id="coE"></div>
       ${role() === 'supervisor' || role() === 'accountant' ? '' : `<button class="btn gold" id="coGo" style="margin-top:8px">احفظ</button>`}
       ${ex && canSt && NEXT[st].length ? `<div class="row" style="gap:6px;margin-top:8px">${NEXT[st].map(n => `<button class="btn ${n === 'اترفض' ? 'ghost' : 'pri'}" data-cs="${n}" style="flex:1">${n === 'اتبعت' ? '📤 اتبعت للعميل' : n === 'وافق' ? '✓ العميل وافق' : n === 'اترفض' ? '✗ اترفض' : '🔨 اتنفذ'}</button>`).join('')}</div>` : ''}
-      ${ex ? `<button class="btn ghost" id="coCl" style="margin-top:8px">👁️ اللي العميل بيشوفه / اطبع</button>` : ''}
+      ${ex ? `<button class="btn ghost" id="coCl" style="margin-top:8px">👁️ اللي العميل بيشوفه / اطبع</button>` : ''}${ex && ex.data.tok && ['مسودة', 'اتبعت'].includes(st) && canSt ? `<button class="btn gold" id="coLink" style="margin-top:8px">📤 ابعت اللينك للعميل (واتساب)</button>` : ''}
       ${ex && ex.data.hist ? `<div class="sline">${ex.data.hist.map(h => `${esc(h.st)} · ${esc(h.by)} · ${esc((h.at || '').slice(0, 10))}${h.verbal ? ' (شفهي: ' + esc(h.verbal) + ')' : ''}`).join('<br>')}</div>` : ''}`);
     const keep = () => { title = $('#coT').value; d.desc = $('#coD').value; d.verbal = $('#coV').value; d.dlater = $('#coDL').checked;
       if ($('#coP1')) { d.pmin = numIn($('#coP1').value); d.pmax = numIn($('#coP2').value); } if ($('#coPF')) d.pfin = numIn($('#coPF').value);
@@ -5208,6 +5217,7 @@ function coForm(code, fid){
       toast(r.queued ? QMSG : stNew === 'وافق' ? 'اتوافق ✓ والبنود دخلت المقايسة والجدول' : 'اتحفظ ✓'); coSheet(code); };
     if ($('#coGo')) $('#coGo').onclick = () => save();
     document.querySelectorAll('[data-cs]').forEach(b => b.onclick = () => save(b.dataset.cs));
+    if ($('#coLink')) $('#coLink').onclick = async () => { shareWa(p.clientPhone, `أهلا بحضرتك ${p.client || ''} 👋 ده طلب تعديل في مشروع ${p.name || ''}: «${ex.title}». محتاجين موافقة حضرتك من هنا: ${clientUrl(ex.data.tok)}`); if (st === 'مسودة') save('اتبعت'); };
     if ($('#coCl')) $('#coCl').onclick = async () => printHtml(coClient(ex, p, await logoURL()), ex.no);
   };
   draw();
@@ -5330,6 +5340,7 @@ function trackHtml(D, F){
       ${e.eac ? `<div class="kpc" style="margin-top:8px"><small class="muted">هيقفل على كام (EAC)</small><b>${nf(e.eac)} <small style="font-size:12px">من ${nf(e.bac)}</small></b></div>` : ''}
       <div class="card" style="margin-top:8px;padding:8px">${sCurve(e)}<div class="sline">— — المخطط PV · ━ المنفذ EV (أزرق)${e.ac ? ' · ··· المصروف AC (برتقاني)' : ''}</div>
       <div style="font-size:13px;margin-top:6px"><b>الخلاصة:</b> المخطط لحد النهارده ${e.pvNow}% والمنفذ ${e.evNow}%${e.late ? `، و${e.late} بند متأخر` : ''}${e.endNow && e.endPlan && e.endNow !== e.endPlan ? `، والخلصان المتوقع ${dd(e.endNow)} بدل ${dd(e.endPlan)}` : ''}.</div></div>
+      ${weekBars(p.code)}
       ${e.priced ? '' : '<div class="sline">النسب بالمدة لأن أسعار البنود مش كاملة. حط سعر الوحدة في المقايسة عشان CPI وEAC.</div>'}`; }).join('');
 }
 function sCurve(e){
@@ -5341,6 +5352,247 @@ function sCurve(e){
     ${pl(e.pv, '#888780', 2, '6 4')}${pl(e.ev, '#2a78d6', 2.5)}${e.ac ? pl(e.ac, '#eb6834', 2, '2 3') : ''}
     <line x1="${x(now)}" y1="10" x2="${x(now)}" y2="160" stroke="#E24B4A" stroke-dasharray="3 3"/><text x="${x(now) + 3}" y="20" font-size="9" fill="#A32D2D">النهارده</text>
     <text x="240" y="175" font-size="9" fill="#888780">الأسابيع ←</text></svg>`;
+}
+
+// هيستوجرام العمالة والمصروف (آخر 8 أسابيع) من الإنجاز والتوريدات والمعدات
+function weekBars(code){
+  const L = S.siteLog; if (!L) return ''; const w0 = addD(satOf(tdy()), -49), W = [...Array(8)].map((_, i) => addD(w0, i * 7));
+  const wk = d => W.findIndex(a => d >= a && d <= addD(a, 6)), lab = W.map(() => 0), cash = W.map(() => 0);
+  (L.out || []).filter(o => o.proj === code).forEach(o => { const i = wk(o.date); if (i >= 0) { lab[i] += Number(o.wd) || 0; cash[i] += Number(o.cost) || 0; } });
+  ['del', 'eq'].forEach(k => (L[k] || []).filter(o => o.proj === code).forEach(o => { const i = wk(o.date); if (i >= 0) cash[i] += Number(o.amount) || 0; }));
+  const bars = (A, c, t, money) => { const m = Math.max(1, ...A); return `<div style="margin-top:8px"><b style="font-size:12.5px">${t}</b><div style="display:flex;gap:4px;align-items:flex-end;height:70px;margin-top:4px">${A.map((v, i) => `<div style="flex:1;text-align:center"><div title="${v}" style="height:${Math.round(v / m * 56)}px;background:${c};border-radius:3px 3px 0 0"></div><small class="muted" style="font-size:9px">${dd(W[i])}</small></div>`).join('')}</div></div>`; };
+  return `<div class="card" style="margin-top:8px;padding:8px">${bars(lab, '#3B7DD8', '👷 العمالة (يوم عامل) بالأسبوع')}${B().money ? bars(cash, '#EF9F27', '💸 المصروف بالأسبوع', true) : ''}</div>`;
+}
+
+/* ================= 0.12: الخامات وتكفي كام يوم · التجهيز وقرارات العميل · لينك العميل · المكتب الفني · المقاولين والموردين ·
+   المبنى كله والمحطات · صور الإنجاز بـ Gemini · حاسبة الباقة ================= */
+const isTech = () => !!(S.user && (S.user.tech || S.user.role === 'tech'));
+const kindOfP = p => (p && p.type) || 'تشطيب عميل';
+const shareWa = (phone, text) => { const ph = String(phone || '').replace(/\D/g, '').replace(/^0/, '20'); window.open(`https://wa.me/${ph}?text=${encodeURIComponent(text)}`, '_blank'); };
+const clientUrl = tok => location.origin + location.pathname + '?c=' + tok;
+
+/* ---------- كارت المشروع: أزرار 0.12 ---------- */
+function p12Card(p){
+  if (!siteOK()) return '';
+  const k = kindOfP(p), b = (id, t, show) => show ? `<button class="chip" data-p12="${id}" data-sp="${esc(p.code)}">${t}</button>` : '';
+  const prep = bForms(p.code, 'PREP').filter(x => x.st !== 'اتجهز').length + bForms(p.code, 'DEC').filter(x => x.st !== 'اتحسم').length;
+  const hasB = B().zones.some(z => z.proj === p.code && (z.src === 'دور' || z.src === 'محطة'));
+  return `<div class="chips" style="flex-wrap:wrap;margin-top:6px">${b('mat', '📦 الخامات', k !== 'صيانة وترميم')}${b('prep', `📐 التجهيز وقرارات العميل${prep ? ` <small class="redd">${prep}</small>` : ''}`, ['owner', 'manager', 'engineer'].includes(role()))}
+    ${b('crew', '👷 المقاولين النهارده', ['owner', 'manager', 'engineer', 'supervisor'].includes(role()))}${b('bld', hasB || k !== 'تشطيب عميل' ? '🏢 الأدوار والمحطات' : '', hasB || k !== 'تشطيب عميل')}${b('score', '📊 تقييم المقاولين والموردين', isBoss() || isTech())}</div>`;
+}
+function wireP12(v){
+  (v || document).querySelectorAll('[data-p12]').forEach(b => b.onclick = () => { const c = b.dataset.sp;
+    ({mat: () => matSheet(c), prep: () => prepSheet(c), crew: () => crewSheet(c), bld: () => bldSheet(c), score: () => scoreSheet(c), pkg: () => pkgSheet()})[b.dataset.p12](); });
+}
+
+/* ---------- 📦 الخامات المطلوبة + تكفي كام يوم ---------- */
+async function matSheet(code, weeks){
+  const p = findProject(code) || {}, w = weeks || store.get('mnW', 2); store.set('mnW', w);
+  openSheet(`<div class="shd">الخامات المطلوبة · ${esc(p.short || p.name || code)}<small>من الجدول ومعدلات الاستهلاك (شامل الهالك)</small></div><div class="sbd" id="mnB"><div class="muted">بيحسب…</div></div>`);
+  const r = await api('matNeed', {project: code, weeks: w}); if (!$('#mnB')) return;
+  if (!r.ok) { $('#mnB').innerHTML = `<div class="err">${esc(r.offline ? 'الحساب محتاج نت' : errMsg(r))}</div>`; return; }
+  const L = r.items || [], n = v => v == null ? '—' : n1(v);
+  $('#mnB').innerHTML = `<div class="chips">${[1, 2, 3, 4].map(k => `<button class="chip ${k === w ? 'on' : ''}" data-mw="${k}">${k === 1 ? 'أسبوع' : k === 2 ? 'أسبوعين' : k + ' أسابيع'}</button>`).join('')}</div>
+    ${r.note ? `<div class="sline">${esc(r.note)}</div>` : ''}
+    ${L.length ? `<div style="overflow-x:auto"><table class="kt" style="width:100%;font-size:12.5px;margin-top:6px"><tr><th>الخامة</th><th>محتاج</th><th>في الموقع</th><th>يكفي</th><th>جاي</th><th>اطلب</th></tr>
+      ${L.map(x => `<tr><td>${esc(x.name)} <small class="muted">${esc(x.unit)}</small></td><td>${n(x.need)}</td><td>${n(x.stock)}</td>
+        <td class="${x.days != null && x.days <= 2 ? 'redd' : ''}">${x.days == null ? '—' : x.days + ' يوم'}</td><td>${n(x.coming)}</td><td><b class="${x.order ? 'redd' : ''}">${x.order == null ? '؟' : x.order ? n(x.order) : '✓'}</b></td></tr>`).join('')}</table></div>
+      <div class="sline">«يكفي» = اللي في الموقع ÷ استهلاك البنود الشغالة في اليوم · «؟» = مفيش توريدات متسجلة بنفس الاسم والوحدة · راجعها قبل البند حتى لو موجودة</div>
+      <button class="btn gold" id="mnWa" style="margin-top:8px">📲 ابعت الطلب للمورد (واتساب)</button>` : emptyBox('box', 'مفيش بنود في المدة دي ليها معدلات استهلاك')}`;
+  document.querySelectorAll('[data-mw]').forEach(b => b.onclick = () => matSheet(code, Number(b.dataset.mw)));
+  if ($('#mnWa')) $('#mnWa').onclick = () => { const t = `طلب خامات لمشروع ${p.name || code}:\n` + L.filter(x => x.order).map(x => `• ${x.name}: ${n1(x.order)} ${x.unit}`).join('\n'); if (navigator.share) navigator.share({text: t}).catch(() => {}); else shareWa('', t); };
+}
+
+/* ---------- 📐 التجهيز قبل البند + قرارات العميل ---------- */
+async function prepSheet(code){
+  const p = findProject(code) || {}; await board(false);
+  const P = bForms(code, 'PREP').sort((a, b) => (a.due || '').localeCompare(b.due || '')), D = bForms(code, 'DEC').sort((a, b) => (a.due || '').localeCompare(b.due || '')), t = tdy();
+  const iName = id => (bItems(code).find(x => x.id === id) || {}).name || '';
+  openSheet(`<h3>📐 التجهيز وقرارات العميل · ${esc(p.short || p.name || code)}</h3>
+    <h2 class="sec">قبل البنود (المهندس / المكتب الفني)</h2>
+    ${P.map(f => `<div class="card" style="padding:10px;margin-bottom:6px"><div class="sr" style="padding:0"><span><b style="font-size:13.5px">${esc(f.title)}</b><br><small class="muted">${esc(f.data.name || iName(f.item))} · يبدأ ${dd(f.data.start)}</small></span>
+      ${f.st === 'اتجهز' ? fPill('اتجهز') : `<button class="chip" data-pd="${esc(f.id)}">✓ اتجهز</button>`}</div></div>`).join('') || '<div class="muted" style="font-size:13px">مفيش حاجة مطلوبة دلوقتي</div>'}
+    <h2 class="sec">قرارات العميل</h2>
+    ${D.map(f => { const s = f.data.sent || [], late = f.st !== 'اتحسم' && f.data.start && f.data.start <= t; return `<div class="card" style="padding:10px;margin-bottom:6px">
+      <div class="sr" style="padding:0"><span><b style="font-size:13.5px">${esc(f.title)}</b><br><small class="muted">${esc(f.data.name || iName(f.item))} · البند يبدأ ${dd(f.data.start)}${s.length ? ` · اتبعت ${s.length} مرة آخرها ${dd(s[s.length - 1])}` : ''}</small></span>${fPill(late ? 'متأخر' : f.st)}</div>
+      ${f.data.ans ? `<div class="sline">🗳️ رد العميل: <b>${esc(f.data.ans.choice || f.data.ans.note || (f.data.ans.ok ? 'موافق' : 'مش موافق'))}</b></div>` : ''}
+      <div class="row" style="gap:6px;margin-top:6px;flex-wrap:wrap">${f.st !== 'اتحسم' ? `<button class="chip" data-ds="${esc(f.id)}">📲 ${s.length ? 'ابعت تذكير' : 'ابعت للعميل'}</button><button class="chip" data-dm="${esc(f.id)}">✍️ سجّل الرد يدوي</button>` : `<button class="chip" data-dco="${esc(f.id)}">🔁 برّه الباقة؟ أمر تغيير</button>`}</div></div>`; }).join('') || '<div class="muted" style="font-size:13px">مفيش قرارات مطلوبة دلوقتي</div>'}`);
+  document.querySelectorAll('[data-pd]').forEach(b => b.onclick = async () => { const f = B().forms.find(x => x.id === b.dataset.pd);
+    const r = await siteSave('saveForm', {form: {id: f.id, type: 'PREP', project: code, st: 'اتجهز'}}, 'اتجهز ' + f.title); if (r.ok) { putForm(r.form || Object.assign({}, f, {st: 'اتجهز'})); prepSheet(code); } });
+  document.querySelectorAll('[data-ds]').forEach(b => b.onclick = async () => { const f = B().forms.find(x => x.id === b.dataset.ds), s = (f.data.sent || []).length;
+    const txt = s ? `أهلا بحضرتك ${p.client || ''} 👋 بنفكّر حضرتك: محتاجين نعتمد «${f.title}» عشان نلحق ميعاد ${f.data.name || ''}. من هنا: ${clientUrl(f.data.tok)}`
+      : `أهلا بحضرتك ${p.client || ''} 👋 عشان نلحق ميعاد ${f.data.name || 'البند'}، محتاجين نعتمد مع حضرتك: ${f.title}. اختار من هنا: ${clientUrl(f.data.tok)}`;
+    shareWa(p.clientPhone, txt);
+    const r = await siteSave('saveForm', {form: {id: f.id, type: 'DEC', project: code, st: 'اتبعت', data: {sent: (f.data.sent || []).concat([tdy()])}}}, 'اتبعت للعميل'); if (r.ok) { putForm(r.form || f); prepSheet(code); } });
+  document.querySelectorAll('[data-dm]').forEach(b => b.onclick = async () => { const f = B().forms.find(x => x.id === b.dataset.dm); const v = prompt('العميل اختار إيه؟'); if (!v) return;
+    const r = await siteSave('saveForm', {form: {id: f.id, type: 'DEC', project: code, st: 'اتحسم', data: {ans: {ok: true, choice: v, by: dn(S.user), at: new Date().toISOString()}}}}, 'رد العميل'); if (r.ok) { putForm(r.form || f); prepSheet(code); } });
+  document.querySelectorAll('[data-dco]').forEach(b => b.onclick = () => { const f = B().forms.find(x => x.id === b.dataset.dco); coForm(code); setTimeout(() => { if ($('#coT')) $('#coT').value = 'ترقية: ' + f.title; if ($('#coD')) $('#coD').value = 'اختيار العميل: ' + ((f.data.ans || {}).choice || '') + ' (برّه حدود الباقة)'; }, 50); });
+}
+
+/* ---------- 👷 المقاولين النهارده (العدد: صنايعي ومساعد) ---------- */
+async function crewSheet(code){
+  const p = findProject(code) || {}; await board(false);
+  const C = (S.peopleCache && S.peopleCache.C) || ((await api('people', {type: 'C'})).items || []); S.peopleCache = Object.assign(S.peopleCache || {}, {C});
+  const last = bForms(code, 'CRW').sort((a, b) => b.due.localeCompare(a.due))[0], today = bForms(code, 'CRW').find(x => x.due === tdy());
+  let L = (today || {data: {crews: []}}).data.crews.map(x => Object.assign({}, x)); if (!L.length) L.push({name: '', item: '', sk: 0, hp: 0});
+  const its = bItems(code).filter(x => itemSt(code, x) !== 'خلص');
+  const draw = () => { openSheet(`<h3>👷 المقاولين النهارده · ${esc(p.short || p.name)}</h3>
+      <datalist id="crC">${C.map(x => `<option value="${esc(x.name)}">`).join('')}</datalist><datalist id="crI">${its.map(x => `<option value="${esc(x.name)}">`).join('')}</datalist>
+      ${L.map((c, i) => `<div class="card" style="padding:10px;margin-bottom:6px"><input class="in" list="crC" data-cn="${i}" value="${esc(c.name)}" placeholder="المقاول"><input class="in" list="crI" data-ci="${i}" value="${esc(c.item)}" placeholder="البند" style="margin-top:4px">
+        <div class="sr"><span>صنايعي</span><span class="row" style="gap:6px;align-items:center"><button class="chip" data-cs="${i}|sk|-1">−</button><b>${c.sk}</b><button class="chip" data-cs="${i}|sk|1">+</button></span></div>
+        <div class="sr"><span>مساعد</span><span class="row" style="gap:6px;align-items:center"><button class="chip" data-cs="${i}|hp|-1">−</button><b>${c.hp}</b><button class="chip" data-cs="${i}|hp|1">+</button></span></div></div>`).join('')}
+      <div class="row" style="gap:6px"><button class="btn ghost" id="crAdd" style="flex:1">+ مقاول</button>${last && !today ? `<button class="btn ghost" id="crSame" style="flex:1">زي آخر مرة ✓</button>` : ''}</div>
+      <button class="btn gold" id="crGo" style="margin-top:8px">احفظ</button>`);
+    const keep = () => { document.querySelectorAll('[data-cn]').forEach(e => L[e.dataset.cn].name = e.value); document.querySelectorAll('[data-ci]').forEach(e => L[e.dataset.ci].item = e.value); };
+    document.querySelectorAll('[data-cs]').forEach(b => b.onclick = () => { keep(); const [i, k, d] = b.dataset.cs.split('|'); L[i][k] = Math.max(0, (Number(L[i][k]) || 0) + Number(d)); draw(); });
+    $('#crAdd').onclick = () => { keep(); L.push({name: '', item: '', sk: 0, hp: 0}); draw(); };
+    if ($('#crSame')) $('#crSame').onclick = () => { L = last.data.crews.map(x => Object.assign({}, x)); draw(); };
+    $('#crGo').onclick = async () => { keep(); const crews = L.filter(c => c.name.trim() && (c.sk || c.hp)); if (!crews.length) { toast('اكتب المقاول والعدد'); return; }
+      const r = await siteSave('crew', {project: code, date: tdy(), crews}, 'المقاولين النهارده'); if (r.ok) { if (r.form) putForm(r.form); toast(r.queued ? QMSG : 'اتسجل ✓'); closeSheet(); } };
+  };
+  draw();
+}
+
+/* ---------- 📊 تقييم المقاولين والموردين ---------- */
+async function scoreSheet(code){
+  await board(false); const F = B().forms.filter(f => !code || f.proj === code);
+  const C = {}, add = (n, k, v) => { if (!n) return; (C[n] = C[n] || {n, ir: 0, ok1: 0, ncr: 0, open: 0, days: [], skd: 0, hpd: 0}); C[n][k] = Array.isArray(C[n][k]) ? C[n][k].concat([v]) : C[n][k] + v; };
+  F.filter(f => f.type === 'IR' && !f.parent).forEach(f => { add(f.data.who, 'ir', 1); if (/^مقبول/.test(f.st)) add(f.data.who, 'ok1', 1); });
+  F.filter(f => f.type === 'NCR' && f.data.src === 'IR').forEach(f => { add(f.data.who, 'ncr', 1); if (f.st !== 'مقفول') add(f.data.who, 'open', 1); else add(f.data.who, 'days', Math.max(0, daysB(f.at.slice(0, 10), (f.mod || f.at).slice(0, 10)))); });
+  F.filter(f => f.type === 'CRW').forEach(f => (f.data.crews || []).forEach(c => { add(c.name, 'skd', c.sk); add(c.name, 'hpd', c.hp); }));
+  const Sp = {}; F.filter(f => f.type === 'MIR').forEach(f => { const n = f.data.sup || 'من غير اسم', z = Sp[n] = Sp[n] || {n, all: 0, ok: 0, brk: [], ncr: 0};
+    z.all++; if (!(f.data.checks || []).some(c => c.v === 'x')) z.ok++; if (Number(f.data.brk)) z.brk.push(Number(f.data.brk)); });
+  F.filter(f => f.type === 'NCR' && f.data.src === 'MIR' && f.st !== 'مقفول').forEach(f => { const z = Sp[f.data.who]; if (z) z.ncr++; });
+  const pc = (a, b) => b ? Math.round(a / b * 100) + '%' : '—', avg = L => L.length ? n1(L.reduce((s, x) => s + x, 0) / L.length) : '—';
+  openSheet(`<h3>📊 تقييم المقاولين والموردين${code ? ' · ' + esc((findProject(code) || {}).short || '') : ''}</h3>
+    <h2 class="sec">المقاولين</h2>${Object.values(C).map(c => `<div class="card" style="padding:10px;margin-bottom:6px"><b>${esc(c.n)}</b>
+      <div class="kp2" style="margin-top:6px"><div class="kpc"><small class="muted">اتقبل من أول مرة</small><b style="color:${c.ir && c.ok1 / c.ir >= .8 ? 'var(--ok)' : 'var(--warn)'}">${pc(c.ok1, c.ir)}</b><small class="muted">${c.ir} فحص</small></div>
+      <div class="kpc"><small class="muted">قفل الملاحظات</small><b>${avg(c.days)}</b><small class="muted">يوم · ${c.open} مفتوح${c.open ? ' = محتجز' : ''}</small></div></div>
+      <div class="sline">أيام عمل: ${c.skd} صنايعي · ${c.hpd} مساعد</div></div>`).join('') || '<div class="muted" style="font-size:13px">لسه مفيش فحوصات أو عمال مقاولين متسجلين</div>'}
+    <h2 class="sec">الموردين</h2>${Object.values(Sp).map(z => `<div class="card" style="padding:10px;margin-bottom:6px"><b>${esc(z.n)}</b><div class="sr"><span>اتقبل من أول مرة</span><b>${pc(z.ok, z.all)}</b></div><div class="sr"><span>متوسط الكسر</span><b>${avg(z.brk)}</b></div><div class="sr"><span>عدم مطابقة مفتوح</span><b>${z.ncr}</b></div></div>`).join('') || '<div class="muted" style="font-size:13px">لسه مفيش استلامات خامات متسجلة</div>'}
+    <div class="sline">الأرقام من الفحص والاستلام وعدد عمال المقاولين. الإنتاجية لكل مقاول بتظهر مع اقتراحات المعدلات في المكتبة الفنية.</div>`);
+}
+
+/* ---------- 🏢 الأدوار والمحطات (للمشاريع اللي مش أوض) ---------- */
+async function bldSheet(code){
+  const p = findProject(code) || {}; await board(false);
+  const Z = B().zones.filter(z => z.proj === code), FL = Z.filter(z => z.src === 'دور'), ST = Z.filter(z => z.src === 'محطة');
+  const its = bItems(code), IR = bForms(code, 'IR'), NC = bForms(code, 'NCR').filter(x => x.st !== 'مقفول');
+  const cell = (it, zn) => NC.some(n => n.item === it.name && n.zones.includes(zn)) ? '#E24B4A' : IR.some(f => f.item === it.name && f.zones.includes(zn) && /^مقبول/.test(f.st)) ? '#1D9E75' : IR.some(f => f.item === it.name && f.zones.includes(zn)) ? '#EF9F27' : '#EEF1F4';
+  openSheet(`<div class="shd">الأدوار والمحطات · ${esc(p.short || p.name)}<small>أخضر اتستلم · برتقاني اتفحص · أحمر فيه ملاحظة · رمادي لسه</small></div><div class="sbd">
+    ${FL.length ? `<b>🏢 المبنى كله</b><div style="overflow-x:auto"><div class="wg" style="grid-template-columns:70px repeat(${its.length},minmax(34px,1fr));min-width:${70 + its.length * 36}px;margin-top:6px"><span></span>${its.map(x => `<span class="muted" style="font-size:10px;text-align:center">${esc(x.name.split(' ')[0])}</span>`).join('')}
+      ${FL.slice().reverse().map(z => `<b style="font-size:12px">${esc(z.name)}</b>${its.map(x => `<span class="wc" style="background:${cell(x, z.name)}"></span>`).join('')}`).join('')}</div></div>` : ''}
+    ${ST.length ? `<b style="display:block;margin-top:10px">📏 المحطات</b>${its.map(x => `<div style="font-size:12px;margin-top:6px">${esc(x.name)}</div><div style="display:flex;gap:2px;height:20px">${ST.map(z => `<span title="${esc(z.name)}" style="flex:${Number(z.area) || 1};background:${cell(x, z.name)};border-radius:4px"></span>`).join('')}</div>`).join('')}
+      <div class="muted" style="display:flex;justify-content:space-between;font-size:10.5px">${ST.map(z => `<span>${esc(z.name)}</span>`).join('')}</div>` : ''}
+    ${!FL.length && !ST.length ? emptyBox('folder', 'ضيف الأدوار أو المحطات تحت') : ''}</div>
+    <div class="card" style="padding:10px"><b style="font-size:13px">ضيف</b><div class="chips" style="margin:6px 0"><button class="chip on" data-zk="دور">دور</button><button class="chip" data-zk="محطة">محطة (بالمتر)</button><button class="chip" data-zk="قطاع">قطاع / مربع</button></div>
+      <div class="row" style="gap:6px"><input class="in" id="bzN" placeholder="الأرضي، الأول… أو 0+000–0+180 أو A1" style="flex:2"><input class="in" id="bzL" inputmode="decimal" dir="ltr" placeholder="الطول م" style="flex:1"><button class="btn ghost" id="bzGo" style="width:auto">ضيف</button></div>
+      <div class="sline">الأدوار والمحطات والقطاعات بتظهر كمناطق في الفحص والاستلام، والقطاعات بتتعلّم على صورة الموقع من «🏁 الاستلام بالمناطق».</div></div>`);
+  let kind = 'دور'; document.querySelectorAll('[data-zk]').forEach(b => b.onclick = () => { kind = b.dataset.zk; document.querySelectorAll('[data-zk]').forEach(c => c.classList.toggle('on', c === b)); });
+  $('#bzGo').onclick = async () => { const n = $('#bzN').value.trim(); if (!n) return; const r = await siteSave('saveZone', {project: code, zone: {name: n, src: kind === 'قطاع' ? 'يدوي' : kind, area: numIn($('#bzL').value)}}, 'منطقة ' + n);
+    if (r.ok && S.board) { if (r.zones) S.board.zones = S.board.zones.filter(z => z.proj !== code).concat(r.zones); } bldSheet(code); };
+}
+
+/* ---------- 📸 صورة إنجاز: الصورة اللي فاتت شفافة + Gemini يقترح النسبة والمهندس يأكد ---------- */
+async function photoSheet(code, id){
+  const it = bItems(code).find(x => x.id === id); if (!it) return;
+  const prev = bForms(code, 'PH').filter(f => f.item === id).sort((a, b) => b.at.localeCompare(a.at))[0];
+  openSheet(`<h3>📸 صورة إنجاز · ${esc(it.name)}</h3><div style="position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:3/4">
+      <video id="phV" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover"></video>${prev && prev.data.url ? `<img src="${esc(prev.data.url)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.35;pointer-events:none">` : ''}</div>
+    <div class="sline">${prev ? 'الصورة اللي فاتت شفافة: قف في نفس المكان والزاوية' : 'أول صورة للبند ده'}</div><div id="phR"></div>
+    <div class="row" style="gap:6px;margin-top:8px"><button class="btn gold" id="phShot" style="flex:2">📸 صوّر</button><label class="btn ghost" style="flex:1;text-align:center">من المعرض<input type="file" id="phF" accept="image/*" hidden></label></div>`);
+  let stream = null; try { stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}}); $('#phV').srcObject = stream; } catch (e) { $('#phV').replaceWith(Object.assign(document.createElement('div'), {className: 'muted', style: 'color:#fff;padding:20px', textContent: 'الكاميرا مش متاحة، اختار صورة من المعرض'})); }
+  const stop = () => { if (stream) stream.getTracks().forEach(t => t.stop()); };
+  const go = async b64 => { stop(); if (!navigator.onLine) { toast('محتاج نت'); return; } $('#phR').innerHTML = '<div class="muted" style="margin-top:8px">Gemini بيبص… ⏳</div>';
+    const r = await api('photoPct', {project: code, item: it.name, photo: b64}); if (!$('#phR')) return;
+    if (!r.ok) { $('#phR').innerHTML = `<div class="err">${esc(r.error === 'noAI' ? 'مفتاح Gemini مش متركّب' : errMsg(r))}</div>`; return; }
+    $('#phR').innerHTML = `<div class="card" style="margin-top:8px;padding:10px"><div class="sr" style="padding:0"><span>Gemini بيقول</span><b style="font-size:20px">${r.pct}%</b></div><div class="sline">${esc(r.why)}</div>
+      <label class="f">النسبة الصح (انت اللي بتأكد)</label><input class="in" id="phP" inputmode="numeric" dir="ltr" value="${r.pct}"><button class="btn gold" id="phOk" style="margin-top:6px">✓ أكّد</button></div>`;
+    $('#phOk').onclick = async () => { const pct = Math.max(0, Math.min(100, Number(numIn($('#phP').value)) || 0));
+      const s = await siteSave('saveForm', {form: {type: 'PH', project: code, item: id, st: 'اتأكد', title: 'صورة إنجاز · ' + it.name, data: {pct, ai: r.pct, why: r.why, url: r.url, link: r.link}}}, 'صورة إنجاز');
+      if (s.ok) { if (s.form) putForm(s.form); toast('اتسجل ✓'); itemSheet(code, id); } }; };
+  $('#phShot').onclick = () => { const v = $('#phV'); if (!v || !v.videoWidth) return; const c = document.createElement('canvas'), k = Math.min(1, 1280 / v.videoWidth); c.width = v.videoWidth * k; c.height = v.videoHeight * k; c.getContext('2d').drawImage(v, 0, 0, c.width, c.height); go(c.toDataURL('image/jpeg', .8)); };
+  $('#phF').onchange = async e => { const f = e.target.files[0]; if (f) go(await shrinkImage(f, 1280)); };
+  const cl = $('#sheet .x, #sheetX'); if (cl) cl.addEventListener('click', stop, {once: true});
+}
+
+/* ---------- 🧮 حاسبة الباقة + أسئلة الإضافات ---------- */
+async function pkgSheet(){
+  openSheet('<div class="muted">بيحمّل الباقات…</div>');
+  const D = S.pkgData || (await api('pkgData')); if (!D.ok) { openSheet(`<h3>🧮 حاسبة الباقة</h3><div class="err">${esc(D.offline ? 'محتاج نت أول مرة' : errMsg(D))}</div>`); return; } S.pkgData = D;
+  if (!D.items.length) { openSheet(`<h3>🧮 حاسبة الباقة</h3>${emptyBox('doc', 'الباقات لسه ما وصلتش من ملف الأسعار: افتح الملف ودوس «ارفع للتطبيق»')}`); return; }
+  const V = Object.assign({pk: 2, lv: 1, area: 150, bath: 2, kit: 1, room: 3, hall: 1, roof: 0, gard: 0, x: {}, q: {}}, store.get('pkgV', {}));
+  const basis = b => { const s = nrm(b); let v = 0;
+    if (/الشقه|المساحه/.test(s)) v += V.area; if (/حمام/.test(s)) v += V.bath; if (/مطبخ/.test(s)) v += V.kit; if (/اوض|غرف/.test(s)) v += V.room; if (/صال|ريسبشن/.test(s)) v += V.hall;
+    if (/السطح/.test(s)) v += V.roof; if (/الحديقه/.test(s)) v += V.gard; if (/نقط/.test(s)) v += V.room * 6 + V.hall * 8 + V.bath * 4 + V.kit * 8; return v || (/مقطوعيه|شقه$/.test(s) ? 1 : 0); };
+  const draw = () => { store.set('pkgV', V);
+    const rows = D.items.map(it => { const inc = it.inc[V.pk], key = it.code; const on = V.x[key] !== undefined ? V.x[key] : inc === '✓'; if (inc === '—' && V.x[key] === undefined) return null;
+      const q = Math.round(basis(it.basis) * (Number(it.k[V.pk]) || 0) * 10) / 10, pr = (D.prices[key] || {lv: [0, 0, 0]}).lv[V.lv] || 0; return {it, on, opt: inc === 'اختياري', q, pr, tot: on ? q * pr : 0}; }).filter(Boolean);
+    D.qs.forEach(q => { const yes = V.q[q.q] !== undefined ? V.q[q.q] : q.def[V.pk] === 'نعم'; if (!yes) return; const pr = (D.prices[q.code] || {lv: [0, 0, 0]}).lv[V.lv] || 0, qq = Math.round((basis(q.basis) || 1) * q.k * 10) / 10;
+      rows.push({it: {code: q.code, name: (D.prices[q.code] || {}).name || q.q, unit: (D.prices[q.code] || {}).unit || ''}, on: true, q: qq, pr, tot: qq * pr, qs: true}); });
+    const sum = rows.reduce((s, r) => s + r.tot, 0) * (1 + D.f.sup), lo = sum * (1 - D.f.lo), hi = sum * (1 + D.f.hi), noP = rows.filter(r => r.on && !r.pr).length;
+    const inp = (k, l) => `<label style="font-size:12px;flex:1 1 30%">${l}<input class="in" data-pv="${k}" inputmode="numeric" dir="ltr" value="${V[k]}"></label>`;
+    openSheet(`<div class="shd">🧮 حاسبة الباقة<small>رينج تقديري مش ملزم · من ملف الأسعار</small></div><div class="sbd">
+      <div class="chips">${D.pkgs.map((n, i) => `<button class="chip ${V.pk === i ? 'on' : ''}" data-pp="${i}">${n}</button>`).join('')}</div><div class="chips" style="margin-top:4px">${D.levels.map((n, i) => `<button class="chip ${V.lv === i ? 'on' : ''}" data-pl="${i}">${n}</button>`).join('')}</div>
+      <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px">${inp('area', 'م² الشقة')}${inp('room', 'الأوض')}${inp('hall', 'الصالات')}${inp('bath', 'الحمامات')}${inp('kit', 'المطابخ')}${inp('roof', 'م² السطح')}${inp('gard', 'م² الحديقة')}</div>
+      ${D.money ? `<div class="card" style="text-align:center;margin-top:8px"><small class="muted">السعر التقريبي · ${D.pkgs[V.pk]} ${D.levels[V.lv]}</small><div style="font-size:22px;font-weight:800">${nf(Math.round(lo / 1000) * 1000)} – ${nf(Math.round(hi / 1000) * 1000)} ج</div>${noP ? `<small class="redd">${noP} بند من غير سعر</small>` : ''}</div>` : ''}
+      <h2 class="sec">أسئلة الإضافات</h2>${D.qs.map(q => { const yes = V.q[q.q] !== undefined ? V.q[q.q] : q.def[V.pk] === 'نعم'; return `<div class="sr"><span style="font-size:13px">${esc(q.q)}</span><span class="yn"><button class="${yes ? 'ok' : ''}" data-pq="${esc(q.q)}" data-v="1">نعم</button><button class="${!yes ? 'no' : ''}" data-pq="${esc(q.q)}" data-v="">لا</button></span></div>`; }).join('')}
+      <h2 class="sec">البنود</h2>${rows.filter(r => !r.qs).map(r => `<div class="sr"><span style="font-size:13px">${r.opt ? `<input type="checkbox" data-px="${esc(r.it.code)}" ${r.on ? 'checked' : ''}> ` : ''}${esc(r.it.name)}<br><small class="muted">${n1(r.q)} ${esc(r.it.unit)}${D.money && r.pr ? ' × ' + nf(r.pr) : ''}</small></span>${D.money ? `<b style="font-size:12.5px">${r.on ? nf(Math.round(r.tot)) : '—'}</b>` : ''}</div>`).join('')}
+      <button class="btn gold" id="pkPdf" style="margin-top:8px">📄 PDF للعميل</button></div>`);
+    document.querySelectorAll('[data-pp]').forEach(b => b.onclick = () => { V.pk = Number(b.dataset.pp); V.x = {}; draw(); });
+    document.querySelectorAll('[data-pl]').forEach(b => b.onclick = () => { V.lv = Number(b.dataset.pl); draw(); });
+    document.querySelectorAll('[data-pv]').forEach(i => i.onchange = () => { V[i.dataset.pv] = Number(numIn(i.value)) || 0; draw(); });
+    document.querySelectorAll('[data-pq]').forEach(b => b.onclick = () => { V.q[b.dataset.pq] = !!b.dataset.v; draw(); });
+    document.querySelectorAll('[data-px]').forEach(c => c.onchange = () => { V.x[c.dataset.px] = c.checked; draw(); });
+    $('#pkPdf').onclick = async () => { const logo = await logoURL(); printHtml(`<div style="${PSTY};font-size:13px">${pTop('عرض سعر تقديري · باقة ' + D.pkgs[V.pk] + ' ' + D.levels[V.lv], '', {}, logo)}
+      <p>شقة ${V.area} م² · ${V.room} أوض · ${V.hall} صالة · ${V.bath} حمام · ${V.kit} مطبخ</p>
+      <table style="${pTb}"><tr><th style="${pTd}">البند</th><th style="${pTd}">الكمية</th></tr>${rows.filter(r => r.on).map(r => `<tr><td style="${pTd}">${esc(r.it.name)}</td><td style="${pTd}">${n1(r.q)} ${esc(r.it.unit)}</td></tr>`).join('')}</table>
+      ${D.money ? `<h3>السعر التقريبي: ${nf(Math.round(lo / 1000) * 1000)} – ${nf(Math.round(hi / 1000) * 1000)} جنيه</h3>` : ''}<p style="color:#666">رينج تقديري غير ملزم، والسعر النهائي بعد المعاينة والحصر.</p></div>`, 'عرض باقة'); };
+  };
+  draw();
+}
+
+/* ---------- 🔗 صفحة العميل (من غير دخول): ?c=TOKEN ---------- */
+async function clientPage(tok){
+  S.publicMode = true;
+  const root = document.body; root.innerHTML = `<div id="cpg" style="max-width:520px;margin:0 auto;padding:12px;font-family:Cairo,Tahoma,sans-serif;direction:rtl"><div class="muted">بيحمّل…</div></div>`;
+  const call = async (a, d) => { try { const r = await fetch(execUrl(), {method: 'POST', body: JSON.stringify(Object.assign({action: a, t: tok}, d || {}))}); return await r.json(); } catch (e) { return {ok: false, error: 'net'}; } };
+  const logo = 'icon-192.png', box = $('#cpg');
+  const head = (t, s) => `<div style="display:flex;gap:10px;align-items:center;background:var(--navy,#1D2E4F);color:#fff;border-radius:14px 14px 0 0;padding:12px"><img src="${logo}" alt="MEC" style="width:44px;height:44px;border-radius:50%;background:#fff"><div><b>${t}</b><div style="font-size:12.5px;opacity:.85">${s}</div></div></div>`;
+  const r = await call('clientLink'); if (!r.ok) { box.innerHTML = head('MEC · الشرق الأوسط للإنشاءات', '') + `<div class="card">الرابط ده مش شغال أو اتقفل. كلّم المهندس المسؤول.</div>`; return; }
+  const v = r.view, isCO = v.kind === 'CO';
+  const thanks = v2 => { const a = v2.answered || {};
+    box.innerHTML = head('شكرا لحضرتك 🙏', 'اتسجل الرد') + `<div class="card" style="border-radius:0 0 14px 14px">
+      <div style="background:#E6F4EC;border:1px solid #BFE3CF;border-radius:10px;padding:10px">✓ حضرتك ${isCO ? (a.ok ? 'وافقت' : 'ما وافقتش') : 'رديت'} يوم ${esc((a.at || '').slice(0, 10))} على:<br><b>${esc(v2.no ? v2.no + ' · ' : '')}${esc(v2.title)}</b>
+      ${isCO && v2.pmax ? `<br>بسعر تقريبي ${nf(v2.pmin)} – ${nf(v2.pmax)} ج` : ''}${a.choice ? `<br>اختيارك: <b>${esc(a.choice)}</b>` : ''}</div>
+      <p>${v2.eng ? 'م. ' + esc(v2.eng) : 'المهندس'} هيتواصل مع حضرتك بالخطوة الجاية.</p><button class="btn ghost" id="cpImg">📸 احفظ صورة الرد</button>
+      <div style="margin-top:12px"><b>في أي طلبات تانية؟</b><textarea class="in" id="cpMore" placeholder="اكتبها هنا"></textarea><div class="muted" style="font-size:12px">ابعتها للمهندس على الواتساب وهنرد على حضرتك</div></div>
+      <p class="muted" style="font-size:12px;margin-top:12px">الشرق الأوسط للإنشاءات · MEC</p></div>`;
+    $('#cpImg').onclick = () => { const c = document.createElement('canvas'); c.width = 900; c.height = 520; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 900, 520); g.fillStyle = '#1D2E4F'; g.fillRect(0, 0, 900, 90);
+      g.direction = 'rtl'; g.textAlign = 'right'; g.fillStyle = '#fff'; g.font = 'bold 34px Tahoma'; g.fillText('MEC · تأكيد رد العميل', 870, 58); g.fillStyle = '#17683F'; g.font = 'bold 30px Tahoma';
+      g.fillText(isCO ? (a.ok ? '✓ موافق' : '✗ مش موافق') : '✓ اتسجل الرد', 870, 150); g.fillStyle = '#1B2333'; g.font = '26px Tahoma';
+      [(v2.no ? v2.no + ' · ' : '') + v2.title, v2.project, a.choice ? 'الاختيار: ' + a.choice : '', isCO && v2.pmax ? `السعر التقريبي ${v2.pmin} – ${v2.pmax} ج` : '', 'التاريخ: ' + (a.at || '').slice(0, 16).replace('T', ' '), a.name ? 'الاسم: ' + a.name : ''].filter(Boolean).forEach((t, i) => g.fillText(String(t).slice(0, 60), 870, 210 + i * 46));
+      const l = document.createElement('a'); l.href = c.toDataURL('image/png'); l.download = 'MEC-تأكيد.png'; l.click(); }; };
+  if (v.answered) return thanks(v);
+  box.innerHTML = head('MEC · الشرق الأوسط للإنشاءات', `أهلا بحضرتك ${esc(v.client || '')} 👋`) + `<div class="card" style="border-radius:0 0 14px 14px;font-size:14px">
+    <p>${isCO ? `ده طلب تعديل في مشروع <b>${esc(v.project)}</b>، محتاجين موافقة حضرتك عشان نبدأ:` : `عشان نلحق الميعاد في مشروع <b>${esc(v.project)}</b>، محتاجين نعتمد مع حضرتك:`}</p>
+    <div class="card" style="background:#F5F9FF"><b>${esc(v.no ? v.no + ' · ' : '')}${esc(v.title)}</b>${v.desc ? `<div style="margin-top:4px">${esc(v.desc)}</div>` : ''}
+      ${v.lines.map(l => `<div class="sr"><span>${esc(l.name)}</span><span>${esc(l.qty)} ${esc(l.unit)}</span></div>`).join('')}
+      ${isCO && v.pmax ? `<div class="sr"><span>السعر التقريبي</span><b>${nf(v.pmin)} – ${nf(v.pmax)} ج</b></div><div class="muted" style="font-size:12px">غير ملزم · درجة الدقة ${esc(v.grade)} · النهائي بعد التنفيذ</div>` : ''}
+      ${isCO ? `<div class="sr"><span>المدة</span><b>${v.dlater ? 'تتحدد بعد التنفيذ' : esc(v.dmin || '?') + ' – ' + esc(v.dmax || '?') + ' يوم'}</b></div>` : ''}</div>
+    ${v.due ? `<div class="sr"><span>آخر ميعاد للرد</span><b style="color:#7A4E0C">${esc(v.due)}</b></div>` : ''}
+    ${!isCO ? `${(v.photos || []).length ? `<div class="row" style="gap:6px;overflow-x:auto">${v.photos.map(u => `<img src="${esc(u)}" alt="" style="width:110px;height:110px;object-fit:cover;border-radius:8px">`).join('')}</div>` : ''}<label class="f">اختيار حضرتك</label><textarea class="in" id="cpCh" placeholder="اكتب اختيارك هنا"></textarea>` : ''}
+    <label class="f">الاسم</label><input class="in" id="cpN" value="${esc(v.client || '')}">
+    <label class="f">✍️ وقّع هنا بصباعك</label><canvas id="cpSig" width="480" height="140" style="width:100%;height:140px;border:1.5px dashed #B4B2A9;border-radius:10px;touch-action:none;background:#fff"></canvas>
+    <div class="row" style="gap:6px;margin-top:8px"><button class="btn gold" id="cpOk" style="flex:1">${isCO ? '✓ موافق' : '✓ ابعت اختياري'}</button>${isCO ? '<button class="btn ghost" id="cpNo" style="flex:1">✗ مش موافق</button>' : ''}</div><div class="err" id="cpE"></div></div>`;
+  const cv = $('#cpSig'), g = cv.getContext('2d'); let dr = false, signed = false; g.lineWidth = 2.5; g.lineCap = 'round';
+  const pt = e => { const r0 = cv.getBoundingClientRect(), t = e.touches ? e.touches[0] : e; return [(t.clientX - r0.left) * cv.width / r0.width, (t.clientY - r0.top) * cv.height / r0.height]; };
+  const st = e => { dr = true; signed = true; const [x, y] = pt(e); g.beginPath(); g.moveTo(x, y); e.preventDefault(); }, mv = e => { if (!dr) return; const [x, y] = pt(e); g.lineTo(x, y); g.stroke(); e.preventDefault(); };
+  cv.addEventListener('pointerdown', st); cv.addEventListener('pointermove', mv); addEventListener('pointerup', () => { dr = false; });
+  const send = async ok => { if (!isCO && !$('#cpCh').value.trim()) { $('#cpE').textContent = 'اكتب اختيار حضرتك'; return; }
+    const r2 = await call('clientAnswer', {ok, name: $('#cpN').value, choice: $('#cpCh') ? $('#cpCh').value : '', sign: signed ? cv.toDataURL('image/png') : ''});
+    if (!r2.ok) { $('#cpE').textContent = 'حصلت مشكلة في الإرسال، جرّب تاني'; return; } thanks(r2.view); };
+  $('#cpOk').onclick = () => send(true); if ($('#cpNo')) $('#cpNo').onclick = () => send(false);
 }
 
 /* ================= 0.11.1: 🔔 إشعارات على الموبايل (Firebase) =================
@@ -5421,6 +5673,8 @@ function wireSetup(){
 
 /* ================= البداية ================= */
 (function boot(){
+  const ct = new URLSearchParams(location.search).get('c');
+  if (ct && /^[a-f0-9]{10,40}$/i.test(ct)) { S.publicMode = true; setTimeout(() => clientPage(ct), 0); return; }
   const code = new URLSearchParams(location.search).get('invite');
   if (code) {
     S.invite = code; store.set('pendingInvite', code);
