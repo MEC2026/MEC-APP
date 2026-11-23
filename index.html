@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#1D2E4F">
 <title>MEC-APP</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -246,6 +246,7 @@ main.vin{animation:vin .22s ease-out}@keyframes vin{from{opacity:.4;transform:tr
 .biolock{position:fixed;inset:0;z-index:99;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
 .ctbtn{margin-top:6px;border:1px solid #C6D7F0;background:#F5F9FF;color:var(--navy2);border-radius:10px;padding:6px 10px;font-size:13px}
 .sheet{overscroll-behavior:contain}
+.imgv{position:fixed;inset:0;z-index:97;background:#000;display:flex;align-items:center;justify-content:center;touch-action:none;overflow:hidden}.imgv img{max-width:100%;max-height:100%;transform-origin:center;transition:transform .05s}
 </style>
 </head>
 <body>
@@ -303,7 +304,7 @@ main.vin{animation:vin .22s ease-out}@keyframes vin{from{opacity:.4;transform:tr
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.12.2';
+const APP_VERSION = '0.12.3';
 const APP_NOTES = ['↩️ زرار الرجوع بقى جوه التطبيق: بيرجع للشاشة اللي قبلها وبيقفل النوافذ، ومن الرئيسية «دوس تاني للخروج».', '↻ اسحب لتحت في أي شاشة = تحديث البيانات.',
   '👇 النافذة اللي من تحت تتقفل بالسحب لتحت.', '📥 شارك صورة من الواتساب أو المعرض لـ MEC-APP على طول.', '🔐 قفل بالبصمة (اختياري) من الإعدادات، و«👤 من الأسماء» جنب خانات التليفون.'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
@@ -1029,9 +1030,10 @@ function settingsSheet(){
     <div class="row" style="margin-top:6px"><button class="btn ghost" id="sTest">اختبار الاتصال</button>${isOwner() ? '<button class="btn pri" id="sSave">حفظ</button>' : ''}</div>
     <div class="card" style="margin-top:14px"><b>البيانات على الموبايل (عشان يشتغل من غير نت)</b>
       <div class="muted" id="sSyncInfo" style="font-size:13px;margin:6px 0 10px">${syncInfo()}</div>
-      <button class="btn gold" id="sSync">⬇️ نزّل كل البيانات دلوقتي</button></div>${typeof pushCard === 'function' ? pushCard() : ''}${typeof bioCard === 'function' ? bioCard() : ''}`);
+      <button class="btn gold" id="sSync">⬇️ نزّل كل البيانات دلوقتي</button></div>${typeof pushCard === 'function' ? pushCard() : ''}${typeof fontCard === 'function' ? fontCard() : ''}${typeof bioCard === 'function' ? bioCard() : ''}`);
   if (typeof wirePush === 'function') wirePush();
   if (typeof wireBio === 'function') wireBio();
+  if (typeof wireFont === 'function') wireFont();
   $('#sSync').onclick = async () => { const b = $('#sSync'), info = $('#sSyncInfo');
     if (!navigator.onLine) { info.textContent = 'مفيش نت دلوقتي. التحميل محتاج نت.'; return; }
     if (syncing) { info.textContent = 'بينزّل دلوقتي في الخلفية… استنى دقيقة وافتح الإعدادات تاني.'; return; }
@@ -5714,6 +5716,7 @@ addEventListener('scroll', () => { NAV.lastY = scrollY; }, {passive: true});
 // أعلى حاجة مفتوحة تتقفل هي بس (ترجع true لو قفلت حاجة أو سألت)
 function navCloseTop(){
   if ($('#navDlg')) { $('#navDlg').remove(); return true; }
+  if ($('#imgV')) { $('#imgV').remove(); return true; }
   if ($('#bioLock')) return true;
   if ($('#bigN')) { const x = $('#bigX'); if (x) x.click(); else $('#bigN').remove(); return true; }
   if ($('#wkOv')) { const x = $('#wkX'); if (x) x.click(); else $('#wkOv').remove(); return true; }
@@ -5844,6 +5847,31 @@ function bioCard(){
     <button class="btn ${store.get('bioId', '') ? 'ghost' : 'gold'}" id="bioT">${store.get('bioId', '') ? 'وقّف القفل' : '👆 فعّل القفل بالبصمة'}</button></div>`;
 }
 function wireBio(){ if ($('#bioT')) $('#bioT').onclick = async () => { if (store.get('bioId', '')) { store.del('bioId'); toast('القفل اتشال'); } else await bioEnable(); settingsSheet(); }; }
+
+
+// 0.12.3: حجم الخط بدل الزوم + الصور تتكبر بصباعين
+const FS = [['عادي', 1], ['كبير', 1.1], ['أكبر', 1.2]];
+function applyFont(){ const k = store.get('fontScale', 1); document.body.style.zoom = k === 1 ? '' : k; }
+applyFont();
+function fontCard(){ const k = store.get('fontScale', 1);
+  return `<div class="card" style="margin-top:12px"><b>🔠 حجم الخط</b><div class="muted" style="font-size:13px;margin:6px 0 10px">بيكبّر التطبيق كله بدل الزوم بالصباعين</div>
+    <div class="chips">${FS.map(([n, v]) => `<button class="chip ${k === v ? 'on' : ''}" data-fs="${v}" style="font-size:${14 * v}px">${n}</button>`).join('')}</div></div>`; }
+function wireFont(){ document.querySelectorAll('[data-fs]').forEach(b => b.onclick = () => { store.set('fontScale', Number(b.dataset.fs)); applyFont(); settingsSheet(); }); }
+function imgViewer(src){
+  if ($('#imgV')) return; const d = document.createElement('div'); d.id = 'imgV'; d.className = 'imgv';
+  d.innerHTML = `<img src="${esc(src)}" alt=""><button class="ibtn" id="imgVx" aria-label="اقفل" style="position:absolute;top:calc(10px + env(safe-area-inset-top));left:10px;background:#fff">${ic('x')}</button>`;
+  document.body.appendChild(d); const im = d.querySelector('img'); let s = 1, x = 0, y = 0, p0 = null, s0 = 1, m0 = null, last = 0;
+  const set = () => { im.style.transform = `translate(${x}px,${y}px) scale(${s})`; };
+  const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  d.addEventListener('touchstart', e => { if (e.touches.length === 2) { p0 = dist(e.touches); s0 = s; } else { m0 = [e.touches[0].clientX - x, e.touches[0].clientY - y];
+      if (Date.now() - last < 300) { s = s > 1 ? 1 : 2.5; x = y = 0; set(); } last = Date.now(); } }, {passive: true});
+  d.addEventListener('touchmove', e => { e.preventDefault(); if (e.touches.length === 2 && p0) { s = Math.max(1, Math.min(6, s0 * dist(e.touches) / p0)); set(); }
+    else if (e.touches.length === 1 && m0 && s > 1) { x = e.touches[0].clientX - m0[0]; y = e.touches[0].clientY - m0[1]; set(); } }, {passive: false});
+  d.addEventListener('touchend', () => { p0 = null; if (s <= 1) { x = y = 0; set(); } });
+  $('#imgVx').onclick = () => d.remove();
+}
+document.addEventListener('click', e => { const im = e.target.closest('img'); if (!im || e.target.closest('button,label,a,.ibtn,#imgV,#cpg,.wkbar') || im.naturalWidth < 120 || /icon-|logo/.test(im.src)) return;
+  if (im.closest('#sheetBody,#wkOv,.card,main')) { e.preventDefault(); imgViewer(im.currentSrc || im.src); } });
 
 // الربط: بعد كل رسم + كل نافذة + الاهتزازة مع الرسايل
 const _rawRender = render; render = function(){ _rawRender(); navAfterRender(); if (!S.launched && S.user && !S.publicMode) { S.launched = true; navLaunch(); if (store.get('bioId', '')) bioLock(); } };
