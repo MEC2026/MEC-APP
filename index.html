@@ -233,7 +233,7 @@ h3 svg.art{margin:0}
 .ideaHome{border-inline-start:4px solid var(--gold);background:linear-gradient(90deg,#FFFBF0,#fff)}
 
 /* 0.12.1: إحساس التطبيق */
-html,body{overscroll-behavior-y:contain}
+html{overscroll-behavior-y:none}
 button,.btn,.chip,.li,.card,nav.bn,.top,.tab,.mi,.ibtn{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input,textarea,select,.in{font-size:16px!important;-webkit-user-select:text;user-select:text}
 main.vin{animation:vin .22s ease-out}@keyframes vin{from{opacity:.4;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -303,7 +303,7 @@ main.vin{animation:vin .22s ease-out}@keyframes vin{from{opacity:.4;transform:tr
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.12.1';
+const APP_VERSION = '0.12.2';
 const APP_NOTES = ['↩️ زرار الرجوع بقى جوه التطبيق: بيرجع للشاشة اللي قبلها وبيقفل النوافذ، ومن الرئيسية «دوس تاني للخروج».', '↻ اسحب لتحت في أي شاشة = تحديث البيانات.',
   '👇 النافذة اللي من تحت تتقفل بالسحب لتحت.', '📥 شارك صورة من الواتساب أو المعرض لـ MEC-APP على طول.', '🔐 قفل بالبصمة (اختياري) من الإعدادات، و«👤 من الأسماء» جنب خانات التليفون.'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
