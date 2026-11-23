@@ -304,7 +304,7 @@ main.vin{animation:vin .22s ease-out}@keyframes vin{from{opacity:.4;transform:tr
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.12.3';
+const APP_VERSION = '0.12.4';
 const APP_NOTES = ['↩️ زرار الرجوع بقى جوه التطبيق: بيرجع للشاشة اللي قبلها وبيقفل النوافذ، ومن الرئيسية «دوس تاني للخروج».', '↻ اسحب لتحت في أي شاشة = تحديث البيانات.',
   '👇 النافذة اللي من تحت تتقفل بالسحب لتحت.', '📥 شارك صورة من الواتساب أو المعرض لـ MEC-APP على طول.', '🔐 قفل بالبصمة (اختياري) من الإعدادات، و«👤 من الأسماء» جنب خانات التليفون.'];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
@@ -5875,7 +5875,24 @@ document.addEventListener('click', e => { const im = e.target.closest('img'); if
 
 // الربط: بعد كل رسم + كل نافذة + الاهتزازة مع الرسايل
 const _rawRender = render; render = function(){ _rawRender(); navAfterRender(); if (!S.launched && S.user && !S.publicMode) { S.launched = true; navLaunch(); if (store.get('bioId', '')) bioLock(); } };
-const _rawOpen = openSheet; openSheet = function(h){ _rawOpen(h); enhanceSheet($('#sheetBody')); };
+// 0.12.4: أي صف تابات أو اختيارات بيتسحب بالعرض: الاختيار المعلّم يفضل ظاهر حتى لو الشاشة اترسمت تاني
+function keepOnVisible(root){
+  (root || document).querySelectorAll('.chips,.tabs,.kchips,[style*="overflow-x"]').forEach(e => { if (e.scrollWidth <= e.clientWidth + 4) return; const on = e.querySelector(':scope > .on, .on'); if (!on) return;
+    const a = on.getBoundingClientRect(), b = e.getBoundingClientRect(); if (a.left < b.left + 4 || a.right > b.right - 4) e.scrollLeft += (a.left + a.width / 2) - (b.left + b.width / 2); });
+}
+(function(){ const sb = $('#sheetBody'); if (!sb || !window.MutationObserver) return; let q = 0;
+  new MutationObserver(() => { if (q) return; q = requestAnimationFrame(() => { q = 0; keepOnVisible(sb); }); }).observe(sb, {childList: true, subtree: true}); })();
+const _rawOpen = openSheet; openSheet = function(h){
+  // 0.12.4: لو نفس الشاشة اترسمت تاني (تاب أو فلتر)، النافذة تفضل في مكانها والاختيار يفضل ظاهر
+  const sh = $('#sheet'), was = sh.classList.contains('on'), t0 = was ? (($('#sheetBody h3') || {}).textContent || '') : '', y0 = sh.scrollTop;
+  const rows = was ? [...$('#sheetBody').querySelectorAll('.chips,.tabs,.kchips,[style*="overflow-x"]')].map(e => e.scrollLeft) : [];
+  _rawOpen(h); enhanceSheet($('#sheetBody'));
+  const same = was && t0 && ((($('#sheetBody h3') || {}).textContent || '') === t0);
+  const R = [...$('#sheetBody').querySelectorAll('.chips,.tabs,.kchips,[style*="overflow-x"]')];
+  if (same) { sh.scrollTop = y0; R.forEach((e, i) => { if (rows[i] != null) e.scrollLeft = rows[i]; }); }
+  R.forEach(e => { if (e.scrollWidth <= e.clientWidth + 4) return; const on = e.querySelector('.on'); if (!on) return;
+    const a = on.getBoundingClientRect(), b = e.getBoundingClientRect(); if (a.left < b.left || a.right > b.right) e.scrollLeft += (a.left + a.width / 2) - (b.left + b.width / 2); });
+};
 const _rawToast = toast; toast = function(m){ _rawToast(m); const s = String(m || ''); if (/✓/.test(s)) buzz(15); else if (/مشكلة|غلط|خطأ|✗|ما اتحفظ|ما وصل|مرفوض|اترفض/.test(s)) buzz([30, 40, 30]); };
 
 
