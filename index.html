@@ -304,8 +304,8 @@ main.vin{animation:vin .22s ease-out}@keyframes vin{from{opacity:.4;transform:tr
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.13.0';
-const APP_NOTES = ["🛒 المشتريات والمصروفات: أي حد يطلب أو يشتري من غير موافقات. «اشتريت» بصورة الفاتورة والذكاء الاصطناعي يملى الباقي، والعهدة بتتخصم لوحدها.", "🟢🟠🔴 جنب كل صنف وانت بتطلبه: «موجود عندنا» في المواقع (ودوسة تنقله)، واشتريناه من كام يوم وبكام ومن مين، وأرخص مورد بتليفونه.", "💬 سجل الصرف شات لكل مشروع، و«مصروف» بالصوت: «صرفت 150 نقل و80 ميه». وتصدير إكسيل وPDF.", "💼 عهدتي وتقفيلة اليوم: «معاك كام فعلا؟» بدوسة، وأي فرق بيوصل للمالك.", "✅ «استلمت في الموقع» والمطابقة: المطلوب ↔ اتشرى ↔ وصل.", "📲 لينك للمورد يكتب فيه السعر وميعاد التوصيل، و🗓️ مقترح مشتريات بكرة من الجدول.", "🤖 «فكّر فيها» في دفتري بقت تشتغل في الخلفية، وبيوصلك إشعار لما تخلص، ولو فيه مشكلة بيقولك سببها.", "🔐 «مين يشوف إيه» في الفريق، واستثناءات لشخص، و«طلّعه من كل الأجهزة»."];
+const APP_VERSION = '0.14.0';
+const APP_NOTES = ["🧮 حاسبة الشقة الجديدة: خطوة خطوة بكروت وصور، والسعر الحي تحت، وجنب كل اختيار فرقه في السعر.", "🍩 النتيجة دايرة بالأقسام (والأبواب والشبابيك منفصلين)، والسعر رينج «بين كذا وكذا» ودرجة الدقة والمدة.", "⚖️ 3 عروض جنب بعض، و🔗 لينك للعميل يشوف فيه العروض والصور والدفعات ويدوس «موافق».", "📄 PDF للعميل (الأقسام والكميات) وPDF تفصيلي للشركة، و🏗️ التقدير يتحوّل مشروع ومقايسة وطلبات خامات.", "💰 مراجعة الأسعار بعمر كل سعر، و🖼️ صور الاختيارات، و💳 قوالب الدفعات، و📐 الشقة المرجعية (للمالك).", "🔔 أي إشعار في الجرس تدوس عليه يوديك على مكانه على طول."];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
 
@@ -6460,11 +6460,724 @@ async function purKamFill(F){
 }
 
 
+/* ===== محرّك حاسبة الشقة (0.14) — نفس الكود في السيرفر (Calc.gs) والموبايل (index.html) =====
+ * كل سطر = كمية (من المدخلات) × سعر (من جدول الأسعار). لو P = null بيرجع الكميات بس (للمهندس من غير نت).
+ * الأسعار الأساسية = تسعير إسكندرية 11-2026 لمستوى جولد. «sug» = سعر مقترح من Claude يتراجع.
+ */
+var CE = (function () {
+  var SECS = [['plaster', 'محارة', '#9CA3AF'], ['gyps', 'جبس', '#F472B6'], ['tiles', 'سيراميك وبورسلين', '#E8AA2E'], ['elec', 'كهرباء', '#8B5CF6'], ['plumb', 'سباكة', '#2F6DB5'],
+    ['ac', 'تكييف', '#14B8A6'], ['paint', 'دهانات', '#F97316'], ['doors', 'أبواب', '#1D9E75'], ['wins', 'شبابيك', '#06B6D4'], ['ops', 'تشغيل', '#A3A3A3']];
+  // الأسعار الأساسية (جولد · إسكندرية 11-2026). src: a = تسعير إسكندرية، s = سعر مقترح يتراجع
+  var BASE = {
+    pl_sand: [250, 'a'], pl_cem: [320, 'a'], pl_corner: [75, 'a'], pl_mesh: [900, 'a'], pl_fiber: [650, 'a'], pl_lump: [6.666667, 'a'], pl_lab: [90, 'a'],
+    gy_white: [350, 'a'], gy_green: [380, 'a'], gy_trough: [280, 'a'], gy_mag: [1000, 'a'],
+    'porc_eg_60x60': [300, 's'], 'porc_eg_60x120': [375, 'a'], 'porc_eg_120x120': [520, 's'], 'porc_sa_60x60': [420, 's'], 'porc_sa_60x120': [530, 's'], 'porc_sa_120x120': [675, 'a'],
+    'porc_in_60x60': [380, 's'], 'porc_in_60x120': [470, 's'], 'porc_in_120x120': [610, 's'],
+    ti_parq: [472.5, 'a'], ti_cer: [260, 's'], ti_click: [650, 's'], ti_sand: [250, 'a'], ti_cem: [320, 'a'], ti_sen: [350, 'a'], ti_adh: [320, 'a'], ti_grout: [180, 'a'], ti_spacer: [120, 'a'],
+    ti_clips: [100, 'a'], ti_wedge: [100, 'a'], ti_prot: [20, 'a'], ti_lab: [180, 'a'], ti_labp: [120, 'a'], ti_labc: [120, 's'], ti_labk: [80, 's'], ti_chamf: [56, 'a'], ti_winch: [5000, 'a'],
+    el_w15: [1718, 'a'], el_w2: [2113, 'a'], el_w3: [3298, 'a'], el_w4: [4345, 'a'], el_w6: [6422, 'a'], el_w10: [9500, 'a'], el_box1: [5, 'a'], el_boxh: [5, 'a'], el_boxv: [5, 'a'], el_boxsq: [5, 'a'],
+    el_hose: [495, 'a'], el_f16: [90, 'a'], el_f23: [140, 'a'], el_chik: [15, 'a'], el_dw: [10, 'a'], el_nails: [545, 'a'], el_panel: [2500, 'a'], el_lcp: [1950, 'a'], el_main: [1500, 'a'],
+    el_b10: [350, 'a'], el_b16: [450, 'a'], el_b25: [550, 'a'], el_volt: [1200, 'a'], el_el: [4345, 'a'], el_eld: [11345, 'a'], el_bus: [350, 'a'], el_cat6: [4500, 'a'], el_rg6: [5600, 'a'], el_tel: [922, 'a'],
+    el_join: [300, 'a'], el_sw: [39.757576, 'a'], el_sw2: [46.75, 'a'], el_sock: [37.757576, 'a'], el_schuko: [91.75, 'a'], el_ac45: [398, 'a'], el_ac32: [308, 'a'], el_iso: [175.8, 'a'],
+    el_jdish: [57.75, 'a'], el_jdata: [165.75, 'a'], el_jtel: [59.75, 'a'], el_chas: [21.75641, 'a'], el_face: [81.75641, 'a'], el_blank: [11.748299, 'a'], el_trans: [500, 'a'],
+    el_light_calm: [150, 's'], el_light_comfort: [250, 'a'], el_light_strong: [455.11, 'a'], el_labf: [1, 'a'], el_labt: [1, 'a'],
+    pb_bath: [23000, 'a'], pb_kit: [6000, 'a'], pb_ins: [1800, 'a'], pb_drain: [500, 'a'], pb_labf: [1, 'a'], pb_bfin: [20000, 'a'], pb_kfin: [20000, 'a'], pb_labt: [5000, 'a'],
+    pb_cistern: [8500, 's'], pb_mixers: [6500, 's'],
+    ac_route: [850, 'a'],
+    pt_glc: [930, 'a'], pt_jaz: [1350, 's'], pt_jotun: [3072, 'a'], pt_primer: [990, 'a'], pt_sealer: [250, 'a'], pt_putty: [175, 'a'], pt_thermal: [800, 'a'], pt_extra: [800, 'a'], pt_gallon: [700, 'a'],
+    pt_conc: [12, 'a'], pt_sand: [35, 'a'], pt_tape: [45, 'a'], pt_roll: [45, 'a'], pt_carton: [11.904, 'a'], pt_waste: [22.048, 'a'], pt_labf: [45.9, 'a'], pt_labt: [36, 'a'],
+    dr_hpl: [10000, 'a'], dr_veneer: [14500, 's'], dr_lacquer: [16500, 's'], dr_entry: [18000, 'a'], dr_smart: [24000, 's'],
+    'win_ps_s': [3500, 'a'], 'win_ps_l': [4200, 's'], 'win_tango': [4800, 's'], 'win_jumbo': [5600, 's'], 'win_upvc_loc': [5500, 's'], 'win_upvc_dec': [7400, 'a'], win_dbl: [900, 's'],
+    win_acc: [220, 'a'], win_bal: [700, 'a'], op_ops: [200, 'a']
+  };
+  var OPT = {
+    level: [['s', 'سيلفر (متوسط)'], ['g', 'جولد (فوق متوسط)'], ['p', 'بلاتينيوم (فاخر)']],
+    state: [['raw', 'على الطوب / تأسيس كامل'], ['half', 'نص تشطيب'], ['reno', 'تجديد قائم']],
+    plaster: [['all', 'كل الحوائط'], ['part', 'جزء'], ['none', 'مش مطلوبة']],
+    floors: [['porc', 'بورسلين لكل الأرضيات'], ['mixed', 'مختلط (الغرف سيراميك باركيه)'], ['cer', 'سيراميك بس'], ['click', 'باركيه كليك']],
+    porcSrc: [['eg', 'مصري'], ['sa', 'سعودي'], ['in', 'هندي']], tile: [['60x60', '60×60'], ['60x120', '60×120'], ['120x120', '120×120']],
+    paint: [['glc', 'GLC / محلي'], ['jaz', 'الجزيرة'], ['jotun', 'جوتن عالي (L9)']], gyps: [['none', 'بدون'], ['part', 'جزئي'], ['mid', 'متوسط'], ['full', 'فلات كامل']],
+    kitchenTile: [['full', 'لحد السقف'], ['between', 'بين الوحدات بس']], light: [['calm', 'هادية'], ['comfort', 'مريحة مع ديكور بسيط'], ['strong', 'ديكورية قوية ومشاهد']],
+    prot: [['main', 'قواطع رئيسية بس'], ['el', 'Earth Leakage + حماية جهد'], ['detail', 'حماية مفصّلة للمطبخ والحمام']], route: [['near', 'قريبة'], ['mid', 'متوسطة'], ['far', 'بعيدة / طويلة']],
+    bath: [['normal', 'حمام عادي'], ['cistern', 'الخزان دفن'], ['full', 'الخزان والخلاطات دفن']], doorType: [['hpl', 'HPL'], ['veneer', 'خشب طبيعي قشرة'], ['lacquer', 'لاكيه']],
+    entry: [['armored', 'مصفّح'], ['smart', 'مصفّح + كالون ذكي']],
+    winType: [['ps_s', 'ألوميتال PS صغير'], ['ps_l', 'ألوميتال PS كبير'], ['tango', 'تانجو'], ['jumbo', 'جامبو'], ['upvc_loc', 'UPVC محلي'], ['upvc_dec', 'UPVC ديكونك بلجيكي']],
+    glass: [['single', 'زجاج مفرد'], ['double', 'زجاج مزدوج']]
+  };
+  // المستوى بيملى الاختيارات (والحمام مثبّت بقرار ياسر)
+  var LEVEL_DEF = {
+    s: { floors: 'porc', porcSrc: 'eg', tile: '60x60', paint: 'glc', gyps: 'part', kitchenTile: 'between', light: 'calm', prot: 'el', bath: 'normal', doorType: 'hpl', entry: 'armored', winType: 'ps_s', glass: 'single' },
+    g: { floors: 'porc', porcSrc: 'eg', tile: '60x120', paint: 'glc', gyps: 'full', kitchenTile: 'full', light: 'comfort', prot: 'el', bath: 'cistern', doorType: 'hpl', entry: 'armored', winType: 'ps_s', glass: 'single' },
+    p: { floors: 'mixed', porcSrc: 'sa', tile: '120x120', paint: 'jotun', gyps: 'mid', kitchenTile: 'full', light: 'strong', prot: 'detail', bath: 'full', doorType: 'veneer', entry: 'smart', winType: 'upvc_dec', glass: 'double' }
+  };
+  var LEVEL_FIXED = { s: { bath: 'normal' }, g: { bath: 'cistern' }, p: { bath: 'full' } };
+  var DEF = { area: 125, rooms: 3, baths: 2, kitchens: 1, balconies: 1, ceil: 3, level: 'g', state: 'raw', plaster: 'all', colors: 3, acs: 3, kLines: 4, heater: true, oven: true, lowCur: true, route: 'mid', doors: 3, winArea: '' };
+  function fill(inp, keepGiant) {
+    var x = {}, k, lv = (inp && inp.level) || 'g';
+    for (k in DEF) x[k] = DEF[k];
+    for (k in LEVEL_DEF[lv]) x[k] = LEVEL_DEF[lv][k];
+    for (k in (inp || {})) if (inp[k] !== undefined && inp[k] !== null && inp[k] !== '') x[k] = inp[k];
+    if (!keepGiant) for (k in LEVEL_FIXED[lv]) x[k] = LEVEL_FIXED[lv][k];
+    ['area', 'rooms', 'baths', 'kitchens', 'balconies', 'colors', 'acs', 'kLines', 'doors'].forEach(function (k2) { x[k2] = Math.max(0, Number(x[k2]) || 0); });
+    if (x.area < 20) x.area = 20;
+    return x;
+  }
+  var r6 = function (v) { return Math.round(v * 1e6) / 1e6; };
+  var RND = { c: function (v) { return Math.ceil(r6(v)); }, r: function (v) { return Math.round(r6(v)); }, n: function (v) { return r6(v); } };
+  function lin(A, v1, v2) { return v1 + (A - 125) * (v2 - v1) / 75; }   // خط مستقيم بين عينة 125 م² وعينة 200 م²
+  // الأسطر: [id, القسم, البند, النوع, الوحدة, الكمية(D), التقريب, مفتاح السعر, فئة المستوى, الإقفال, مقطوعية]
+  function lines(x, giant) {
+    var A = x.area, h = x.state === 'half' ? 0.55 : x.state === 'reno' ? 0.35 : 1, ps = x.plaster === 'all' ? 1 : x.plaster === 'part' ? 0.4 : 0;
+    var plm2 = A * 2.5 * h * ps, s = Math.sqrt(A / 125), gf = { none: 0, part: 0.35, mid: 0.65, full: 1 }[x.gyps], gyp = A * gf;
+    var W = x.baths * 35 * s + x.kitchens * (x.kitchenTile === 'full' ? 30 : 9.6328) * s;
+    var PQ = x.floors === 'mixed' ? Math.min(A * 0.5, x.rooms * 16.15) : 0, porcF = x.floors === 'porc' ? A : x.floors === 'mixed' ? A - PQ : 0;
+    var cerF = x.floors === 'cer' ? A : 0, clickF = x.floors === 'click' ? A : 0, wallsCer = x.floors === 'cer';
+    var PA = porcF + (wallsCer ? 0 : W), CA = cerF + (wallsCer ? W : 0), T = PA + PQ + CA, mortarF = A - clickF;
+    var G = x.rooms + 1, wet = x.baths + x.kitchens, PA2 = A * 2.96, plat = x.level === 'p';
+    var win = Number(x.winArea) > 0 ? Number(x.winArea) : lin(A, 11.2, 13.5);
+    var route = { near: 3, mid: 4, far: 6 }[x.route] || 4, lf = { calm: 'calm', comfort: 'comfort', strong: 'strong' }[x.light];
+    var L = [];
+    var add = function (id, sec, n, k, u, q, rnd, pk, cls, cl, lump) { if (!(q > 0)) return; L.push({ id: id, sec: sec, n: n, k: k, u: u, q0: q, rnd: rnd, pk: pk, cls: cls || '', cl: cl || 'مبدئي', lump: !!lump }); };
+    // محارة
+    add('pl_sand', 'plaster', 'رمل محارة', 'خامات محارة', 'م3', A * 0.075 * h * ps, 'n', 'pl_sand');
+    add('pl_cem', 'plaster', 'أسمنت محارة', 'خامات محارة', 'شيكارة', plm2 * 0.2109, 'c', 'pl_cem');
+    add('pl_corner', 'plaster', 'زوايا فريسبيكو 3م', 'خامات محارة', 'عود', plm2 * 0.1024, 'r', 'pl_corner');
+    add('pl_mesh', 'plaster', 'سلك شبك مجلفن', 'خامات محارة', 'لفة', plm2 / 120, 'c', 'pl_mesh');
+    add('pl_fiber', 'plaster', 'شبك فايبر', 'خامات محارة', 'لفة', plm2 / 100, 'c', 'pl_fiber');
+    add('pl_lump', 'plaster', 'لوازم طرطشة وهالك ومونة صغيرة', 'خامات محارة', 'مقطوعية', plm2, 'n', 'pl_lump', '', '', true);
+    add('pl_lab', 'plaster', 'مصنعية محارة حوائط', 'مصنعية', 'م2', plm2, 'n', 'pl_lab');
+    // جبس
+    add('gy_white', 'gyps', 'جبس بورد أبيض', 'Package', 'م2', gyp * 0.85, 'n', 'gy_white', 'pkg');
+    add('gy_green', 'gyps', 'جبس أخضر للمناطق الرطبة', 'Package', 'م2', gyp * 0.15, 'n', 'gy_green', 'pkg');
+    add('gy_trough', 'gyps', 'بيت نور', 'Package', 'م طولي', gyp * 0.277, 'n', 'gy_trough', 'pkg');
+    add('gy_mag', 'gyps', 'جسم ماجنتيك تراك أثناء الجبس', 'Package', 'قطعة', gyp * 0.016, 'c', 'gy_mag', 'pkg');
+    // سيراميك وبورسلين
+    var porcN = 'بورسلين ' + ({ eg: 'مصري', sa: 'سعودي', 'in': 'هندي' })[x.porcSrc] + ' ' + x.tile.replace('x', '×') + (wallsCer ? ' (أرضيات)' : ' أرضيات وحوائط حمام/مطبخ');
+    add('ti_porc', 'tiles', porcN, 'خامات تشطيب', 'م2 شراء', PA * 1.1, 'n', 'porc_' + x.porcSrc + '_' + x.tile);
+    add('ti_parq', 'tiles', 'سيراميك باركيه للغرف', 'خامات تشطيب', 'م2 شراء', PQ * 1.1, 'n', 'ti_parq');
+    add('ti_cer', 'tiles', 'سيراميك أرضيات وحوائط', 'خامات تشطيب', 'م2 شراء', CA * 1.1, 'n', 'ti_cer');
+    add('ti_click', 'tiles', 'باركيه كليك (HDF) + فرشة', 'خامات تشطيب', 'م2 شراء', clickF * 1.05, 'n', 'ti_click');
+    if (plat) {
+      add('ti_sand', 'tiles', 'رمل صبة تسوية للأرضيات', 'خامات تركيب', 'م3', mortarF * 0.0493, 'n', 'ti_sand');
+      add('ti_cem', 'tiles', 'أسمنت صبة/تركيب أرضيات', 'خامات تركيب', 'شيكارة', mortarF * 0.715, 'c', 'ti_cem');
+      add('ti_sen', 'tiles', 'سن زيرو للصبة', 'خامات تركيب', 'م3', mortarF * 0.09855, 'n', 'ti_sen');
+      add('ti_adh', 'tiles', 'لاصق بورسلين', 'خامات تركيب', 'شيكارة', T * 0.18, 'c', 'ti_adh');
+    } else {
+      add('ti_sand', 'tiles', 'رمل فرشة ومونة تركيب', 'خامات تركيب', 'م3', mortarF * 0.1478, 'n', 'ti_sand');
+      add('ti_cem', 'tiles', 'أسمنت تأسيس/تركيب أرضيات', 'خامات تركيب', 'شيكارة', mortarF * 0.264, 'c', 'ti_cem');
+      add('ti_adh', 'tiles', 'لاصق بورسلين (الحوائط)', 'خامات تركيب', 'شيكارة', W * 0.19, 'c', 'ti_adh');
+    }
+    add('ti_grout', 'tiles', 'سقية/جراوت', 'خامات تركيب', 'كيس', T / 35, 'c', 'ti_grout');
+    add('ti_spacer', 'tiles', 'صليبة وفواصل بلاط', 'خامات تركيب', 'عبوة', T / 50, 'c', 'ti_spacer');
+    add('ti_clips', 'tiles', 'كلبسات تسوية بلاط', 'خامات تركيب', 'كيس 100', porcF * 0.304, 'r', 'ti_clips');
+    add('ti_wedge', 'tiles', 'أسافين تسوية بلاط', 'خامات تركيب', 'كيس 100', porcF * 0.112, 'r', 'ti_wedge');
+    add('ti_prot', 'tiles', 'حماية وهالك قص وتوريدات صغيرة', 'خامات تركيب', 'مقطوعية', A, 'n', 'ti_prot', '', '', true);
+    add('ti_lab', 'tiles', 'مصنعية تركيب بورسلين', 'مصنعية', 'م2', PA, 'n', 'ti_lab');
+    add('ti_labp', 'tiles', 'مصنعية تركيب سيراميك باركيه', 'مصنعية', 'م2', PQ, 'n', 'ti_labp');
+    add('ti_labc', 'tiles', 'مصنعية تركيب سيراميك', 'مصنعية', 'م2', CA, 'n', 'ti_labc');
+    add('ti_labk', 'tiles', 'مصنعية تركيب باركيه كليك', 'مصنعية', 'م2', clickF, 'n', 'ti_labk');
+    add('ti_chamf', 'tiles', 'زيادات شطف وخورنقات', 'مصنعية', 'مقطوعية', A, 'n', 'ti_chamf', 'pkg', '', true);
+    add('ti_winch', 'tiles', 'ونش ورفع خامات البلاط', 'نقل', 'مقطوعية', 1, 'n', 'ti_winch', '', '', true);
+    // كهرباء
+    var ef = x.state === 'reno' ? 0.5 : 1, E = function (v1, v2) { return lin(A, v1, v2) * ef; };
+    add('el_w15', 'elec', 'سلك سويدي 1.5 مم', 'خامات تأسيس', 'لفة', E(5, 6), 'c', 'el_w15', '', 'مبدئي قوي');
+    add('el_w2', 'elec', 'سلك سويدي 2 مم', 'خامات تأسيس', 'لفة', E(3, 4), 'c', 'el_w2');
+    add('el_w3', 'elec', 'سلك سويدي 3 مم', 'خامات تأسيس', 'لفة', E(4, 5), 'c', 'el_w3', '', 'مبدئي قوي');
+    add('el_w4', 'elec', 'سلك سويدي 4 مم', 'خامات تأسيس', 'لفة', E(2, 3), 'c', 'el_w4', '', 'مبدئي قوي');
+    add('el_w6', 'elec', 'سلك سويدي 6 مم', 'خامات تأسيس', 'لفة', E(2, 3), 'c', 'el_w6');
+    if (x.heater || x.oven) add('el_w10', 'elec', 'سلك 10 مم احتياطي حمل عالي', 'خامات تأسيس', 'لفة', 1, 'c', 'el_w10', '', 'محتاج سعر');
+    add('el_box1', 'elec', 'علبة ماجيك مفردة', 'خامات تأسيس', 'قطعة', E(90, 113), 'c', 'el_box1');
+    add('el_boxh', 'elec', 'علبة ماجيك مجوز أفقي', 'خامات تأسيس', 'قطعة', E(12, 15), 'c', 'el_boxh');
+    add('el_boxv', 'elec', 'علبة ماجيك مجوز رأسي', 'خامات تأسيس', 'قطعة', E(18, 22), 'c', 'el_boxv');
+    if (x.light === 'strong') add('el_boxsq', 'elec', 'علبة مربعة للساوند/الديمر', 'خامات تأسيس', 'قطعة', 2, 'c', 'el_boxsq');
+    add('el_hose', 'elec', 'لفة خرطوم أرضية', 'خامات تأسيس', 'لفة', E(14, 23), 'c', 'el_hose');
+    add('el_f16', 'elec', 'لفة فلكسبل 16 مم', 'خامات تأسيس', 'لفة', E(9, 14), 'c', 'el_f16');
+    add('el_f23', 'elec', 'لفة فلكسبل 23 مم', 'خامات تأسيس', 'لفة', E(7, 12), 'c', 'el_f23');
+    add('el_chik', 'elec', 'لفة شيكرتون', 'خامات تأسيس', 'لفة', E(14, 23), 'c', 'el_chik');
+    add('el_dw', 'elec', 'دواية مؤقتة', 'خامات تأسيس', 'قطعة', E(18, 22), 'c', 'el_dw');
+    add('el_nails', 'elec', 'مسامير وفيشر وترامل وسلك رباط', 'خامات تأسيس', 'مقطوعية', 1, 'n', 'el_nails', '', '', true);
+    add('el_panel', 'elec', 'لوحة 24 خط', 'لوحات وقواطع', 'لوحة', 1, 'c', 'el_panel');
+    if (x.lowCur) add('el_lcp', 'elec', 'لوحة تيار خفيف/اتصالات', 'لوحات وقواطع', 'لوحة', 1, 'c', 'el_lcp');
+    add('el_main', 'elec', 'قاطع رئيسي 63A', 'لوحات وقواطع', 'قطعة', 1, 'c', 'el_main');
+    add('el_b10', 'elec', 'قواطع إنارة 10A', 'لوحات وقواطع', 'قطعة', lin(A, 4, 5), 'c', 'el_b10');
+    add('el_b16', 'elec', 'قواطع فيش 16/20A', 'لوحات وقواطع', 'قطعة', lin(A, 6, 7), 'c', 'el_b16');
+    add('el_b25', 'elec', 'قواطع أحمال 25A', 'لوحات وقواطع', 'قطعة', lin(A, 12, 15), 'c', 'el_b25');
+    if (x.prot !== 'main') { add('el_volt', 'elec', 'فولتدج بروتكتور', 'لوحات وقواطع', 'قطعة', 1, 'c', 'el_volt');
+      add(x.prot === 'detail' ? 'el_eld' : 'el_el', 'elec', x.prot === 'detail' ? 'حماية تسريب مفصّلة (مطبخ وحمامات)' : 'حماية تسريب تيار (Earth Leakage)', 'لوحات وقواطع', 'مقطوعية', 1, 'n', x.prot === 'detail' ? 'el_eld' : 'el_el', '', '', true); }
+    add('el_bus', 'elec', 'بسبار ونيوترال وإيرث بار', 'لوحات وقواطع', 'مقطوعية', 1, 'n', 'el_bus', '', '', true);
+    if (x.lowCur) { add('el_cat6', 'elec', 'كابل CAT6', 'تيار خفيف', 'لفة 100م', G / 4, 'c', 'el_cat6'); add('el_rg6', 'elec', 'كابل دش RG6', 'تيار خفيف', 'لفة 100م', G / 4, 'c', 'el_rg6');
+      add('el_tel', 'elec', 'كابل تليفون', 'تيار خفيف', 'لفة 100م', 1, 'c', 'el_tel'); add('el_join', 'elec', 'وصلات ولقم وتجميعات', 'تيار خفيف', 'مقطوعية', 1, 'n', 'el_join', '', '', true); }
+    add('el_sw', 'elec', 'مفتاح إنارة مفرد', 'تشطيب كهرباء', 'قطعة', lin(A, 33, 41), 'c', 'el_sw');
+    add('el_sw2', 'elec', 'مفتاح ديفاتير', 'تشطيب كهرباء', 'قطعة', lin(A, 12, 14), 'c', 'el_sw2');
+    add('el_sock', 'elec', 'بريزة كهرباء عادية', 'تشطيب كهرباء', 'قطعة', lin(A, 33, 41), 'c', 'el_sock');
+    add('el_schuko', 'elec', 'بريزة قوى للمطبخ', 'تشطيب كهرباء', 'قطعة', x.kitchens * 8, 'c', 'el_schuko');
+    if (x.acs > 0) { add('el_ac45', 'elec', 'مفتاح تكييف 45A للريسيبشن', 'تشطيب كهرباء', 'قطعة', 1, 'c', 'el_ac45'); add('el_ac32', 'elec', 'مفتاح تكييف 32A', 'تشطيب كهرباء', 'قطعة', x.acs - 1, 'c', 'el_ac32'); }
+    add('el_iso', 'elec', 'مفاتيح فصل أجهزة/سخان', 'تشطيب كهرباء', 'قطعة', lin(A, 10, 11), 'c', 'el_iso');
+    if (x.lowCur) { add('el_jdish', 'elec', 'لقمة دش', 'تشطيب كهرباء', 'قطعة', G, 'c', 'el_jdish'); add('el_jdata', 'elec', 'لقمة داتا CAT6', 'تشطيب كهرباء', 'قطعة', G, 'c', 'el_jdata');
+      add('el_jtel', 'elec', 'لقمة تليفون', 'تشطيب كهرباء', 'قطعة', G, 'c', 'el_jtel'); }
+    add('el_chas', 'elec', 'شاسيه ثلاثي معدن', 'تشطيب كهرباء', 'قطعة', lin(A, 78, 94), 'c', 'el_chas');
+    add('el_face', 'elec', 'وش لينير/مشابه', 'تشطيب كهرباء', 'قطعة', lin(A, 78, 94), 'c', 'el_face', 'prep');
+    add('el_blank', 'elec', 'سدادة فراغات', 'تشطيب كهرباء', 'قطعة', lin(A, 147, 177), 'c', 'el_blank');
+    add('el_trans', 'elec', 'نقل خامات الكهرباء', 'نقل', 'مقطوعية', 1, 'n', 'el_trans', '', '', true);
+    add('el_light', 'elec', 'إضاءة وسبوتات وبروفايلات (' + ({ calm: 'هادية', comfort: 'مريحة', strong: 'ديكورية قوية' })[lf] + ')', 'تشطيب كهرباء', 'م2 (نطاق)', A, 'n', 'el_light_' + lf, '', 'محتاج تصميم');
+    add('el_labf', 'elec', 'مصنعية تأسيس كهرباء', 'مصنعية', 'مقطوعية', lin(A, 18000, 20000) * ef, 'n', 'el_labf', '', '', true);
+    add('el_labt', 'elec', 'مصنعية تشطيب كهرباء', 'مصنعية', 'مقطوعية', lin(A, 15000, 16800), 'n', 'el_labt', '', '', true);
+    // سباكة
+    add('pb_bath', 'plumb', 'خامات تأسيس حمام', 'خامات تأسيس', 'حمام', x.baths * h, 'n', 'pb_bath');
+    add('pb_kit', 'plumb', 'خامات تأسيس مطبخ', 'خامات تأسيس', 'مطبخ', x.kitchens * h, 'n', 'pb_kit');
+    add('pb_ins', 'plumb', 'خامات عزل حمام', 'خامات', 'حمام', x.baths * h, 'n', 'pb_ins');
+    add('pb_drain', 'plumb', 'صرف تكييفات', 'خامات', 'نقطة', x.acs * h, 'n', 'pb_drain');
+    add('pb_labf', 'plumb', 'مصنعية تأسيس حمام/مطبخ/صرف', 'مصنعية', 'مقطوعية', Math.max(0, 5000 * wet - 2000) * h, 'n', 'pb_labf', '', '', true);
+    if (!giant && (x.bath === 'cistern' || x.bath === 'full')) add('pb_cistern', 'plumb', 'خزان دفن (شاسيه + خزان)', 'خامات تأسيس', 'حمام', x.baths, 'c', 'pb_cistern');
+    if (!giant && x.bath === 'full') add('pb_mixers', 'plumb', 'أجسام خلاطات دفن', 'خامات تأسيس', 'حمام', x.baths, 'c', 'pb_mixers');
+    add('pb_bfin', 'plumb', 'تشطيب سباكة حمام', 'خامات تشطيب', 'حمام', x.baths, 'c', 'pb_bfin', 'pfin');
+    add('pb_kfin', 'plumb', 'تشطيب سباكة مطبخ', 'خامات تشطيب', 'مطبخ', x.kitchens, 'c', 'pb_kfin', 'pfin');
+    add('pb_labt', 'plumb', 'مصنعية تشطيب سباكة', 'مصنعية', 'باكدج', wet / 3, 'n', 'pb_labt');
+    // تكييف
+    add('ac_route', 'ac', 'تأسيس فريون وصرف تكييف', 'Package', 'م طولي', x.acs * route, 'n', 'ac_route', 'pkg');
+    // دهانات
+    if (x.paint === 'jotun') add('pt_final', 'paint', 'دهان نهائي جوتن عالي', 'خامات تشطيب', 'عبوة 9 لتر', PA2 / 74, 'c', 'pt_jotun', '', 'محتاج عرض سعر');
+    else add('pt_final', 'paint', x.paint === 'jaz' ? 'دهان نهائي الجزيرة' : 'دهان نهائي GLC/محلي', 'خامات تشطيب', 'بستلة', PA2 / 33.636364, 'c', x.paint === 'jaz' ? 'pt_jaz' : 'pt_glc', '', 'مبدئي قوي');
+    add('pt_primer', 'paint', 'بطانة', 'خامات تأسيس', 'بستلة', lin(A, 4, 6), 'c', 'pt_primer', 'prep');
+    add('pt_sealer', 'paint', 'سيلر حوائط مقاوم', 'خامات تأسيس', 'بستلة', lin(A, 3, 5), 'c', 'pt_sealer', 'prep');
+    add('pt_putty', 'paint', 'معجون', 'خامات تأسيس', 'شيكارة', lin(A, 17, 27), 'c', 'pt_putty', 'prep');
+    if (gyp > 0) add('pt_thermal', 'paint', 'سيلر حراري لأسقف الجبس', 'خامات تأسيس', 'عبوة', Math.max(1, Math.round(gyp * 0.024)), 'c', 'pt_thermal', 'prep');
+    add('pt_extra', 'paint', 'معالجة/سيلر إضافي', 'خامات تأسيس', 'عبوة', 1, 'c', 'pt_extra', 'prep');
+    add('pt_gallon', 'paint', 'جالونات/إضافات لون', 'خامات تشطيب', 'جالون', x.colors, 'c', 'pt_gallon', 'prep');
+    add('pt_conc', 'paint', 'مركزات ألوان', 'خامات تشطيب', 'عبوة', x.colors * 2, 'c', 'pt_conc');
+    add('pt_sand', 'paint', 'صنفرة', 'لوازم', 'فرخ/متر', lin(A, 17, 27), 'c', 'pt_sand');
+    add('pt_tape', 'paint', 'تيب عريض وورق حماية', 'لوازم', 'لفة', lin(A, 10, 16), 'c', 'pt_tape');
+    add('pt_roll', 'paint', 'رول وفرش وبكرات', 'لوازم', 'قطعة', lin(A, 13, 20), 'c', 'pt_roll');
+    add('pt_carton', 'paint', 'كرتون وتغطية ونظافة', 'لوازم', 'مقطوعية', A, 'n', 'pt_carton', '', '', true);
+    add('pt_waste', 'paint', 'هالك وفروق لون وتوريد صغير', 'لوازم', 'مقطوعية', A, 'n', 'pt_waste', '', '', true);
+    add('pt_labf', 'paint', 'مصنعية تأسيس نقاشة', 'مصنعية', 'م2 دهان', PA2, 'n', 'pt_labf');
+    add('pt_labt', 'paint', 'مصنعية تشطيب نقاشة', 'مصنعية', 'م2 دهان', PA2, 'n', 'pt_labt');
+    // أبواب
+    var dk = giant ? 'dr_hpl' : 'dr_' + x.doorType;
+    add('dr_int', 'doors', 'أبواب داخلية ' + ({ hpl: 'HPL', veneer: 'خشب قشرة', lacquer: 'لاكيه' })[x.doorType], 'Package', 'باب', x.doors, 'c', dk, 'pkg');
+    add('dr_entry', 'doors', x.entry === 'smart' && !giant ? 'باب شقة مصفّح + كالون ذكي' : 'باب شقة مصفّح', 'Package', 'باب', 1, 'c', x.entry === 'smart' && !giant ? 'dr_smart' : 'dr_entry', 'pkg');
+    add('dr_bal', 'doors', 'عدة باب بلكونة', 'إكسسوارات', 'باب', x.balconies, 'c', 'win_bal', 'pkg');
+    // شبابيك
+    add('win', 'wins', ({ ps_s: 'ألوميتال PS صغير', ps_l: 'ألوميتال PS كبير', tango: 'ألوميتال تانجو', jumbo: 'ألوميتال جامبو', upvc_loc: 'UPVC محلي', upvc_dec: 'UPVC ديكونك بلجيكي' })[x.winType] + ' — ' + (x.glass === 'double' ? 'زجاج مزدوج' : 'زجاج مفرد'),
+      'شبابيك شاملة', 'م2', win, 'n', 'win_' + x.winType, 'pkg', 'محتاج مقاسات');
+    var dblBase = x.winType === 'upvc_dec' ? 'double' : 'single';
+    if (!giant && x.glass !== dblBase) add('win_glass', 'wins', x.glass === 'double' ? 'فرق زجاج مزدوج' : 'خصم زجاج مفرد', 'شبابيك شاملة', 'م2', win * (x.glass === 'double' ? 1 : -1), 'n', 'win_dbl', 'pkg');
+    add('win_acc', 'wins', 'إكسسوارات وتركيب وسيليكون', 'إكسسوارات', 'م2', win, 'n', 'win_acc', 'pkg');
+    // تشغيل
+    add('op_ops', 'ops', 'نقل وتشوين وتنظيف وإكراميات', 'تشغيل', 'مقطوعية', A, 'n', 'op_ops', '', '', true);
+    return L.filter(function (l) { return l.q0 !== 0; });
+  }
+  var MULT = { s: { pkg: 1, prep: 1, pfin: 1 }, g: { pkg: 1, prep: 1, pfin: 1 }, p: { pkg: 1.22, prep: 1.28, pfin: 1.35 } };
+  var RANGE = { 'مبدئي قوي': 0.03, 'مبدئي': 0.07, 'محتاج سعر': 0.2, 'محتاج تصميم': 0.15, 'محتاج مقاسات': 0.12, 'محتاج عرض سعر': 0.12 };
+  // P: {key: price} (لو null = كميات بس) · opt: {giant, reserve}
+  function run(inp, P, opt) {
+    opt = opt || {}; var x = fill(inp, opt.giant), L = lines(x, opt.giant), m = MULT[x.level] || MULT.g, res = opt.reserve == null ? 5 : Number(opt.reserve);
+    var secs = {}, tot = 0, unc = 0, sugAmt = 0;
+    L.forEach(function (l) {
+      l.q = RND[l.rnd](l.q0); if (l.lump) { l.qty = 1; } else l.qty = l.q;
+      var src = P ? P[l.pk] : null;
+      if (P) {
+        var base = src ? src[0] : null; l.src = src ? src[1] : 'x';
+        if (base == null) { l.price = null; l.amt = 0; l.cl = 'محتاج سعر'; }
+        else { var pr = base * (l.cls ? m[l.cls] : 1); if (l.lump) { l.amt = r6(pr * l.q); l.price = l.amt; } else { l.price = r6(pr); l.amt = r6(pr * l.q); } }
+        if (l.src === 's') { if (l.cl === 'مبدئي' || l.cl === 'مبدئي قوي') l.cl = 'سعر مقترح'; sugAmt += l.amt; }
+        if (x.level === 's' && l.cls) l.sil = 1;
+        tot += l.amt; unc += Math.abs(l.amt) * (RANGE[l.cl] != null ? RANGE[l.cl] : 0.1);
+        secs[l.sec] = (secs[l.sec] || 0) + l.amt;
+      }
+    });
+    var out = { inp: x, lines: L, secs: SECS.map(function (s) { return { k: s[0], n: s[1], c: s[2], amt: secs[s[0]] || 0, n2: L.filter(function (l) { return l.sec === s[0]; }).length }; }).filter(function (s) { return s.n2; }) };
+    if (P) {
+      var reserve = tot * res / 100, after = tot + reserve, pct = tot ? unc / tot : 0;
+      out.total = tot; out.reserve = reserve; out.after = after; out.perM = after / x.area; out.pct = pct;
+      out.cls = pct <= 0.05 ? 'A' : pct <= 0.1 ? 'B' : pct <= 0.2 ? 'C' : 'D';
+      out.lo = after * (1 - pct); out.hi = after * (1 + pct); out.sugAmt = sugAmt;
+      out.byKind = {}; L.forEach(function (l) { out.byKind[l.k] = (out.byKind[l.k] || 0) + l.amt; });
+      out.dur = duration(x, L);
+    }
+    out.notes = notes(x, L, opt);
+    return out;
+  }
+  // المدة بالأسابيع (تقديري من الكميات وإنتاجية فرقة)
+  function duration(x, L) {
+    var q = function (id) { var l = L.filter(function (z) { return z.id === id; })[0]; return l ? l.q : 0; };
+    var A = x.area, w = function (d) { return d / 6; };
+    var ph = [
+      ['found', 'التأسيس (كهرباء وسباكة)', w(Math.max(6, A / 12 + (x.baths + x.kitchens) * 2) * (x.state === 'raw' ? 1 : 0.6))],
+      ['plaster', 'المحارة (+ أسبوع نشفان)', q('pl_lab') > 0 ? w(q('pl_lab') / 40) + 1 : 0],
+      ['tiles', 'البلاط', w((q('ti_lab') + q('ti_labp') + q('ti_labc') + q('ti_labk')) / 16) + (x.level === 'p' ? 0.5 : 0)],
+      ['gyps', 'الجبس', w((q('gy_white') + q('gy_green')) / 25)],
+      ['paint', 'الدهانات (تأسيس وتشطيب)', w(q('pt_labf') / 35)],
+      ['finish', 'التشطيبات والتركيبات', w(6 + x.doors + x.baths * 1.5)]
+    ].filter(function (p) { return p[2] > 0; });
+    var t = 0; var out = ph.map(function (p, i) { var len = Math.max(0.5, p[2]); var start = i === 0 ? 0 : t - (p[0] === 'gyps' ? len * 0.8 : len * 0.2); t = Math.max(t, start + len); return { k: p[0], n: p[1], from: Math.round(start * 10) / 10, to: Math.round((start + len) * 10) / 10 }; });
+    return { weeks: Math.ceil(t + 0.5), phases: out };
+  }
+  function notes(x, L, opt) {
+    var n = ['الأسعار مبنية على نسخة تسعير معتمدة وقابلة للمراجعة.'];
+    n.push(x.level === 'p' ? 'التركيب: صبة تسوية (رمل + سن زيرو + أسمنت) ثم لاصق للكل (من المستوى).' : 'التركيب: فرشة رمل + مونة للأرضيات، ولاصق للحوائط (من المستوى).');
+    var t = L.filter(function (l) { return l.id === 'ti_lab' || l.id === 'ti_labp' || l.id === 'ti_labc' || l.id === 'ti_labk'; }).reduce(function (s, l) { return s + l.q0; }, 0);
+    n.push('مساحة البلاط ' + Math.round(t * 10) / 10 + ' م² = الأرضيات + حوائط الحمامات والمطبخ.');
+    if (!x.fromTakeoff) n.push('ما اتستخدمش حصر: بعض الكميات من معاملات المساحة.');
+    n.push('نقط الكهرباء تقديرية من المساحة وعدد الغرف (' + (x.rooms + 1) + ' مجموعات شاشة).');
+    if (!(Number(x.winArea) > 0)) n.push('مساحة الشبابيك مقدّرة ' + Math.round(lin(x.area, 11.2, 13.5) * 10) / 10 + ' م² وتتأكد بالمقاسات.');
+    if (x.level === 's') n.push('أسعار مستوى سيلفر لسه بأسعار جولد لحد ما يتأكد معامل المتوسط.');
+    if (x.state === 'reno') n.push('«تجديد قائم» محسوب بنسب تقديرية (التأسيس 35٪، والكهرباء 50٪) وتتراجع.');
+    if (x.plaster === 'part') n.push('«محارة جزء» محسوبة 40٪ من الحوائط.');
+    return n;
+  }
+  function priceMap(over) { var P = {}, k; for (k in BASE) P[k] = BASE[k].slice(); for (k in (over || {})) P[k] = over[k]; return P; }
+  return { SECS: SECS, BASE: BASE, OPT: OPT, LEVEL_DEF: LEVEL_DEF, LEVEL_FIXED: LEVEL_FIXED, DEF: DEF, fill: fill, run: run, priceMap: priceMap, lin: lin };
+})();
+
+
+/* ================= 0.14: 🧮 حاسبة الشقة + الدوسة على الإشعارات ================= */
+(function(){ const s = document.createElement('style'); s.textContent = `
+.cw{display:flex;flex-direction:column;gap:10px}.cwT{font-size:21px;font-weight:800;color:var(--navy,#1D2E4F);margin:2px 0}.cwS{font-size:12.5px;color:var(--muted)}
+.cprog{height:4px;background:#EEF1F5;border-radius:4px;overflow:hidden;margin:2px 0 4px}.cprog i{display:block;height:100%;background:#E8AA2E;border-radius:4px;transition:width .25s}
+.cfield{background:#F6F7F9;border-radius:14px;padding:8px 12px;display:flex;align-items:center;gap:8px}.cfield label{font-size:12px;color:var(--muted);flex:1}.cfield input{border:0;background:transparent;font:inherit;text-align:left;width:60%;outline:none;font-weight:700;color:var(--ink,#1B2333)}
+.cbig input{font-size:28px;color:#1D2E4F;width:120px}.ctag{background:#E6F4EC;color:#17683F;font-size:10.5px;border-radius:20px;padding:2px 8px;white-space:nowrap}
+.csteps{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cst{background:#F6F7F9;border-radius:14px;padding:6px 10px}.cst small{font-size:11.5px;color:var(--muted)}
+.cstp{display:flex;align-items:center;justify-content:space-between;gap:6px}.cstp button{width:34px;height:34px;border-radius:50%;background:#fff;border:1px solid var(--line);font-size:18px;font-weight:700}.cstp b{font-size:19px}
+.copt{display:flex;align-items:center;gap:10px;border:1.5px solid var(--line);border-radius:18px;padding:8px;background:var(--card);width:100%;text-align:start;font:inherit;color:inherit}
+.copt.on{border-color:#1D2E4F;background:#F5F8FD}.copt .ob{flex:1;min-width:0}.copt .ob b{display:block;font-size:14.5px}.copt .ob small{color:var(--muted);font-size:11.5px}
+.cimg{width:58px;height:58px;border-radius:12px;flex:none;background:repeating-linear-gradient(45deg,#E9EDF2,#E9EDF2 6px,#F2F4F7 6px,#F2F4F7 12px);display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden}
+.cimg img{width:100%;height:100%;object-fit:cover}.ctiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.ctile{border:1.5px solid var(--line);border-radius:16px;padding:6px;display:flex;flex-direction:column;gap:4px;align-items:center;text-align:center;font:inherit;font-size:12.5px;background:var(--card);color:inherit}
+.ctile.on{border-color:#1D2E4F;background:#F5F8FD}.ctile .cimg{width:100%;height:64px}
+.cdl{font-size:11px;font-weight:700;color:#17683F;background:#E6F4EC;border-radius:20px;padding:2px 8px;white-space:nowrap}.cdl.up{color:#9A3412;background:#FFF1E6}.cdl.q{color:#6B7280;background:#F1F3F6}.cdl.z{color:#1D2E4F;background:transparent}
+.cck{width:24px;height:24px;border-radius:50%;background:#1D2E4F;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex:none}
+.cchips{display:flex;gap:6px;flex-wrap:wrap}.cchips button{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:6px 12px;font:inherit;font-size:12.5px;color:inherit}.cchips button.on{background:#1D2E4F;color:#fff;border-color:#1D2E4F}
+.ctip{font-size:12px;color:#4B5563;background:#FFF8E6;border-radius:12px;padding:8px 10px;line-height:1.7}
+.cbar{position:sticky;bottom:0;margin:10px -16px -16px;display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -6px 16px rgba(29,46,79,.06);z-index:2}
+.cbar>div{flex:1;min-width:0}.cbar small{display:block;color:var(--muted);font-size:11px}.cbar b{font-size:16px;color:#1D2E4F}.cbar.dk{background:#1D2E4F}.cbar.dk b{color:#fff}.cbar.dk small{color:#C9D3E3}
+.cgo{background:#1D2E4F;color:#fff;border:0;border-radius:22px;padding:10px 18px;font:inherit;font-weight:700;font-size:13.5px}.cbar.dk .cgo,.cgo.gd{background:#E8AA2E;color:#1B2333}
+.cback{background:#F1F3F6;border:0;border-radius:50%;width:40px;height:40px;font-size:16px}
+.cdonut{width:180px;height:180px;border-radius:50%;margin:4px auto 0;display:flex;align-items:center;justify-content:center}.cdin{width:124px;height:124px;border-radius:50%;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.cdin b{font-size:21px;color:#1D2E4F}.cdin small{font-size:11px;color:var(--muted)}
+.cpills{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}.cpill{font-size:11.5px;border-radius:20px;padding:3px 10px;background:#F1F3F6;color:#374151}.cpill.b{background:#1D2E4F;color:#fff}.cpill.g{background:#E6F4EC;color:#17683F}.cpill.o{background:#FFF1E6;color:#9A3412}.cpill.v{background:#EDE9FE;color:#5B21B6}
+.cleg{display:flex;align-items:center;gap:8px;font-size:13px;padding:7px 0;border-bottom:1px solid #F1F3F6;width:100%;background:none;border-left:0;border-right:0;border-top:0;font-family:inherit;color:inherit;text-align:start}.cleg i{width:11px;height:11px;border-radius:3px;flex:none}.cleg span{flex:1}.cleg em{font-style:normal;color:var(--muted);min-width:70px;text-align:left}
+.cacts{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cacts button{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:10px 6px;font:inherit;font-weight:700;font-size:12.5px;color:#1D2E4F}
+.cln{display:flex;gap:8px;justify-content:space-between;border-bottom:1px solid #F1F3F6;padding:7px 0;font-size:12.5px}.cln .lr{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none}.cage{font-size:10.5px;color:var(--muted)}.cage.old{color:#B45309;font-weight:700}
+.ctiers{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.ctier{border:1.5px solid var(--line);border-radius:16px;padding:10px 6px;text-align:center;position:relative;display:flex;flex-direction:column;align-items:center;background:var(--card)}
+.ctier.rec{border-color:#E8AA2E;background:#FFFBF0}.ctier .pr{font-size:20px;font-weight:800;color:#1D2E4F;margin-top:4px}.ctier ul{list-style:none;padding:0;margin:6px 0 0;font-size:10.5px;color:#4B5563;line-height:1.9}
+.cbadge{position:absolute;top:-9px;background:#E8AA2E;color:#1B2333;font-size:9.5px;font-weight:700;border-radius:10px;padding:1px 7px}
+.ctl{display:flex;flex-direction:column;gap:14px;border-right:2px solid var(--line);padding-right:14px;margin-right:6px}.ctlr{display:flex;gap:10px;position:relative;font-size:13px}.ctlr i{width:12px;height:12px;border-radius:50%;position:absolute;right:-21px;top:4px;background:#2F6DB5}.ctlr div{flex:1}.ctlr em{font-style:normal;font-weight:700;color:#1D2E4F}
+.cgal{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.cgi{font-size:11.5px;text-align:center;display:flex;flex-direction:column;gap:4px;background:none;border:0;font-family:inherit;color:inherit}.cgi .cimg{width:100%;height:78px}
+.ccmp{display:flex;align-items:center;gap:8px;font-size:12.5px;margin:4px 0}.ccmp span{width:90px}.ccmp .cb{flex:1;height:8px;background:#EEF1F5;border-radius:4px;overflow:hidden}.ccmp .cb i{display:block;height:100%}.ccmp b{width:46px;text-align:left}
+.nt{cursor:pointer}`; document.head.appendChild(s); })();
+
+const CA = {S: 'سيلفر', G: 'جولد', P: 'بلاتينيوم'}, CLV = {s: 'سيلفر', g: 'جولد', p: 'بلاتينيوم'};
+['calcData', 'estList', 'estGet'].forEach(a => READS.add(a));
+const calcFull = () => !!(S.calcD && S.calcD.full);
+const kE = n => n >= 1e6 ? (Math.round(n / 1e4) / 100) + ' مليون' : Math.round(n / 1000).toLocaleString('en-US') + ' ألف';
+const cOpt = (f, v) => { const o = ((S.calcD && S.calcD.opt) || CE.OPT)[f] || []; const x = o.find(z => z[0] === v); return x ? x[1] : v; };
+async function calcLoad(){ if (S.calcD && S.calcD.t > Date.now() - 3e5) return S.calcD; const r = await api('calcData'); if (r.ok) { S.calcD = Object.assign(r, {t: Date.now()}); } return S.calcD || null; }
+const cPhoto = (f, v) => ((S.calcD || {}).photos || {})[f + ':' + v] || '';
+const cIcon = {level: {s: '🥈', g: '🥇', p: '💎'}, floors: {porc: '🔲', mixed: '🧩', cer: '◻️', click: '🪵'}, paint: {glc: '🎨', jaz: '🖌️', jotun: '✨'}, gyps: {none: '⬜', part: '◻️', mid: '🔳', full: '⬛'},
+  light: {calm: '💡', comfort: '🔆', strong: '🌟'}, prot: {main: '🔌', el: '🛡️', detail: '🧯'}, bath: {normal: '🚽', cistern: '🧱', full: '🚿'}, doorType: {hpl: '🚪', veneer: '🌳', lacquer: '✨'},
+  entry: {armored: '🛡️', smart: '🔐'}, winType: {ps_s: '🪟', ps_l: '🪟', tango: '🪟', jumbo: '🪟', upvc_loc: '🪟', upvc_dec: '🪟'}, state: {raw: '🧱', half: '🏗️', reno: '🔧'}, plaster: {all: '🧱', part: '◧', none: '⬜'}};
+const cImg = (f, v) => { const u = cPhoto(f, v); return `<div class="cimg">${u ? `<img src="${esc(u)}" alt="" loading="lazy">` : ((cIcon[f] || {})[v] || '▫️')}</div>`; };
+
+/* ---------- الحساب على الموبايل (المالك والمدير والمحاسب) أو من السيرفر (المهندس) ---------- */
+function cLocal(inp, region){ const D = S.calcD; if (!D || !D.P) return null; return CE.run(inp, D.P[region] || D.P['إسكندرية'], {reserve: D.set.reserve}); }
+let cRunT = 0, cRunN = 0;
+async function cRun(inp, region){
+  const loc = cLocal(inp, region); if (loc) return loc;
+  if (!navigator.onLine) return null;
+  const n = ++cRunN, r = await api('calcRun', {inp, region}); if (n !== cRunN) return undefined; return r.ok ? r.r : null;
+}
+async function cDeltas(inp, region, field){
+  const D = S.calcD; if (D && D.P) { const P = D.P[region] || D.P['إسكندرية'], res = D.set.reserve, base = CE.run(inp, P, {reserve: res}).after;
+    return (CE.OPT[field] || []).map(o => { const x = Object.assign({}, inp); x[field] = o[0]; if (field === 'level') Object.keys(CE.LEVEL_DEF[o[0]]).forEach(k => delete x[k]); const r = CE.run(x, P, {reserve: res});
+      return {v: o[0], delta: r.after - base, sug: r.lines.some(l => l.src === 's' && l.amt > 0 && String(l.pk).indexOf(o[0]) >= 0)}; }); }
+  if (!navigator.onLine) return null;
+  const k = JSON.stringify([inp, region, field]); S.cDC = S.cDC || {}; if (S.cDC[k]) return S.cDC[k];
+  const r = await api('calcDelta', {inp, region, field}); if (r.ok) S.cDC[k] = r.items; return r.ok ? r.items : null;
+}
+const cDl = (d, cur) => cur ? `<span class="cdl z">✓ المختار</span>` : !d ? '' : Math.abs(d.delta) < 500 ? `<span class="cdl q">نفس السعر${d.sug ? ' · مقترح' : ''}</span>` : `<span class="cdl ${d.delta > 0 ? 'up' : ''}">${d.delta > 0 ? '+' : '−'}${kE(Math.abs(d.delta))}${d.sug ? ' *' : ''}</span>`;
+
+/* ---------- 🧮 الرئيسية: التقديرات + أدوات المالك ---------- */
+async function calcHome(){
+  openSheet(`<h3>🧮 حاسبة الشقة</h3><div id="chB" class="muted">بيحمّل…</div>`);
+  const [D, L] = await Promise.all([calcLoad(), api('estList')]); if (!$('#chB')) return;
+  const items = L.ok ? L.items : [];
+  $('#chB').innerHTML = `<button class="btn gold" id="chNew">${ic('plus')} تقدير جديد</button>
+    ${D && D.owner ? `<div class="cacts" style="margin-top:10px"><button id="chRev">💰 مراجعة الأسعار</button><button id="chPh">🖼️ صور الاختيارات</button><button id="chPay">💳 قوالب الدفعات</button><button id="chRef">📐 الشقة المرجعية</button></div>` : ''}
+    <h4 style="margin:14px 0 6px">التقديرات</h4>
+    ${items.map(e => `<button class="card" data-est="${esc(e.id)}" style="width:100%;text-align:start;display:flex;gap:8px;align-items:center;margin-bottom:6px;padding:10px 12px"><span style="flex:1"><b>${esc(e.id)} · ${esc(e.client || 'من غير اسم')}</b><small class="muted" style="display:block">${n1(e.inp.area)} م² · ${esc(CLV[e.tier || e.inp.level] || '')} · ${esc(e.region)} · ${esc(e.date)} · ${esc(e.by)}</small></span>
+      <span style="text-align:left"><b>${kE(e.after)}</b><small style="display:block" class="${e.st === 'وافق' ? 'ok' : 'muted'}">${e.st === 'وافق' ? '🎉 وافق' : esc(e.st)}</small></span></button>`).join('') || emptyBox('calc', 'لسه مفيش تقديرات')}`;
+  $('#chNew').onclick = () => calcWiz(null);
+  document.querySelectorAll('[data-est]').forEach(b => b.onclick = () => estOpen(b.dataset.est));
+  if ($('#chRev')) { $('#chRev').onclick = () => calcReview('القاهرة'); $('#chPh').onclick = calcPhotosSheet; $('#chPay').onclick = calcPaySheet; $('#chRef').onclick = () => calcRefSheet(null); }
+}
+
+/* ---------- المدخلات: خطوة خطوة ---------- */
+const CSTEPS = [
+  {k: 'apt', t: 'الشقة'}, {k: 'level', t: 'المستوى', f: 'level'}, {k: 'state', t: 'حالة الشقة', f: 'state'}, {k: 'floors', t: 'الأرضيات', f: 'floors'}, {k: 'paint', t: 'الدهانات والجبس', f: 'paint'},
+  {k: 'elec', t: 'الكهرباء والتكييف', f: 'light'}, {k: 'bath', t: 'الحمامات', f: 'bath'}, {k: 'doors', t: 'الأبواب', f: 'doorType'}, {k: 'wins', t: 'الشبابيك', f: 'winType'}, {k: 'review', t: 'راجع اختياراتك'}];
+async function calcWiz(est, step){
+  const D = await calcLoad(); if (!D) { toast(navigator.onLine ? ERR.net : 'الحاسبة محتاجة نت أول مرة عشان تنزل'); return; }
+  const W = S.cW = est ? est : (S.cW && S.cW.live ? S.cW : {live: true, inp: {level: 'g'}, region: 'إسكندرية', client: '', phone: '', proj: S.project || ''});
+  if (W.proj && !W.region0) { const p = findProject(W.proj); if (p && p.region) W.region = p.region; W.region0 = 1; }
+  W.step = step == null ? (W.step || 0) : step; const st = CSTEPS[W.step], x = CE.fill(W.inp), lv = x.level;
+  const sel = (f, v) => x[f] === v;
+  const cards = (f, rows) => rows.map(([v, n, sub]) => `<button class="copt ${sel(f, v) ? 'on' : ''}" data-cs="${f}" data-v="${v}">${cImg(f, v)}<span class="ob"><b>${esc(n)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span><span data-dl="${f}:${v}">${sel(f, v) ? '<span class="cck">✓</span>' : ''}</span></button>`).join('');
+  const tiles = (f) => `<div class="ctiles">${CE.OPT[f].map(([v, n]) => `<button class="ctile ${sel(f, v) ? 'on' : ''}" data-cs="${f}" data-v="${v}">${cImg(f, v)}<b>${esc(n)}</b><span data-dl="${f}:${v}"></span></button>`).join('')}</div>`;
+  const chips = (f, list) => `<div class="cchips">${(list || CE.OPT[f]).map(([v, n]) => `<button class="${sel(f, v) ? 'on' : ''}" data-cs="${f}" data-v="${v}">${esc(n)}</button>`).join('')}</div>`;
+  const stp = (k, n) => `<div class="cst"><small>${n}</small><div class="cstp"><button data-cm="${k}" data-d="-1" aria-label="أقل">−</button><b>${x[k]}</b><button data-cm="${k}" data-d="1" aria-label="أكتر">+</button></div></div>`;
+  const tog = (k, n) => `<label class="row" style="gap:8px;padding:4px 0"><input type="checkbox" data-ct="${k}" ${x[k] ? 'checked' : ''}> ${n}</label>`;
+  let body = '';
+  if (st.k === 'apt') {
+    const P = S.projects.filter(p => p.status !== 'انتهى'), tk = W.inp.fromTakeoff;
+    body = `<div class="cfield"><label>العميل</label><input id="cwC" value="${esc(W.client)}" placeholder="اسم العميل"></div>
+      <div class="cfield"><label>تليفون</label><input id="cwPh" inputmode="tel" value="${esc(W.phone)}" placeholder="01…"></div>
+      <div class="cfield"><label>المشروع (اختياري)</label><select id="cwPr" class="in" style="border:0;background:transparent;width:60%"><option value="">—</option>${P.map(p => `<option value="${esc(p.code)}" ${W.proj === p.code ? 'selected' : ''}>${esc(p.short || p.name)}</option>`).join('')}</select></div>
+      <div class="cchips">${['إسكندرية', 'القاهرة', 'الساحل'].map(r => `<button class="${W.region === r ? 'on' : ''}" data-rg="${r}">${r}</button>`).join('')}</div>
+      <div class="cfield cbig"><label>المساحة</label><input id="cwA" inputmode="decimal" value="${esc(W.inp.area || '')}" placeholder="0"><span class="muted">م²</span>${tk ? '<span class="ctag">من الحصر ✓</span>' : ''}</div>
+      <div class="csteps">${stp('rooms', 'غرف')}${stp('baths', 'حمامات')}${stp('kitchens', 'مطبخ')}${stp('balconies', 'بلكونة')}</div>
+      <div class="cchips"><small class="muted" style="align-self:center">ارتفاع السقف</small>${[2.8, 3, 3.2].map(v => `<button class="${Number(x.ceil) === v ? 'on' : ''}" data-cs="ceil" data-v="${v}">${v.toFixed(2)}</button>`).join('')}</div>
+      <div class="row" style="gap:6px;align-items:flex-start;border:1.5px dashed #C9D3E3;border-radius:14px;padding:8px"><textarea class="in" id="cwT" placeholder="أو اكتبها مرة واحدة: 140 متر 3 أوض حمامين جولد نص تشطيب" style="min-height:46px;border:0;background:transparent"></textarea>${micBtn('cwT')}</div>`;
+  } else if (st.k === 'level') body = cards('level', CE.OPT.level.map(([v, n]) => [v, n, ({s: 'حمام عادي · بورسلين مصري 60×60 · GLC', g: 'الخزان دفن · مصري 60×120 · جبس فلات', p: 'الخزان والخلاطات دفن · سعودي 120×120 · جوتن'})[v]]))
+    + `<div class="ctip">المستوى بيملى الاختيارات الجاية بالافتراضي بتاعه، وتقدر تغيّر أي واحد. ونوع الحمام مثبّت مع المستوى.</div>`;
+  else if (st.k === 'state') body = cards('state', CE.OPT.state.map(([v, n]) => [v, n, ({raw: 'تأسيس كامل', half: 'المحارة وتأسيس السباكة 55٪', reno: 'تقديري — يتراجع'})[v]])) + `<h4 style="margin:6px 0 0">المحارة</h4>` + chips('plaster')
+    + (x.plaster === 'all' ? `<div class="ctip">محارة جديدة لكل الحوائط ← بيُعتمد سطح جيد جدا، فمش محتاجين نسأل عن المحارة القديمة.</div>` : '');
+  else if (st.k === 'floors') body = cards('floors', CE.OPT.floors.map(([v, n]) => [v, n])) + `<h4 style="margin:6px 0 0">البورسلين</h4>` + chips('porcSrc') + chips('tile') + `<h4 style="margin:6px 0 0">تبليط المطبخ</h4>` + chips('kitchenTile');
+  else if (st.k === 'paint') body = cards('paint', CE.OPT.paint.map(([v, n]) => [v, n])) + `<h4 style="margin:6px 0 0">الجبس بورد</h4>` + chips('gyps') + `<div class="csteps">${stp('colors', 'عدد الألوان')}</div>`;
+  else if (st.k === 'elec') body = cards('light', CE.OPT.light.map(([v, n]) => [v, n])) + `<h4 style="margin:6px 0 0">حماية اللوحة</h4>` + chips('prot') + tog('lowCur', 'لوحة تيار خفيف (داتا ودش وتليفون)')
+    + `<div class="csteps">${stp('acs', 'تكييفات')}${stp('kLines', 'خطوط مطبخ')}</div><h4 style="margin:6px 0 0">مسارات التكييف</h4>` + chips('route') + tog('heater', 'سخان فوري / حمل 6-10 مم') + tog('oven', 'فرن/بوتاجاز كهرباء عالي القدرة');
+  else if (st.k === 'bath') body = cards('bath', CE.OPT.bath.map(([v, n]) => [v, n, v === CE.LEVEL_FIXED[lv].bath ? 'مثبّت مع ' + CLV[lv] : 'مع مستوى ' + CLV[Object.keys(CE.LEVEL_FIXED).find(k => CE.LEVEL_FIXED[k].bath === v)]]))
+    + `<div class="ctip">نوع الحمام مثبّت مع المستوى (سيلفر عادي · جولد الخزان دفن · بلاتينيوم كله دفن). لو عايز غيره غيّر المستوى.</div>`;
+  else if (st.k === 'doors') body = `<div class="csteps">${stp('doors', 'أبواب داخلية')}</div>` + tiles('doorType') + `<h4 style="margin:6px 0 0">باب الشقة</h4>` + cards('entry', CE.OPT.entry.map(([v, n]) => [v, n]));
+  else if (st.k === 'wins') body = cards('winType', CE.OPT.winType.map(([v, n]) => [v, n])) + chips('glass')
+    + `<div class="cfield"><label>مساحة الشبابيك (م²)</label><input id="cwW" inputmode="decimal" value="${esc(W.inp.winArea || '')}" placeholder="${n1(Math.round(CE.lin(x.area, 11.2, 13.5) * 10) / 10)} تقديري"></div>`;
+  else body = calcReviewList(x, W);
+  openSheet(`<div class="cw"><div class="row" style="gap:8px"><button class="cback" id="cwBk" aria-label="رجوع">${W.step ? '→' : '✕'}</button><b style="flex:1;font-size:15px">${esc(W.id ? W.id + ' · ' : '')}${esc(st.t)}</b><small class="muted">${W.step + 1} من ${CSTEPS.length}</small></div>
+    <div class="cprog"><i style="width:${Math.round((W.step + 1) / CSTEPS.length * 100)}%"></i></div>${body}
+    <div class="cbar ${st.k === 'review' ? 'dk' : ''}"><div><small>${calcFull() ? 'حوالي' : 'التقدير'}</small><b id="cwLive">…</b></div><button class="cgo" id="cwGo">${st.k === 'review' ? 'احسب ✓' : 'التالي ←'}</button></div></div>`);
+  wireMics($('#sheetBody'));
+  const sync = () => { if ($('#cwA')) { W.inp.area = Number(digits($('#cwA').value)) || ''; W.client = $('#cwC').value.trim(); W.phone = $('#cwPh').value.trim(); W.proj = $('#cwPr').value; }
+    if ($('#cwW')) W.inp.winArea = Number(digits($('#cwW').value)) || ''; };
+  const re = () => { sync(); calcWiz(null, W.step); };
+  document.querySelectorAll('[data-cs]').forEach(b => b.onclick = () => { sync(); const f = b.dataset.cs, v = f === 'ceil' ? Number(b.dataset.v) : b.dataset.v;
+    if (f === 'level') { Object.keys(CE.LEVEL_DEF[v]).forEach(k => delete W.inp[k]); } if (f === 'bath' && v !== CE.LEVEL_FIXED[lv].bath) { toast('نوع الحمام مثبّت مع المستوى'); return; } W.inp[f] = v; buzz(8); re(); });
+  document.querySelectorAll('[data-cm]').forEach(b => b.onclick = () => { sync(); const k = b.dataset.cm; W.inp[k] = Math.max(k === 'kitchens' ? 0 : 0, (Number(x[k]) || 0) + Number(b.dataset.d)); re(); });
+  document.querySelectorAll('[data-ct]').forEach(b => b.onchange = () => { sync(); W.inp[b.dataset.ct] = b.checked; re(); });
+  document.querySelectorAll('[data-rg]').forEach(b => b.onclick = () => { sync(); W.region = b.dataset.rg; re(); });
+  if ($('#cwPr')) $('#cwPr').onchange = () => { sync(); const p = findProject(W.proj); if (p) { if (p.region) W.region = p.region; if (!W.client && p.client) W.client = p.client; const a = cTakeoffArea(p.code); if (a) { W.inp.area = a; W.inp.fromTakeoff = true; } } re(); };
+  if ($('#cwT')) $('#cwT').addEventListener('change', async () => { const t = $('#cwT').value.trim(); if (!t) return; sync(); const got = calcParseText(t); let n = Object.keys(got).length;
+    if (n < 2 && navigator.onLine) { const r = await api('calcParse', {text: t}); if (r.ok) Object.assign(got, Object.fromEntries(Object.entries(r.inp || {}).filter(([k, v]) => v !== '' && v != null))); n = Object.keys(got).length; }
+    if (!n) { toast('ما فهمتش، اكتب المساحة والغرف والمستوى'); return; } if (got.region) { W.region = got.region; delete got.region; } if (got.level) Object.keys(CE.LEVEL_DEF[got.level]).forEach(k => delete W.inp[k]);
+    Object.assign(W.inp, got); $('#cwT').value = ''; if (got.area) $('#cwA').value = got.area; toast('✓ ملّيت ' + n + ' خانة'); re(); });
+  if ($('#cwA')) $('#cwA').oninput = () => { sync(); live(); };
+  if ($('#cwW')) $('#cwW').oninput = () => { sync(); live(); };
+  $('#cwBk').onclick = () => { sync(); if (W.step) calcWiz(null, W.step - 1); else { if (!W.id) W.live = true; calcHome(); } };
+  document.querySelectorAll('[data-ce]').forEach(b => b.onclick = () => { sync(); calcWiz(null, Number(b.dataset.ce)); });
+  $('#cwGo').onclick = async () => { sync(); if (!(Number(W.inp.area) > 0)) { toast('اكتب المساحة'); calcWiz(null, 0); return; }
+    if (st.k !== 'review') { calcWiz(null, W.step + 1); return; }
+    busy($('#cwGo'), true);
+    const r = await qSave('estSave', {id: W.id || '', inp: W.inp, region: W.region, client: W.client, phone: W.phone, proj: W.proj}, 'تقدير ' + (W.client || ''));
+    busy($('#cwGo'), false); if (!r.ok) { toast(errMsg(r)); return; }
+    W.live = false; S.cW = null; buzz(15);
+    if (r.queued) { toast('اتحفظ، وهيتحسب لما النت يرجع'); const loc = cLocal(W.inp, W.region); if (loc) calcResult({id: 'مستني النت', client: W.client, region: W.region, inp: loc.inp, st: 'مسودة'}, loc); else calcHome(); return; }
+    estOpen(r.est.id, r); };
+  const live = async () => { clearTimeout(cRunT); cRunT = setTimeout(async () => { if (!$('#cwLive')) return; if (!(Number(W.inp.area) > 0)) { $('#cwLive').textContent = '—'; return; }
+    const r = await cRun(W.inp, W.region); if (r === undefined || !$('#cwLive')) return; $('#cwLive').textContent = r ? (kE(r.lo).replace(' ألف', '') + ' – ' + kE(r.hi)) : 'هيظهر لما النت يرجع'; }, 350); };
+  live();
+  if (st.f) cDeltas(W.inp, W.region, st.f).then(L => { if (!L) return; L.forEach(d => { const el = document.querySelector(`[data-dl="${st.f}:${d.v}"]`); if (el) el.innerHTML = x[st.f] === d.v ? (st.f === 'doorType' || st.f === 'winType' ? cDl(null, true) : '<span class="cck">✓</span>') : cDl(d, false); }); });
+  if (st.k === 'paint') cDeltas(W.inp, W.region, 'paint');
+}
+function calcReviewList(x, W){
+  const row = (i, ic, n, v) => `<div class="cln" style="align-items:center"><span style="width:96px;color:var(--muted)">${ic} ${n}</span><b style="flex:1;font-weight:600">${esc(v)}</b><button class="more" data-ce="${i}" style="color:var(--pri)">تعديل</button></div>`;
+  return row(0, '🏠', 'الشقة', `${n1(x.area)} م² · ${x.rooms} غرف · ${x.baths} حمام · ${W.region}`) + row(1, '⭐', 'المستوى', cOpt('level', x.level)) + row(2, '🧱', 'الحالة', cOpt('state', x.state) + ' · محارة ' + cOpt('plaster', x.plaster))
+    + row(3, '🔲', 'الأرضيات', cOpt('floors', x.floors) + ' · ' + cOpt('porcSrc', x.porcSrc) + ' ' + cOpt('tile', x.tile)) + row(4, '🎨', 'الدهان', cOpt('paint', x.paint) + ' · ' + x.colors + ' ألوان · جبس ' + cOpt('gyps', x.gyps))
+    + row(5, '⚡', 'الكهرباء', x.acs + ' تكييف · إضاءة ' + cOpt('light', x.light)) + row(6, '🚿', 'الحمام', cOpt('bath', x.bath)) + row(7, '🚪', 'الأبواب', x.doors + ' ' + cOpt('doorType', x.doorType) + ' · ' + cOpt('entry', x.entry))
+    + row(8, '🪟', 'الشبابيك', cOpt('winType', x.winType) + ' · ' + cOpt('glass', x.glass) + (Number(x.winArea) > 0 ? ' · ' + x.winArea + ' م²' : ''));
+}
+// «140 متر 3 أوض حمامين جولد نص تشطيب» ← خانات (من غير نت)
+function calcParseText(t){
+  t = digits(t); const o = {}, num = w => ({'واحد': 1, 'اتنين': 2, 'تلاتة': 3, 'تلات': 3, 'اربعة': 4, 'أربعة': 4, 'اربع': 4, 'خمسة': 5})[w] || Number(w);
+  let m = t.match(/(\d+(?:\.\d+)?)\s*(?:م|متر|م2|م²)/); if (m) o.area = Number(m[1]);
+  m = t.match(/(\d+|واحد|اتنين|تلاتة|تلات|اربعة|أربعة|اربع)\s*(?:أوض|اوض|غرف|غرفة|اوضة|أوضة)/); if (m) o.rooms = num(m[1]);
+  if (/حمامين/.test(t)) o.baths = 2; m = t.match(/(\d+|تلاتة|تلات)\s*(?:حمام)/); if (m) o.baths = num(m[1]); else if (/\bحمام\b/.test(t) && !o.baths) o.baths = 1;
+  m = t.match(/(\d+)\s*(?:تكييف|تكييفات)/); if (m) o.acs = Number(m[1]);
+  m = t.match(/(\d+)\s*(?:باب|أبواب|ابواب)/); if (m) o.doors = Number(m[1]);
+  if (/سيلفر|متوسط/.test(t) && !/فوق متوسط/.test(t)) o.level = 's'; if (/جولد|فوق متوسط/.test(t)) o.level = 'g'; if (/بلاتين|فاخر|لوكس/.test(t)) o.level = 'p';
+  if (/نص تشطيب|نصف تشطيب/.test(t)) o.state = 'half'; else if (/تجديد/.test(t)) o.state = 'reno'; else if (/طوب|على المحارة|تأسيس كامل/.test(t)) o.state = 'raw';
+  if (/اسكندري|إسكندري|سموحة|العجمي/.test(t)) o.region = 'إسكندرية'; else if (/قاهر|التجمع|اكتوبر|أكتوبر|زايد/.test(t)) o.region = 'القاهرة'; else if (/ساحل/.test(t)) o.region = 'الساحل';
+  return o;
+}
+// المساحة من الحصر/المقايسة لو المشروع ليه
+function cTakeoffArea(code){ try { const its = typeof bItems === 'function' ? bItems(code) : []; const pl = its.find(x => /محارة/.test(x.name) && /م2|م²/.test(x.unit || '')); if (pl && Number(pl.qty) > 0) return Math.round(Number(pl.qty) / 2.5); } catch (e) {} return 0; }
+
+/* ---------- النتيجة: الدايرة والرينج والمدة ---------- */
+async function estOpen(id, pre){
+  openSheet(`<h3>${esc(id)}</h3><div class="muted">بيحمّل…</div>`);
+  await calcLoad(); const r = await api('estGet', {id}); if (!r.ok) { $('#sheetBody').innerHTML = `<h3>${esc(id)}</h3><p>${esc(navigator.onLine ? errMsg(r) : offMsg())}</p>`; return; }
+  S.cEst = r; calcResult(r.est, r.r, r);
+}
+function calcResult(e, R, G){
+  const full = calcFull(), own = S.calcD && S.calcD.owner, secs = R.secs.filter(s => !full || s.amt), tot = secs.reduce((s, x) => s + (x.amt || 0), 0) || 1;
+  let acc = 0; const grad = secs.map(s => { const a = acc; acc += (s.amt || 0) / tot * 100; return `${s.c} ${a}% ${acc}%`; }).join(',');
+  const sup = e.sup !== '' && e.sup != null && Number(e.sup) > 0 ? Number(e.sup) : 0;
+  openSheet(`<div class="cw"><div class="row" style="gap:8px"><button class="cback" id="crBk" aria-label="رجوع">→</button><b style="flex:1;font-size:15px">${esc(e.id)} · ${esc(e.client || '')}</b>${e.st === 'وافق' ? '<span class="cpill g">🎉 العميل وافق</span>' : ''}</div>
+    ${full ? `<div class="cdonut" style="background:conic-gradient(${grad})"><div class="cdin"><small>التقدير</small><b>${kE(R.after)}</b><small>بين ${kE(R.lo).replace(' ألف', '')} و${kE(R.hi)}</small></div></div>`
+      : `<div class="cdonut" style="background:conic-gradient(${R.secs.map((s, i, a) => `${s.c} ${i / a.length * 100}% ${(i + 1) / a.length * 100}%`).join(',')})"><div class="cdin"><small>التقدير</small><b>${R.after ? kE(R.after) : '—'}</b><small>${R.after ? 'بين ' + kE(R.lo).replace(' ألف', '') + ' و' + kE(R.hi) : 'هيظهر لما النت يرجع'}</small></div></div>`}
+    <div class="cpills"><span class="cpill b">دقة ${esc(R.cls || '—')}${R.pct ? ' · ±' + Math.round(R.pct * 100) + '٪' : ''}</span>${R.perM ? `<span class="cpill">${nf(Math.round(R.perM))} ج/م²</span>` : ''}<span class="cpill">⏱ ${R.dur ? R.dur.weeks : '—'} أسبوع</span>${sup ? `<span class="cpill v">إشراف ${sup}٪</span>` : `<span class="cpill o">الإشراف يُضاف لاحقًا</span>`}</div>
+    <div>${R.secs.map(s => `<button class="cleg" data-sec="${s.k}"><i style="background:${s.c}"></i><span>${esc(s.n)}</span>${full ? `<b>${Math.round((s.amt || 0) / tot * 100)}٪</b><em>${nf(Math.round(s.amt))}</em>` : `<em>${s.amt != null && R.after ? nf(Math.round(s.amt)) : s.n2 + ' بند'}</em>`}</button>`).join('')}</div>
+    ${full && R.sugAmt ? `<div class="ctip">💡 ${nf(Math.round(R.sugAmt))} ج من الإجمالي بأسعار مقترحة لسه ما اتراجعتش.</div>` : ''}
+    <div class="cacts"><button id="crT">⚖️ 3 عروض</button><button id="crLk">🔗 لينك للعميل</button><button id="crPc">📄 PDF العميل</button>${full ? '<button id="crPf">📄 PDF الشركة</button>' : ''}<button id="crPay">💳 المدة والدفعات</button><button id="crEd">✎ عدّل المدخلات</button>
+      <button id="crRd">🖼️ صورة تقريبية</button>${own ? '<button id="crSup">👑 الإشراف</button><button id="crRef">📐 مقارنة بالمرجع</button>' : ''}${isBoss() ? `<button id="crPrj">🏗️ ${e.proj || e.conv ? 'حدّث مقايسة المشروع' : 'حوّله لمشروع ومقايسة'}</button>` : ''}${e.proj || e.conv ? '<button id="crPur">📦 طلبات خامات</button>' : ''}</div>
+    ${(e.renders || []).length ? `<div class="cgal">${e.renders.map(u => `<button class="cgi" data-rimg="${esc(u)}"><div class="cimg"><img src="${esc(u)}" alt=""></div></button>`).join('')}</div>` : ''}
+    <div class="card" style="background:#FFF8E6;border-color:#F0DCA6"><b style="color:#9A3412">ⓘ افتراضات تحتاج مراجعة</b><div style="font-size:12.5px;line-height:1.8;margin-top:4px">${(R.notes || []).map(n => '• ' + esc(n)).join('<br>')}</div>
+      <div class="muted" style="font-size:11.5px;margin-top:4px">مقايسة توصيفية تقديرية تحتاج اعتماد بعض المدخلات.</div></div></div>`);
+  $('#crBk').onclick = calcHome;
+  document.querySelectorAll('.cleg[data-sec]').forEach(b => b.onclick = () => calcSec(e, R, b.dataset.sec));
+  $('#crT').onclick = () => calcTiers(e, G); $('#crPay').onclick = () => calcPayView(e, R, G);
+  $('#crEd').onclick = () => { S.cW = {id: e.id, inp: Object.assign({}, e.inp), region: e.region, client: e.client, phone: e.phone, proj: e.proj, step: 9}; calcWiz(S.cW, 9); };
+  $('#crLk').onclick = () => calcSendLink(e);
+  $('#crPc').onclick = () => calcPdf(e, R, G, false); if ($('#crPf')) $('#crPf').onclick = () => calcPdf(e, R, G, true);
+  $('#crRd').onclick = () => calcRenderForm(e);
+  if ($('#crSup')) $('#crSup').onclick = () => calcSupForm(e, R, G, null); if ($('#crRef')) $('#crRef').onclick = () => calcRefSheet(e);
+  if ($('#crPrj')) $('#crPrj').onclick = async () => { if (!confirm(e.proj || e.conv ? 'تحدّث مقايسة المشروع من التقدير ده؟' : 'تعمل مشروع جديد من التقدير ده وتحوّله لمقايسة؟')) return; const r = await api('estToProject', {id: e.id});
+    if (!r.ok) { toast(errMsg(r)); return; } toast('✓ ' + (r.project ? 'اتعمل المشروع ' + (r.project.short || r.project.name) + ' و' : '') + 'المقايسة اتحدّثت'); if (typeof syncAll === 'function') syncAll(true); estOpen(e.id); };
+  if ($('#crPur')) $('#crPur').onclick = () => calcPurForm(e);
+  document.querySelectorAll('[data-rimg]').forEach(b => b.onclick = () => typeof imgViewer === 'function' && imgViewer(b.dataset.rimg));
+}
+function calcSec(e, R, k){
+  const s = R.secs.find(x => x.k === k), L = R.lines.filter(l => l.sec === k), full = calcFull();
+  const age = l => l.src === 'a' ? Math.round((new Date(tdy()) - new Date('2026-11-23')) / 864e5) : null;
+  const pill = c => `<span class="cpill ${/قوي/.test(c) ? 'g' : /محتاج|مقترح/.test(c) ? 'o' : ''}">${esc(c)}</span>`;
+  openSheet(`<div class="cw"><div class="row" style="gap:8px"><button class="cback" id="csBk" aria-label="رجوع">→</button><b style="flex:1;font-size:15px">${esc(s.n)}</b>${s.amt != null && R.after ? `<b>${money(Math.round(s.amt))}</b>` : ''}</div>
+    ${L.map(l => `<div class="cln"><div><b style="font-weight:600">${esc(l.n)}</b><small class="muted" style="display:block">${l.lump ? 'مقطوعية' : n1(Math.round(l.q * 100) / 100) + ' ' + esc(l.u)}${full && !l.lump && l.price != null ? ' × ' + nf(Math.round(l.price * 100) / 100) : ''} · ${esc(l.k)}</small></div>
+      <div class="lr">${full ? `<b>${l.price == null ? '—' : nf(Math.round(l.amt))}</b>` : ''}${pill(l.cl)}${full ? (l.src === 'v' ? '<span class="cage">✎ سعر معدّل</span>' : l.src === 'o' ? '<span class="cage">من ملفنا</span>' : l.src === 's' ? '<span class="cage old">سعر مقترح</span>' : `<span class="cage ${age(l) > 60 ? 'old' : ''}">🕒 ${age(l)} يوم</span>`) : ''}</div></div>`).join('')}
+    ${!full ? '<div class="ctip">الكميات والإقفال بس. الأسعار عند المالك والمدير والمحاسب.</div>' : ''}</div>`);
+  $('#csBk').onclick = () => calcResult(e, R, G0());
+}
+const G0 = () => S.cEst || {};
+function calcTiers(e, G){
+  const T = (G && G.tiers) || [], rec = e.tier || e.inp.level;
+  const li = t => [cOpt('bath', t.inp.bath), 'باب ' + cOpt('doorType', t.inp.doorType), 'شباك ' + cOpt('winType', t.inp.winType).replace('ألوميتال ', ''), cOpt('porcSrc', t.inp.porcSrc) + ' ' + t.inp.tile.replace('x', '×'), cOpt('paint', t.inp.paint)];
+  openSheet(`<div class="cw"><div class="row" style="gap:8px"><button class="cback" id="ctBk" aria-label="رجوع">→</button><b style="flex:1;font-size:15px">العروض · نفس الشقة</b></div>
+    <div class="ctiers">${T.map(t => `<div class="ctier ${t.level === rec ? 'rec' : ''}">${t.level === rec ? '<span class="cbadge">المقترح</span>' : ''}<b>${CLV[t.level]}</b><span class="pr">${kE(t.after).replace(' ألف', '')}</span><small class="muted">${t.after >= 1e6 ? '' : 'ألف'}</small><ul>${li(t).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}</div>
+    <div class="ctip">الفرق بين العروض بيوضح للعميل بيدفع زيادة في إيه بالظبط. والحمام مثبّت مع كل مستوى.</div>
+    <button class="btn gold" id="ctLk">🔗 ابعت التلاتة للعميل</button></div>`);
+  $('#ctBk').onclick = () => calcResult(e, G.r, G); $('#ctLk').onclick = () => calcSendLink(e);
+}
+async function calcSendLink(e){
+  if (!navigator.onLine) { toast('اللينك محتاج نت'); return; } const r = await api('estLink', {id: e.id}); if (!r.ok) { toast(errMsg(r)); return; }
+  const url = location.origin + location.pathname + '?ec=' + r.t; shareWa(e.phone || '', `أهلا ${e.client || ''} 👋\nده عرض تشطيب شقتك من MEC · الشرق الأوسط للإنشاءات (3 مستويات، والمدة والدفعات):\n${url}`);
+}
+function calcPayView(e, R, G){
+  const own = S.calcD && S.calcD.owner, pay = (G && G.pay) || (S.calcD.pay[0] || {}).list || [], ph = (R.dur || {}).phases || [], wk = (R.dur || {}).weeks || 0;
+  const when = a => a === 'start' ? 0 : a === 'end' ? wk : ((ph.find(p => p.k === a) || {}).to || 0);
+  const sup = e.sup ? Number(e.sup) : 0, tot = (R.after || 0) * (1 + sup / 100);
+  openSheet(`<div class="cw"><div class="row" style="gap:8px"><button class="cback" id="cpBk" aria-label="رجوع">→</button><b style="flex:1;font-size:15px">المدة والدفعات</b><b>${tot ? kE(tot) : ''}</b></div>
+    <div class="ctl">${pay.map(p => `<div class="ctlr"><i></i><div><b>${esc(p.n)}</b><small class="muted" style="display:block">أسبوع ${Math.ceil(when(p.after))}</small></div><em>${p.pct}٪${tot ? ' · ' + nf(Math.round(tot * p.pct / 100)) : ''}</em></div>`).join('')}</div>
+    <h4 style="margin:6px 0 0">المراحل (حوالي ${wk} أسبوع)</h4>${ph.map(p => `<div class="ccmp"><span>${esc(p.n)}</span><div class="cb"><i style="background:#2F6DB5;margin-right:${p.from / wk * 100}%;width:${(p.to - p.from) / wk * 100}%"></i></div><b>${Math.ceil(p.to)}</b></div>`).join('')}
+    <div class="ctip">المدة من الكميات وإنتاجية فرقة عادية، والميعاد بيتحسب من المرحلة. ${own ? 'تقدر تعدّل نسب الدفعات للعرض ده.' : 'الدفعات المالك بس اللي يعدّلها.'}</div>
+    ${own ? '<button class="btn ghost" id="cpEd">✎ عدّل الدفعات للعرض ده</button>' : ''}</div>`);
+  $('#cpBk').onclick = () => calcResult(e, R, G);
+  if ($('#cpEd')) $('#cpEd').onclick = () => calcPayEdit(pay, async L => { const r = await api('estSup', {id: e.id, pct: e.sup === '' ? '' : e.sup, pay: L}); if (!r.ok) { toast(r.error === 'pct100' ? 'لازم المجموع 100٪' : errMsg(r)); return false; } G.pay = L; toast('اتحفظ ✓'); calcPayView(e, R, G); return true; }, () => calcPayView(e, R, G));
+}
+function calcPayEdit(list, save, back){
+  const L = list.map(x => Object.assign({}, x)), AF = [['start', 'التعاقد'], ['found', 'بعد التأسيس'], ['plaster', 'بعد المحارة'], ['tiles', 'بعد البلاط'], ['paint', 'بعد الدهانات'], ['end', 'التسليم']];
+  const draw = () => { openSheet(`<h3>💳 الدفعات</h3>${L.map((p, i) => `<div class="card" style="padding:8px 10px;margin-bottom:6px"><input class="in" data-pn="${i}" value="${esc(p.n)}"><div class="row" style="gap:6px;margin-top:6px"><input class="in" data-pp="${i}" inputmode="decimal" value="${esc(p.pct)}" style="width:80px"><span>٪</span><select class="in" data-pa="${i}">${AF.map(([k, n]) => `<option value="${k}" ${p.after === k ? 'selected' : ''}>${n}</option>`).join('')}</select><button class="xbtn" data-px="${i}" aria-label="شيل" style="border:0;background:#F1F3F6;border-radius:8px;width:34px;height:34px;color:var(--bad)">×</button></div></div>`).join('')}
+      <button class="btn ghost" id="ppAdd">${ic('plus')} دفعة</button><div class="row" style="margin-top:8px"><b style="flex:1">المجموع</b><b id="ppSum"></b></div><button class="btn gold" id="ppGo" style="margin-top:10px">احفظ</button><button class="btn ghost" id="ppBk" style="margin-top:8px">رجوع</button>`);
+    const sum = () => { const s = L.reduce((a, p) => a + (Number(p.pct) || 0), 0); $('#ppSum').textContent = s + '٪'; $('#ppSum').style.color = Math.round(s) === 100 ? 'var(--ok)' : 'var(--bad)'; };
+    document.querySelectorAll('[data-pn]').forEach(e => e.oninput = () => { L[e.dataset.pn].n = e.value; }); document.querySelectorAll('[data-pp]').forEach(e => e.oninput = () => { L[e.dataset.pp].pct = Number(digits(e.value)) || 0; sum(); });
+    document.querySelectorAll('[data-pa]').forEach(e => e.onchange = () => { L[e.dataset.pa].after = e.value; }); document.querySelectorAll('[data-px]').forEach(b => b.onclick = () => { L.splice(Number(b.dataset.px), 1); draw(); });
+    $('#ppAdd').onclick = () => { L.push({n: 'دفعة', pct: 0, after: 'end'}); draw(); }; $('#ppGo').onclick = () => { if (Math.round(L.reduce((a, p) => a + (Number(p.pct) || 0), 0)) !== 100) { toast('لازم المجموع 100٪'); return; } save(L); }; $('#ppBk').onclick = back; sum(); };
+  draw();
+}
+/* ---------- 👑 الإشراف قبل الـ PDF النهائي (المالك بس) ---------- */
+function calcSupForm(e, R, G, then){
+  const h = G && G.supHint;
+  openSheet(`<h3>👑 الإشراف</h3><p class="muted" style="font-size:13px">بتحطه انت بس، وبيبان في الـ PDF ولينك العميل. ${R.after ? 'الإجمالي ' + money(Math.round(R.after)) : ''}</p>
+    <div class="cfield cbig"><label>نسبة الإشراف</label><input id="spP" inputmode="decimal" value="${e.sup === '' || e.sup == null ? '' : esc(e.sup)}" placeholder="—"><span class="muted">٪</span></div>
+    ${h ? `<div class="ctip">💡 آخر نسبة حطيتها لمقايسة قريبة: <b>${h.pct}٪</b> على ${kE(h.after)} · ${esc(h.region)} (${esc(h.date)})</div>` : ''}
+    <button class="btn gold" id="spGo" style="margin-top:10px">احفظ الإشراف</button><button class="btn ghost" id="spNo" style="margin-top:8px">⭐ من غير إشراف («يُضاف لاحقًا»)</button>`);
+  const go = async v => { const r = await api('estSup', {id: e.id, pct: v}); if (!r.ok) { toast(errMsg(r)); return; } e.sup = r.sup; if (G && G.est) G.est.sup = r.sup; toast('اتحفظ ✓'); if (then) then(); else calcResult(e, R, G); };
+  $('#spGo').onclick = () => go(Number(digits($('#spP').value)) || 0); $('#spNo').onclick = () => go('');
+}
+/* ---------- 📄 الـ PDF (العميل: الأقسام والكميات بس · الشركة: التفصيلي) ---------- */
+function calcPdf(e, R, G, company){
+  const own = S.calcD && S.calcD.owner;
+  if (own && !company && !e.supAsked) { e.supAsked = 1; calcSupForm(e, R, G, () => calcPdf(e, R, G, company)); return; }
+  const sup = e.sup ? Number(e.sup) : 0, after = (R.after || 0), supAmt = after * sup / 100, base = location.origin + location.pathname.replace(/[^/]*$/, '');
+  const q = id => R.lines.filter(l => l.id === id).reduce((s, l) => s + l.q, 0), x = R.inp;
+  const KEY = {plaster: [['محارة حوائط', q('pl_lab'), 'م²']], gyps: [['أسقف جبس بورد', q('gy_white') + q('gy_green'), 'م²'], ['بيت نور', q('gy_trough'), 'م ط']],
+    tiles: [['بورسلين أرضيات وحوائط', q('ti_lab'), 'م²'], ['سيراميك باركيه للغرف', q('ti_labp'), 'م²'], ['سيراميك', q('ti_labc'), 'م²'], ['باركيه كليك', q('ti_labk'), 'م²']],
+    elec: [['نقط إنارة ومفاتيح', q('el_sw') + q('el_sw2'), 'نقطة'], ['برايز', q('el_sock') + q('el_schuko'), 'نقطة'], ['إضاءة وسبوتات', q('el_light'), 'م²']],
+    plumb: [['تأسيس وتشطيب حمام', x.baths, 'حمام'], ['تأسيس وتشطيب مطبخ', x.kitchens, 'مطبخ']], ac: [['تأسيس تكييف', q('ac_route'), 'م ط']],
+    paint: [['دهانات حوائط وأسقف', q('pt_labf'), 'م²']], doors: [['أبواب داخلية ' + cOpt('doorType', x.doorType), x.doors, 'باب'], ['باب الشقة', 1, 'باب']], wins: [['شبابيك ' + cOpt('winType', x.winType), q('win'), 'م²']], ops: [['نقل وتشوين وتنظيف', 1, 'مقطوعية']]};
+  const res = R.reserve || 0, f = after && R.total ? after / R.total : 1;
+  const head = `<div class="t"><img src="${base}icon-192.png" alt=""><div><b>MEC · الشرق الأوسط للإنشاءات</b><br>${company ? 'مقايسة تفصيلية — للشركة' : 'مقايسة تشطيب تقديرية'} · ${esc(e.id)} · ${esc(tdy())}<br><small>تقديري قابل للمراجعة قبل التعاقد</small></div></div>`;
+  const info = `<p>العميل: <b>${esc(e.client || '—')}</b> · ${esc(e.region)} · ${n1(x.area)} م² · ${x.rooms} غرف · ${x.baths} حمام · ${esc(cOpt('level', x.level))}</p>`;
+  const totBox = `<div class="tot"><div><small>الإجمالي</small><b>${nf(Math.round(after + supAmt))} ج</b></div><div><small>${sup ? 'شامل إشراف ' + sup + '٪ واحتياطي فروق أسعار' : 'شامل احتياطي فروق أسعار · الإشراف يُضاف لاحقًا'}</small><b>بين ${nf(Math.round(R.lo * (1 + sup / 100)))} و${nf(Math.round(R.hi * (1 + sup / 100)))}</b></div></div>`;
+  let body = '';
+  if (!company) body = `<table><tr><th>القسم / البند</th><th>الكمية</th><th>إجمالي القسم</th></tr>${R.secs.map(s => `<tr class="sec"><td>${esc(s.n)}</td><td></td><td>${nf(Math.round(s.amt * f * (1 + sup / 100)))}</td></tr>${(KEY[s.k] || []).filter(k => k[1] > 0).map(k => `<tr><td>${esc(k[0])}</td><td>${n1(Math.round(k[1] * 10) / 10)} ${esc(k[2])}</td><td></td></tr>`).join('')}`).join('')}</table>`;
+  else { const kinds = R.byKind || {}; body = `<div class="cards"><div><small>قبل الاحتياطي</small><b>${nf(Math.round(R.total))}</b></div><div><small>الاحتياطي</small><b>${nf(Math.round(res))}</b></div><div><small>الخامات</small><b>${nf(Math.round(Object.keys(kinds).filter(k => /خامات|Package|لوحات|تيار|تشطيب كهرباء|شبابيك|إكسسوارات/.test(k)).reduce((s, k) => s + kinds[k], 0)))}</b></div><div><small>المصنعيات</small><b>${nf(Math.round(kinds['مصنعية'] || 0))}</b></div><div><small>تشغيل ونقل</small><b>${nf(Math.round((kinds['تشغيل'] || 0) + (kinds['نقل'] || 0)))}</b></div><div><small>الإشراف</small><b>${sup ? nf(Math.round(supAmt)) : 'لاحقًا'}</b></div></div>
+    <h3>ملخص الأقسام</h3><table><tr><th>القسم</th><th>الإجمالي</th><th>%</th></tr>${R.secs.map(s => `<tr><td>${esc(s.n)}</td><td>${nf(Math.round(s.amt))}</td><td>${Math.round(s.amt / R.total * 100)}٪</td></tr>`).join('')}</table>
+    <h3>حسب طبيعة البند</h3><table>${Object.keys(kinds).sort((a, b) => kinds[b] - kinds[a]).map(k => `<tr><td>${esc(k)}</td><td>${nf(Math.round(kinds[k]))}</td><td>${Math.round(kinds[k] / R.total * 100)}٪</td></tr>`).join('')}</table>
+    ${R.secs.map(s => `<h3>${esc(s.n)} — ${nf(Math.round(s.amt))} ج</h3><table><tr><th>البند</th><th>النوع</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th><th>الإقفال</th></tr>${R.lines.filter(l => l.sec === s.k).map(l => `<tr><td>${esc(l.n)}</td><td>${esc(l.k)}</td><td>${l.lump ? 'مقطوعية' : n1(Math.round(l.q * 100) / 100) + ' ' + esc(l.u)}</td><td>${l.lump || l.price == null ? '-' : nf(Math.round(l.price * 100) / 100)}</td><td>${nf(Math.round(l.amt || 0))}</td><td>${esc(l.cl)}</td></tr>`).join('')}</table>`).join('')}`; }
+  const inputs = `<h3>مدخلات الحساب</h3><table><tr><td>حالة الوحدة</td><td>${esc(cOpt('state', x.state))}</td><td>الأرضيات</td><td>${esc(cOpt('floors', x.floors))}</td></tr><tr><td>مساحة البلاط</td><td>${n1(Math.round((q('ti_lab') + q('ti_labp') + q('ti_labc') + q('ti_labk')) * 10) / 10)} م²</td><td>مساحة الدهانات</td><td>${n1(Math.round(q('pt_labf')))} م²</td></tr>
+    <tr><td>مساحة الجبس</td><td>${n1(Math.round((q('gy_white') + q('gy_green')) * 10) / 10)} م²</td><td>مساحة الشبابيك</td><td>${n1(Math.round(q('win') * 10) / 10)} م²</td></tr><tr><td>المدة</td><td>حوالي ${(R.dur || {}).weeks || '—'} أسبوع</td><td>درجة الدقة</td><td>${esc(R.cls || '')}</td></tr></table>`;
+  const notes = `<h3>ملاحظات مهمة قبل التنفيذ</h3><ul>${(R.notes || []).map(n => `<li>${esc(n)}</li>`).join('')}<li>الأسعار سارية 30 يوم من تاريخ العرض.</li></ul><p class="end">MEC · الشرق الأوسط للإنشاءات — شكرا لثقتك.</p>`;
+  const w = window.open('', '_blank'); if (!w) { toast('اسمح بفتح نافذة جديدة'); return; }
+  w.document.write(`<html dir="rtl"><head><meta charset="utf-8"><title>${esc(e.id)}</title><style>@page{size:A4;margin:14mm}body{font-family:Cairo,Tahoma,sans-serif;color:#1B2333;font-size:12px}.t{display:flex;gap:12px;align-items:center;border-bottom:3px solid #1D2E4F;padding-bottom:8px;margin-bottom:10px}.t img{width:54px}
+    .tot{display:flex;gap:10px;margin:10px 0}.tot div{flex:1;border:1px solid #E3E6EB;border-radius:10px;padding:8px;text-align:center}.tot b{display:block;font-size:17px;color:#1D2E4F}.tot small{color:#6B7280}
+    .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.cards div{border:1px solid #E3E6EB;border-radius:8px;padding:6px;text-align:center}.cards b{display:block;font-size:14px}
+    table{width:100%;border-collapse:collapse;margin:6px 0}td,th{border:1px solid #D1D5DB;padding:4px 6px;text-align:start}th{background:#1D2E4F;color:#fff}tr.sec td{background:#FFF6DD;font-weight:700}h3{color:#1D2E4F;margin:14px 0 4px;font-size:14px;break-after:avoid}.end{text-align:center;color:#6B7280;margin-top:16px}</style></head><body>
+    ${head}${info}${totBox}${body}${inputs}${notes}<script>setTimeout(()=>print(),500)<\/script></body></html>`); w.document.close();
+}
+/* ---------- 🖼️ صورة شكل تقريبي ---------- */
+function calcRenderForm(e){
+  openSheet(`<h3>🖼️ صورة شكل تقريبي</h3><p class="muted" style="font-size:13px">صوّر الأوضة من الموقع، والذكاء الاصطناعي يعمل شكلها التقريبي بعد التشطيب على مستوى ${esc(CLV[e.tier || e.inp.level] || '')}. الصورة بتظهر في لينك العميل.</p>
+    <label class="btn gold" style="display:flex;justify-content:center;gap:8px">${ic('camera')} صوّر الأوضة<input type="file" id="rdF" accept="image/*" capture="environment" hidden></label><input class="in" id="rdN" placeholder="ملاحظة (مثلا: ألوان فاتحة، أرضية رخامي)" style="margin-top:8px"><div id="rdO" style="margin-top:10px"></div>`);
+  $('#rdF').onchange = async ev => { const f = ev.target.files[0]; if (!f) return; if (!navigator.onLine) { toast('محتاج نت'); return; } const b64 = await shrinkImage(f, 1200);
+    $('#rdO').innerHTML = '<div class="muted">🤖 بيرسم… (ممكن ياخد دقيقة)</div>'; const r = await api('calcRender', {id: e.id, photo: b64, level: e.tier || e.inp.level, note: $('#rdN').value});
+    if (!$('#rdO')) return; if (!r.ok) { $('#rdO').innerHTML = `<div class="fx o">${esc(r.error === 'ai' && typeof idErrT === 'function' ? idErrT(r.why) : errMsg(r))}</div>`; return; }
+    $('#rdO').innerHTML = `<div class="g2" style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><img src="${b64}" alt="قبل" style="width:100%;border-radius:10px"><img src="${r.img}" alt="بعد" style="width:100%;border-radius:10px"></div><div class="muted" style="font-size:12px">قبل · بعد (تقريبي)</div>`; };
+}
+/* ---------- 📦 كميات التقدير ← طلبات شراء ---------- */
+function calcPurForm(e){
+  const PH = [['found', 'التأسيس (كهرباء وسباكة)'], ['plaster', 'المحارة'], ['tiles', 'البلاط'], ['paint', 'الدهانات'], ['finish', 'التشطيبات']];
+  openSheet(`<h3>📦 طلبات خامات من التقدير</h3><p class="muted" style="font-size:13px">اختار المرحلة، وكميات الخامات بتاعتها تتحول طلب شراء في «🛒 المشتريات» (والمراجعة جنب كل سطر هتشتغل عادي).</p>${PH.map(([k, n]) => `<button class="btn ghost" data-pph="${k}" style="margin-top:8px">${esc(n)}</button>`).join('')}`);
+  document.querySelectorAll('[data-pph]').forEach(b => b.onclick = async () => { busy(b, true); const r = await api('estToPur', {id: e.id, phase: b.dataset.pph}); busy(b, false); if (!r.ok) { toast(r.error === 'noProject' ? 'حوّل التقدير لمشروع الأول' : errMsg(r)); return; } toast('✓ اتعمل الطلب ' + (r.no || '')); S.pur = null; if (typeof purSheet === 'function') purSheet(e.proj || e.conv); });
+}
+/* ---------- 💰 مراجعة الأسعار (المالك) ---------- */
+async function calcReview(region, grp){
+  openSheet(`<h3>💰 مراجعة الأسعار</h3><div id="crvB" class="muted">بيحمّل…</div>`);
+  const r = await api('calcReview', {region}); if (!$('#crvB')) return; if (!r.ok) { $('#crvB').innerHTML = esc(errMsg(r)); return; }
+  const G = {big: 'فرق كبير', sug: 'سعر مقترح', none: 'مش مربوط', small: 'فرق صغير', old: 'قديم +60 يوم', done: 'اتقرر'}, g = grp || 'big';
+  const L = r.items.filter(x => g === 'done' ? x.ovr : g === 'old' ? (x.ourAge > 60 || x.alexAge > 60) : x.grp === g && !x.ovr);
+  const cnt = k => r.items.filter(x => k === 'done' ? x.ovr : k === 'old' ? (x.ourAge > 60 || x.alexAge > 60) : x.grp === k && !x.ovr).length;
+  $('#crvB').innerHTML = `<div class="cchips">${['القاهرة', 'الساحل', 'إسكندرية'].map(x => `<button class="${region === x ? 'on' : ''}" data-rr="${x}">${x}</button>`).join('')}</div>
+    <div class="cchips" style="margin-top:6px">${Object.keys(G).map(k => `<button class="${g === k ? 'on' : ''}" data-rg2="${k}">${G[k]} (${cnt(k)})</button>`).join('')}</div>
+    <p class="muted" style="font-size:12px">«تسعير إسكندرية 11-2026» مقابل ملفنا في ${esc(region)}. مفيش سعر بيتغير غير لما تقرر.</p>
+    ${L.map(x => `<div class="card" style="padding:9px 11px;margin-bottom:6px"><div class="row" style="gap:8px;align-items:flex-start"><div style="flex:1"><b>${esc(x.n)}</b><small class="muted" style="display:block">${esc(x.u)} · إسكندرية ${nf(Math.round(x.alex * 100) / 100)}${x.src === 's' ? ' (مقترح)' : ''}${x.ours != null ? ' · ملفنا ' + nf(x.ours) + (x.ourSrc ? ' (' + esc(x.ourSrc) + ')' : '') : ''}${x.ourAge != null ? ` · <span class="${x.ourAge > 60 ? 'cage old' : ''}">🕒 ${x.ourAge} يوم</span>` : ''}</small>
+      ${x.buy ? `<small style="display:block;color:#17683F">🧾 شراء فعلي ${nf(x.buy.price)} من ${esc(x.buy.sup || '')} من ${x.buy.age} يوم</small>` : ''}${x.ovr ? `<small style="display:block;color:#5B21B6">✎ معدّل ${nf(x.ovr.price)}${x.ovr.region ? ' (' + esc(x.ovr.region) + ')' : ''} · ${esc(x.ovr.by)} ${esc(x.ovr.at)}</small>` : ''}<small style="display:block">${esc(x.sug)}</small></div>
+      ${x.diff != null ? `<span class="cdl ${x.diff > 0 ? 'up' : ''}">${x.diff > 0 ? '+' : ''}${Math.round(x.diff * 100)}٪</span>` : ''}</div>
+      <div class="cchips" style="margin-top:6px">${x.src !== 's' ? `<button data-pa="${esc(x.key)}" data-pv="${x.alex}">✓ ${nf(Math.round(x.alex))}</button>` : `<button data-pa="${esc(x.key)}" data-pv="${x.alex}">✓ تمام ${nf(Math.round(x.alex))}</button>`}${x.ours != null ? `<button data-pa="${esc(x.key)}" data-pv="${x.ours}">سعرنا ${nf(x.ours)}</button>` : ''}${x.buy ? `<button data-pa="${esc(x.key)}" data-pv="${x.buy.price}">الشراء ${nf(x.buy.price)}</button>` : ''}<button data-pe="${esc(x.key)}">✎</button>${x.ovr ? `<button data-pr="${esc(x.key)}">رجّع لسعر الملف</button>` : ''}</div></div>`).join('') || emptyBox('check', 'مفيش حاجة هنا 👌')}`;
+  document.querySelectorAll('[data-rr]').forEach(b => b.onclick = () => calcReview(b.dataset.rr, g)); document.querySelectorAll('[data-rg2]').forEach(b => b.onclick = () => calcReview(region, b.dataset.rg2));
+  const set = async (key, price, dec) => { const x = await api('calcPrice', {key, price, dec, region: ''}); if (!x.ok) { toast(errMsg(x)); return; } toast(price === null ? 'رجع لسعر الملف ✓' : 'اتحفظ ✓'); S.calcD = null; calcReview(region, g); };
+  document.querySelectorAll('[data-pa]').forEach(b => b.onclick = () => set(b.dataset.pa, Number(b.dataset.pv), 'اعتمد'));
+  document.querySelectorAll('[data-pe]').forEach(b => b.onclick = () => { const v = prompt('السعر الجديد؟'); if (v && Number(digits(v)) >= 0) set(b.dataset.pe, Number(digits(v)), 'عدّل'); });
+  document.querySelectorAll('[data-pr]').forEach(b => b.onclick = () => set(b.dataset.pr, null, 'رجّع'));
+}
+/* ---------- 🖼️ مكتبة صور الاختيارات (المالك) ---------- */
+async function calcPhotosSheet(tab){
+  const D = await calcLoad(); if (!D) return; const T = [['level', 'المستوى'], ['floors', 'الأرضيات'], ['bath', 'الحمام'], ['doorType', 'الأبواب'], ['entry', 'باب الشقة'], ['winType', 'الشبابيك'], ['paint', 'الدهان'], ['gyps', 'الجبس'], ['light', 'الإضاءة']], t = tab || 'level';
+  const n = T.reduce((s, [f]) => s + CE.OPT[f].filter(([v]) => cPhoto(f, v)).length, 0), all = T.reduce((s, [f]) => s + CE.OPT[f].length, 0);
+  openSheet(`<h3>🖼️ صور الاختيارات <small class="muted">${n} من ${all}</small></h3><div class="cchips">${T.map(([k, nm]) => `<button class="${t === k ? 'on' : ''}" data-pt="${k}">${nm}</button>`).join('')}</div>
+    <div class="cgal" style="margin-top:10px">${CE.OPT[t].map(([v, nm]) => `<label class="cgi">${cImg(t, v)}<b>${esc(nm)}</b><input type="file" accept="image/*" data-pf="${t}:${v}" hidden></label>`).join('')}</div>
+    <div class="ctip">دوس على أي اختيار وارفع صورته (من الموبايل أو كتالوج المورد). أو استخدم صورة إنجاز من مشاريعنا:</div><button class="btn ghost" id="ppProj">📷 من صور مشاريعنا</button>`);
+  document.querySelectorAll('[data-pt]').forEach(b => b.onclick = () => calcPhotosSheet(b.dataset.pt));
+  document.querySelectorAll('[data-pf]').forEach(i => i.onchange = async ev => { const f = ev.target.files[0]; if (!f) return; const b64 = await shrinkImage(f, 1000); toast('بيترفع…'); const r = await api('calcPhotoSet', {key: i.dataset.pf, photo: b64});
+    if (!r.ok) { toast(errMsg(r)); return; } S.calcD.photos = r.photos; calcPhotosSheet(t); });
+  $('#ppProj').onclick = async () => { const r = await api('calcProjPhotos'); if (!r.ok || !r.items.length) { toast('مفيش صور إنجاز لسه'); return; }
+    openSheet(`<h3>📷 من صور مشاريعنا</h3><p class="muted" style="font-size:13px">اختار صورة، وبعدين اختار هي لأنهي اختيار في «${esc(T.find(x => x[0] === t)[1])}».</p><div class="cgal">${r.items.map((x, i) => `<button class="cgi" data-pj="${i}"><div class="cimg"><img src="${esc(x.url)}" alt=""></div><small>${esc(pName ? pName(x.proj) : x.proj)} · ${esc(x.at)}</small></button>`).join('')}</div>`);
+    document.querySelectorAll('[data-pj]').forEach(b => b.onclick = () => { const x = r.items[b.dataset.pj];
+      openSheet(`<h3>لأنهي اختيار؟</h3>${CE.OPT[t].map(([v, nm]) => `<button class="btn ghost" data-pv2="${v}" style="margin-top:8px">${esc(nm)}</button>`).join('')}`);
+      document.querySelectorAll('[data-pv2]').forEach(c => c.onclick = async () => { const y = await api('calcPhotoSet', {key: t + ':' + c.dataset.pv2, url: x.url}); if (y.ok) { S.calcD.photos = y.photos; toast('✓ استخدمها في العروض'); } calcPhotosSheet(t); }); }); };
+}
+async function calcPaySheet(){
+  const D = await calcLoad(); const T = (D.pay || []).map(t => ({name: t.name, list: t.list.map(x => Object.assign({}, x))}));
+  openSheet(`<h3>💳 قوالب الدفعات</h3><p class="muted" style="font-size:13px">ليك انت بس. القالب الأول هو الافتراضي في كل العروض، وتقدر تعدّل لكل عرض لوحده.</p>
+    ${T.map((t, i) => `<div class="card" style="margin-bottom:8px"><div class="row"><b style="flex:1">${esc(t.name)}</b><button class="more" data-tpe="${i}">تعديل</button></div><small class="muted">${t.list.map(x => esc(x.n) + ' ' + x.pct + '٪').join(' · ')}</small></div>`).join('')}
+    <button class="btn ghost" id="tpAdd">${ic('plus')} قالب جديد</button>
+    <div class="cfield" style="margin-top:12px"><label>احتياطي فروق الأسعار</label><input id="tpRes" inputmode="decimal" value="${esc(D.set.reserve)}" style="width:60px"><span class="muted">٪</span></div><button class="btn ghost" id="tpResGo" style="margin-top:6px">احفظ الاحتياطي</button>`);
+  const saveAll = async () => { const r = await api('calcPay', {set: T}); if (!r.ok) { toast(r.error === 'pct100' ? 'لازم مجموع كل قالب 100٪' : errMsg(r)); return false; } S.calcD.pay = r.pay; toast('اتحفظ ✓'); calcPaySheet(); return true; };
+  document.querySelectorAll('[data-tpe]').forEach(b => b.onclick = () => { const t = T[b.dataset.tpe]; calcPayEdit(t.list, L => { t.list = L; return saveAll(); }, calcPaySheet); });
+  $('#tpAdd').onclick = () => { const n = prompt('اسم القالب؟ (مثلا: عميل كبير)'); if (!n) return; T.push({name: n, list: [{n: 'مقدم التعاقد', pct: 30, after: 'start'}, {n: 'التسليم', pct: 70, after: 'end'}]}); saveAll(); };
+  $('#tpResGo').onclick = async () => { const r = await api('calcSet', {reserve: Number(digits($('#tpRes').value)) || 0}); if (r.ok) { S.calcD = null; toast('اتحفظ ✓'); } else toast(errMsg(r)); };
+}
+/* ---------- 📐 الشقة المرجعية + اللي اتعلمناه (المالك بس) ---------- */
+async function calcRefSheet(e){
+  const D = await calcLoad(); if (!D || !D.P) return;
+  const ref = CE.run({area: 125, rooms: 3, baths: 2, level: 'g', bath: 'normal'}, D.P['إسكندرية'], {giant: true, reserve: D.set.reserve});
+  const cur = e ? (S.cEst && S.cEst.r) || cLocal(e.inp, e.region) : null, learn = navigator.onLine ? await api('calcLearn') : null;
+  const per = (R, k) => { const s = R.secs.find(x => x.k === k); return s ? s.amt / R.inp.area : 0; };
+  openSheet(`<h3>📐 الشقة المرجعية <small class="muted">ليك انت بس</small></h3><p class="muted" style="font-size:13px">125 م² · 3 غرف · حمامين · جولد · على الطوب · ${nf(Math.round(ref.perM))} ج/م²</p>
+    ${cur ? `<h4 style="margin:8px 0 4px">${esc(e.id)} مقابل المرجع (لكل م²)</h4>${CE.SECS.map(([k, n, c]) => { const a = per(cur, k), b = per(ref, k); if (!a && !b) return ''; const d = b ? (a - b) / b : 0;
+      return `<div class="ccmp"><span>${esc(n)}</span><div class="cb"><i style="background:${Math.abs(d) < 0.05 ? '#2F6DB5' : d > 0 ? '#E8AA2E' : '#1D9E75'};width:${Math.min(100, Math.round(a / Math.max(a, b) * 100))}%"></i></div><b style="color:${d > 0.05 ? '#B45309' : d < -0.05 ? '#17683F' : 'inherit'}">${d > 0 ? '+' : ''}${Math.round(d * 100)}٪</b></div>`; }).join('')}` : '<div class="ctip">افتح أي تقدير ودوس «📐 مقارنة بالمرجع» عشان تشوف كل قسم أعلى ولا أقل.</div>'}
+    <h4 style="margin:12px 0 4px">🎓 الحاسبة بتتعلّم من مشاريعنا</h4>${learn && learn.ok && learn.items.length ? learn.items.map(x => `<div class="cln"><span>${esc(x.proj)} <small class="muted">(${esc(x.id)})</small></span><b>${x.ratio > 1 ? '+' : ''}${Math.round((x.ratio - 1) * 100)}٪</b></div>`).join('')
+      + `<div class="ctip">المتوسط: التكلفة الفعلية ${learn.avg.ratio > 1 ? 'أعلى' : 'أقل'} من التقدير بـ ${Math.abs(Math.round((learn.avg.ratio - 1) * 100))}٪ في ${learn.avg.n} مشروع. لو الفرق ثابت، عدّل الأسعار من «مراجعة الأسعار».</div>` : '<div class="ctip">لسه مفيش مشروع خلص ومعاه تقدير. أول ما مشروع يخلص، تكلفته الفعلية للمتر هتتقارن بالتقدير هنا.</div>'}`);
+}
+/* ---------- لينك التقدير للعميل (من غير دخول) ---------- */
+async function estPage(tok){
+  S.publicMode = true;
+  document.body.innerHTML = `<div id="epg" style="max-width:560px;margin:0 auto;padding:0 0 90px;font-family:Cairo,Tahoma,sans-serif;direction:rtl;background:#fff;min-height:100vh"><div class="muted" style="padding:20px">بيحمّل…</div></div>`;
+  const call = async (a, d) => { try { const r = await fetch(execUrl(), {method: 'POST', body: JSON.stringify(Object.assign({action: a, t: tok}, d || {}))}); return await r.json(); } catch (e) { return {ok: false, error: 'net'}; } };
+  const box = $('#epg'); let pick = null;
+  const draw = v => { pick = pick || v.chosen; const t = v.tiers.find(x => x.level === pick), done = v.st === 'وافق';
+    box.innerHTML = `<div style="background:#1D2E4F;color:#fff;padding:18px 16px"><div style="width:40px;height:40px;border-radius:50%;background:#E8AA2E;color:#1D2E4F;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:6px">MEC</div><b style="font-size:18px">عرض تشطيب شقتك${v.client ? ' · ' + esc(v.client) : ''}</b><div style="font-size:12.5px;color:#C9D3E3">${n1(v.area)} م² · ${v.rooms} غرف · ${v.baths} حمام · ${esc(v.region)} · ${esc(v.date)}</div></div>
+      <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+      ${v.renders.length ? `<div class="cgal">${v.renders.map(u => `<div class="cimg" style="width:100%;height:110px"><img src="${esc(u)}" alt=""></div>`).join('')}</div>` : ''}
+      <div class="ctiers">${v.tiers.map(x => `<button class="ctier ${x.level === pick ? 'rec' : ''}" data-tp="${x.level}" style="font-family:inherit">${x.level === v.chosen ? '<span class="cbadge">المقترح</span>' : ''}<b>${esc(x.name.split(' ')[0])}</b><span class="pr">${kE(x.after).replace(' ألف', '')}</span><small class="muted">${x.after >= 1e6 ? '' : 'ألف ج'}</small></button>`).join('')}</div>
+      <div class="ctip">بين ${nf(t.lo)} و${nf(t.hi)} ج · تقديري قابل للمراجعة قبل التعاقد${v.sup == null ? ' · الإشراف يُضاف لاحقًا' : ''}</div>
+      <h4 style="margin:4px 0 0">اختياراتك في ${esc(t.name)}</h4><div class="cgal">${t.picks.map(p => `<div class="cgi">${p.img ? `<div class="cimg"><img src="${esc(p.img)}" alt=""></div>` : `<div class="cimg">${(cIcon[p.f] || {})[p.v] || '▫️'}</div>`}<b>${esc(p.n)}</b></div>`).join('')}</div>
+      <h4 style="margin:4px 0 0">الأقسام</h4>${t.secs.map(s => `<div class="cleg"><i style="background:${s.c}"></i><span>${esc(s.n)}</span><em>${nf(s.amt)}</em></div>`).join('')}
+      <div class="row" style="justify-content:space-between;background:#F6F7F9;border-radius:12px;padding:10px 12px"><span>⏱ المدة</span><b>حوالي ${t.weeks} أسبوع</b></div>
+      <h4 style="margin:4px 0 0">💳 الدفعات</h4>${v.pay.map(p => `<div class="cleg"><i style="background:#2F6DB5"></i><span>${esc(p.n)}</span><b>${p.pct}٪</b><em>${nf(Math.round(t.after * p.pct / 100))}</em></div>`).join('')}
+      </div><div class="cbar dk" style="position:fixed;bottom:0;left:0;right:0;margin:0;max-width:560px;margin-inline:auto"><div><small>${done ? 'وافقت ✓' : 'اخترت'}</small><b>${esc(t.name.split(' ')[0])} · ${kE(t.after)}</b></div>${done ? '<span class="cgo" style="background:#1D9E75;color:#fff">🎉 شكرا</span>' : '<button class="cgo" id="epOk">موافق ✓</button>'}</div>`;
+    document.querySelectorAll('[data-tp]').forEach(b => b.onclick = () => { if (done) return; pick = b.dataset.tp; draw(v); });
+    if ($('#epOk')) $('#epOk').onclick = async () => { if (!confirm('موافق على ' + t.name + ' بحوالي ' + nf(t.after) + ' ج؟ هنتواصل معاك للتعاقد.')) return; const a = await call('estAccept', {level: pick}); if (!a.ok) { toast('ما وصلش، جرّب تاني'); return; } draw(a.view); }; };
+  const r = await call('estView'); if (!r.ok) { box.innerHTML = `<div style="padding:20px">الرابط ده مش شغال. كلّم المهندس المسؤول.</div>`; return; } draw(r.view);
+}
+
+/* ---------- 🔔 الدوسة على أي إشعار توديك مكانه ---------- */
+function noteGo(n){
+  const ref = String(n.ref || ''), ty = String(n.type || ''), p = ref && findProject(ref.split(':')[0]) ? findProject(ref.split(':')[0]) : null;
+  if (/^(pur|exp|cust|sug|idea):|^ideas$/.test(ref)) return pushOpen({ref});
+  if (/^est:/.test(ref)) return estOpen(ref.slice(4));
+  if (/^del:/.test(ref)) return canPay() ? pendingSupplySheet() : supplySheet(S.project || '');
+  if (/^sup:/.test(ref)) { const c = ref.split(':')[1]; return /:empty$/.test(ref) && typeof supplyChoice === 'function' ? supplyChoice(c) : supplySheet(c); }
+  if (ref === 'supall') return supplySheet('');
+  if (/^E:/.test(ref)) return eqSheet(S.project || (S.projects.find(x => x.status === 'جاري') || {}).code || '');
+  if (/^[LCS]:/.test(ref)) return peopleSheet(ref[0], 'wait');
+  if (ref === 'dues' || ty === 'احتياج') return duesSheet('');
+  if (ref === 'week' || ty === 'ملخص') return weekSheet();
+  if (ref === 'close' || ty === 'تقفيل') return isBoss() ? closePeriodForm() : payrollSheet ? payrollSheet() : null;
+  if (['tgjoin', 'xlkey', 'xlpush'].includes(ref) || ty === 'نظام' || ty === 'أسعار') return settingsSheet();
+  if (ty === 'بلاغ') return reportsSheet();
+  if (ty === 'نسخ') return backupSheet();
+  if (ty === 'حساب' || ty === 'دفع') return teamSheet();
+  if (ty === 'طلب') return requestsSheet();
+  if (ty === 'اعتماد') return peopleSheet('L', 'wait');
+  if (ty === 'عهدة') return custMe();
+  if (ty === 'تقدير') return calcHome();
+  if (ty === 'دفتري') return ideasSheet();
+  if ((ty === 'prep' || ty === 'client') && ref && !p) { try { return formView(ref); } catch (e) {} }
+  if (ty === 'stock' && p) return matSheet(p.code);
+  if (ty === 'quality' && !p) return libSheet();
+  if (ty === 'تذكير' && p) return attendanceSheet(p.code);
+  if (ty === 'توريدات' && p) return supplySheet(p.code);
+  if (p) { closeSheet(); S.project = p.code; S.tab = 'projects'; render(); return; }
+  if (ty === 'prep' && ref) { const it = (B().items || []).find(x => x.id === ref); if (it) return matSheet(it.proj); }
+  openSheet(`<h3>🔔 ${esc(ty || 'إشعار')}</h3><p style="line-height:1.9">${esc(n.text || '')}</p><small class="muted">${esc(n.at ? new Date(n.at).toLocaleString('ar-EG') : '')}</small>`);
+}
+
+/* ---------- الربط بباقي التطبيق ---------- */
+(function(){
+  pkgSheet = calcHome;
+  const _more = moreView; moreView = function(){ let m = _more(); m = m.replace('🧮 حاسبة الباقة', '🧮 حاسبة الشقة');
+    if (!/data-p12="pkg"/.test(m) && ['engineer', 'tech', 'accountant'].includes(role())) m = m.replace('<button class="mi" id="items">', '<button class="mi" id="moCalc">🧮 حاسبة الشقة</button><button class="mi" id="items">'); return m; };
+  const _ws = wireShell; wireShell = function(){ _ws(); const b = document.getElementById('moCalc'); if (b) b.onclick = calcHome; };
+  const _ns = notesSheet; notesSheet = function(){ const list = (S.notes || []).slice(); _ns(); document.querySelectorAll('#sheetBody .nt').forEach((el, i) => { const n = list[i]; if (!n) return;
+    el.setAttribute('role', 'button'); el.tabIndex = 0; el.addEventListener('click', ev => { if (ev.target.closest('button,a')) return; noteGo(n); }); }); };
+  const _po = pushOpen; pushOpen = function(d){ const ref = String((d && d.ref) || ''); if (/^est:/.test(ref)) { estOpen(ref.slice(4)); return; }
+    if (/^(pur|exp|cust|sug|idea):|^ideas$/.test(ref) || !ref || ref === 'night') return _po(d); return noteGo({ref, type: (d && d.type) || '', text: (d && (d.body || d.text)) || ''}); };
+})();
+
+
 /* ================= البداية ================= */
 (function boot(){
   const ct = new URLSearchParams(location.search).get('c');
   if (ct && /^[a-f0-9]{10,40}$/i.test(ct)) { S.publicMode = true; setTimeout(() => clientPage(ct), 0); return; }
   const sl = new URLSearchParams(location.search).get('sl'), cl = new URLSearchParams(location.search).get('cl');   // 0.13: لينك المورد وكشف العميل
+  const ec = new URLSearchParams(location.search).get('ec');   // 0.14: لينك التقدير للعميل
+  if (ec && /^[a-f0-9]{10,40}$/i.test(ec)) { S.publicMode = true; setTimeout(() => estPage(ec), 0); return; }
   if (sl && /^[a-f0-9]{10,40}$/i.test(sl)) { S.publicMode = true; setTimeout(() => pubPage('sl', sl), 0); return; }
   if (cl && /^[a-f0-9]{10,40}$/i.test(cl)) { S.publicMode = true; setTimeout(() => pubPage('cl', cl), 0); return; }
   const code = new URLSearchParams(location.search).get('invite');
