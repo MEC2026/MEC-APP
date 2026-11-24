@@ -304,9 +304,8 @@ main.vin{animation:vin .22s ease-out}@keyframes vin{from{opacity:.4;transform:tr
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.12.4';
-const APP_NOTES = ['↩️ زرار الرجوع بقى جوه التطبيق: بيرجع للشاشة اللي قبلها وبيقفل النوافذ، ومن الرئيسية «دوس تاني للخروج».', '↻ اسحب لتحت في أي شاشة = تحديث البيانات.',
-  '👇 النافذة اللي من تحت تتقفل بالسحب لتحت.', '📥 شارك صورة من الواتساب أو المعرض لـ MEC-APP على طول.', '🔐 قفل بالبصمة (اختياري) من الإعدادات، و«👤 من الأسماء» جنب خانات التليفون.'];
+const APP_VERSION = '0.13.0';
+const APP_NOTES = ["🛒 المشتريات والمصروفات: أي حد يطلب أو يشتري من غير موافقات. «اشتريت» بصورة الفاتورة والذكاء الاصطناعي يملى الباقي، والعهدة بتتخصم لوحدها.", "🟢🟠🔴 جنب كل صنف وانت بتطلبه: «موجود عندنا» في المواقع (ودوسة تنقله)، واشتريناه من كام يوم وبكام ومن مين، وأرخص مورد بتليفونه.", "💬 سجل الصرف شات لكل مشروع، و«مصروف» بالصوت: «صرفت 150 نقل و80 ميه». وتصدير إكسيل وPDF.", "💼 عهدتي وتقفيلة اليوم: «معاك كام فعلا؟» بدوسة، وأي فرق بيوصل للمالك.", "✅ «استلمت في الموقع» والمطابقة: المطلوب ↔ اتشرى ↔ وصل.", "📲 لينك للمورد يكتب فيه السعر وميعاد التوصيل، و🗓️ مقترح مشتريات بكرة من الجدول.", "🤖 «فكّر فيها» في دفتري بقت تشتغل في الخلفية، وبيوصلك إشعار لما تخلص، ولو فيه مشكلة بيقولك سببها.", "🔐 «مين يشوف إيه» في الفريق، واستثناءات لشخص، و«طلّعه من كل الأجهزة»."];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
 
@@ -1170,8 +1169,9 @@ async function backupSheet(){
 /* ---------- العمال والمقاولين والموردين ---------- */
 const PPL = {L:{n:'العمال', one:'عامل'}, C:{n:'المقاولين', one:'مقاول'}, S:{n:'الموردين', one:'مورد'}, E:{n:'المعدات', one:'معدة'}};
 const role = () => S.user ? (S.user.role === 'tech' ? 'engineer' : S.user.role) : '';   // 0.12: المكتب الفني = مهندس + الأسعار وإشعارات المالك
-const canPay = () => ['owner','manager','accountant','engineer'].includes(role());
-const canMoney = () => ['owner','manager','accountant'].includes(role());
+const xp = k => !!(S.user && (S.user.extra || []).includes(k));   // 0.13: استثناءات الصلاحيات
+const canPay = () => ['owner','manager','accountant','engineer'].includes(role()) || xp('prices');
+const canMoney = () => ['owner','manager','accountant'].includes(role()) || xp('money');
 const canAddP = t => ['owner','manager','accountant','engineer'].includes(role()) || (['L','E','S'].includes(t) && role() === 'supervisor');
 const canEditP = () => ['owner','manager','accountant','engineer'].includes(role());
 S.people = {};
@@ -2976,6 +2976,7 @@ function kamHtml(D, F){
   if (F.tab === 'att') body = kamAtt(cur, prev, F, seesM);
   if (F.tab === 'prod') body = kamProd(D, cur, prev, F, seesM, R);
   if (F.tab === 'track') body = typeof trackHtml === 'function' ? trackHtml(D, F) : '';
+  if (F.tab === 'pur') body = '<div id="kmPur" class="muted">بيحمّل…</div>';   // 0.13
   const tools = `<div class="row" style="gap:8px;margin-top:14px;flex-wrap:wrap">
       <button class="btn ghost" id="kmWa" style="flex:1;min-width:140px">${ic('send')} ابعت واتساب</button>
       ${isBoss() || role() === 'accountant' || role() === 'engineer' ? `<button class="btn ghost" id="kmXl" style="flex:1;min-width:140px">${ic('download')} إكسيل + PDF</button>` : ''}
@@ -3100,6 +3101,7 @@ function kDays(list, line){
 function wireKam(D, F, draw){
   const set = (k, v) => { F[k] = v; S.kamF = F; draw(); };
   document.querySelectorAll('[data-kt]').forEach(b => b.onclick = () => set('tab', b.dataset.kt));
+  if (F.tab === 'pur' && typeof purKamFill === 'function') purKamFill(F);
   document.querySelectorAll('[data-kp]').forEach(b => b.onclick = () => set('per', b.dataset.kp));
   if ($('#kmF')) $('#kmF').onchange = e => set('from', e.target.value);
   if ($('#kmT')) $('#kmT').onchange = e => set('to', e.target.value);
@@ -3372,13 +3374,16 @@ async function ideasSheet(fl){
     <div class="kfil" style="margin-top:10px"><div class="chips">${[['', 'الكل'], ...ID_STATES.map(x => [x[0], x[0]])].map(([v, n]) => `<button class="chip ${F.st === v ? 'on' : ''}" data-ist="${esc(v)}">${esc(n)}${v ? ` <small class="muted">${D.items.filter(x => x.st === v).length}</small>` : ''}</button>`).join('')}</div>
       <div class="kgrid"><select class="in" id="idCat"><option value="">كل الأنواع</option>${ID_CATS.map(c => `<option ${F.cat === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select><input class="in" id="idQ" value="${esc(F.q)}" placeholder="دوّر"></div></div>
     <div style="margin-top:10px">${L.map(x => `<button class="li" data-io="${esc(x.id)}" style="align-items:flex-start"><span class="ico" style="background:#FFF3D6;color:#7A5600">${x.ai ? '🤖' : '💡'}</span><span class="t"><b style="white-space:normal">${esc(x.title)}</b>
-      <small>${esc(x.cat)} · ${esc(new Date(x.at).toLocaleDateString('ar-EG', {day: 'numeric', month: 'short'}))}${x.src === 'البوت' ? ' · من البوت' : ''}${x.thread && x.thread.length ? ' · ' + x.thread.length + ' سؤال' : ''}${x.q ? ' · ⏳' : ''}</small>
+      <small>${esc(x.cat)} · ${esc(new Date(x.at).toLocaleDateString('ar-EG', {day: 'numeric', month: 'short'}))}${x.src === 'البوت' ? ' · من البوت' : ''}${x.thread && x.thread.length ? ' · ' + x.thread.length + ' سؤال' : ''}${x.q ? ' · ⏳' : ''}${x.job ? (x.job.st === 'busy' ? ' · 🤖 بيفكّر…' : ' · ⚠️') : ''}</small>
       <span class="row" style="gap:4px;margin-top:4px">${idPill(x.st, ID_STATES)}${idPill(x.prio, ID_PRIOS)}</span></span></button>`).join('') || emptyBox('doc', D.items.length ? 'مفيش أفكار بالفلتر ده' : 'لسه مفيش أفكار. اكتب أول فكرة، أو ابعتها للبوت وابدأها بـ 💡')}</div>
     ${L.length ? `<button class="btn ghost" id="idCopyAll" style="margin-top:10px">📋 انسخ اللي ظاهر هنا لـ Claude (${L.length})</button>` : ''}`;
   $('#idNew').onclick = () => ideaForm();
   $('#idDig').onclick = async () => { if (!navigator.onLine) { toast('الذكاء الاصطناعي محتاج نت'); return; } busy($('#idDig'), true); $('#idDig').textContent = '🧠 بيفكر…';
-    const r = await api('digestIdeas'); if (!$('#idDig')) return; busy($('#idDig'), false); if (!r.ok) { toast(r.error === 'noAI' ? 'مفتاح Gemini مش متركّب (setupGemini)' : r.error === 'missing' ? 'مفيش أفكار مستنية' : errMsg(r)); $('#idDig').textContent = '🧠 اجمع أفكاري'; return; }
+    const r = await api('digestIdeas'); if (!$('#idDig')) return; busy($('#idDig'), false); if (!r.ok) { toast(r.error === 'noAI' ? 'مفتاح Gemini مش متركّب (setupGemini)' : r.error === 'missing' ? 'مفيش أفكار مستنية' : r.error === 'ai' ? idErrT(r.why) : errMsg(r)); $('#idDig').textContent = '🧠 اجمع أفكاري'; return; }
+    if (r.pending) { S.ideas.digestJob = {st: 'busy', at: new Date().toISOString()}; toast('🧠 بيرتّب في الخلفية… هيوصلك إشعار'); ideasSheet(); return; }
     S.ideas.digest = r.digest; ideasSheet(); };
+  const dj = D.digestJob; if (dj) { if (dj.st === 'busy') { busy($('#idDig'), true); $('#idDig').textContent = '🧠 بيرتّب…'; idPoll(() => { if (!S.ideas.digestJob || S.ideas.digestJob.st !== 'busy') { if ($('#idDig')) ideasSheet(); return true; } }); }
+    else $('#idBody').insertAdjacentHTML('afterbegin', idJobCard(dj)); }
   document.querySelectorAll('[data-io]').forEach(b => b.onclick = () => ideaView(b.dataset.io));
   document.querySelectorAll('[data-ist]').forEach(b => b.onclick = () => ideasSheet({st: b.dataset.ist}));
   $('#idCat').onchange = e => ideasSheet({cat: e.target.value});
@@ -3427,7 +3432,8 @@ async function ideaView(id, think){
       ${a.best ? `<div style="margin-top:8px;font-size:14px"><b>⭐ الأحسن:</b> ${esc(a.best)}</div>` : ''}${a.where ? `<div style="margin-top:4px;font-size:13.5px"><b>📍 فين:</b> ${esc(a.where)}</div>` : ''}
       ${aiList('👣 أول خطوات', a.steps, '→')}${aiList('🔗 أفكار مرتبطة', a.related)}${aiList('⚠️ مخاطر', a.risks)}</div>` : ''}
       ${(x.thread || []).map(t => `<div class="card" style="margin-top:8px;padding:10px 12px"><div style="font-size:13px;color:var(--pri);font-weight:700">انت: ${esc(t.q)}</div><div style="font-size:14px;margin-top:4px;white-space:pre-wrap">${esc(t.a)}</div>${aiList('', t.steps, '→')}</div>`).join('')}</div>
-    <button class="btn gold" id="ivThink" style="margin-top:10px">🤖 ${a ? 'فكّر فيها تاني' : 'فكّر فيها'}</button>
+    ${x.job ? idJobCard(x.job) : ''}
+    <button class="btn gold" id="ivThink" style="margin-top:10px" ${x.job && x.job.st === 'busy' ? 'disabled' : ''}>🤖 ${x.job && x.job.st === 'busy' ? 'بيفكّر…' : a ? 'فكّر فيها تاني' : 'فكّر فيها'}</button>
     ${a ? `<div class="row" style="gap:6px;margin-top:8px"><input class="in" id="ivQ" placeholder="اسأل تاني: طب لو…؟" style="flex:1">${micBtn('ivQ')}<button class="mic" id="ivAsk" aria-label="اسأل">${ic('send')}</button></div>` : ''}
     <div class="row" style="gap:8px;margin-top:10px"><button class="btn ghost" id="ivCopy" style="flex:2">📋 انسخ لـ Claude</button><button class="btn ghost" id="ivEdit" style="flex:1">تعديل</button><button class="btn ghost" id="ivDel" style="flex:1;color:var(--bad)">امسح</button></div>`);
   wireMics($('#sheetBody'));
@@ -3437,16 +3443,32 @@ async function ideaView(id, think){
   const ai = async q => { if (S.ivBusy) return; if (x.q) { toast('الفكرة لسه ما اتبعتتش، استنى النت'); return; } if (!navigator.onLine) { toast('الذكاء الاصطناعي محتاج نت'); return; }
     S.ivBusy = true; try { await ai2(q); } finally { S.ivBusy = false; } };
   const ai2 = async q => {
-    const b = q ? $('#ivAsk') : $('#ivThink'); busy(b, true); if (!q) b.textContent = '🤖 بيفكر… (ممكن ياخد دقيقة)';
+    const b = q ? $('#ivAsk') : $('#ivThink'); busy(b, true); if (!q) b.textContent = '🤖 بيتسجل…';
     const r = await api('thinkIdea', Object.assign({id: x.id}, q ? {q} : {})); if (!$('#ivThink')) return; busy(b, false);
-    if (!r.ok) { toast(r.error === 'noAI' ? 'مفتاح Gemini مش متركّب (setupGemini)' : r.error === 'ai' ? 'الذكاء الاصطناعي ما ردّش، جرّب تاني' : errMsg(r)); if (!q) b.textContent = '🤖 فكّر فيها'; return; }
-    S.ideas.items = S.ideas.items.map(y => y.id === x.id ? r.idea : y); ideaView(x.id); setTimeout(() => { const el = q ? document.querySelector('#ivAi .card:last-child') : $('#ivAi'); if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'}); }, 80); };
+    if (!r.ok) { toast(r.error === 'noAI' ? 'مفتاح Gemini مش متركّب (setupGemini)' : r.error === 'ai' ? idErrT(r.why) : r.error === 'net' ? 'مفيش نت. ابعتها تاني لما النت يرجع' : errMsg(r)); if (!q) b.textContent = '🤖 فكّر فيها'; return; }
+    S.ideas.items = S.ideas.items.map(y => y.id === x.id ? r.idea : y);
+    if (r.pending) { toast('🤖 بيفكّر في الخلفية… هيوصلك إشعار لما يخلص'); ideaView(x.id); return; }
+    ideaView(x.id); setTimeout(() => { const el = q ? document.querySelector('#ivAi .card:last-child') : $('#ivAi'); if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'}); }, 80); };
   $('#ivThink').onclick = () => ai('');
   if ($('#ivAsk')) { $('#ivAsk').onclick = () => { const q = ($('#ivQ').value || '').trim(); if (q) ai(q); }; $('#ivQ').addEventListener('change', () => { const q = ($('#ivQ').value || '').trim(); if (q) ai(q); }); }
   $('#ivCopy').onclick = () => copyClaude([x]);
   $('#ivEdit').onclick = () => ideaForm(x);
   $('#ivDel').onclick = async () => { if (!confirm('تمسح الفكرة دي؟')) return; const r = await qSave('delIdea', {id: x.id}, 'مسح فكرة'); if (!r.ok) { toast(errMsg(r)); return; } S.ideas.items = S.ideas.items.filter(y => y.id !== x.id); toast('اتمسحت'); ideasSheet(); };
   if (think && navigator.onLine) ai('');
+  if (x.job && (x.job.st === 'busy')) idPoll(() => { const y = S.ideas.items.find(z => z.id === x.id); if (!y || !y.job || y.job.st !== 'busy') { if ($('#ivThink')) ideaView(x.id); return true; } });
+}
+// 0.13: التفكير في الخلفية
+const idErrT = c => ({quota: 'الحد المجاني بتاع جوجل خلص. هيجرب لوحده بعد ساعة', busy: 'جوجل زحمة دلوقتي، جرّب كمان شوية', model: 'الموديل اتغيّر وما لقيناش بديل',
+  key: 'مفتاح Gemini مش شغال (شغّل setupGemini)', bad: 'الرد جه ناقص، جرّب تاني'})[c] || 'الذكاء الاصطناعي ما ردّش، جرّب تاني';
+function idJobCard(j){
+  if (j.st === 'busy') { const s = Math.max(0, Math.round((Date.now() - new Date(j.at).getTime()) / 1000));
+    return `<div class="card" style="margin-top:10px;background:#F5F9FF;border-color:#C6D7F0"><b>🤖 بيفكّر…</b> <small class="muted">(من ${s < 60 ? s + ' ثانية' : Math.round(s / 60) + ' دقيقة'})</small>${j.q ? `<div style="font-size:13px;margin-top:2px">سؤالك: ${esc(j.q)}</div>` : ''}<div class="muted" style="font-size:12.5px;margin-top:2px">تقدر تقفل، هيوصلك إشعار لما يخلص</div></div>`; }
+  return `<div class="card" style="margin-top:10px;background:#FFFBF2;border-color:#F2D9A6"><b>⚠️ آخر محاولة ما نفعتش</b><div style="font-size:13px;margin-top:2px">${esc(idErrT(j.err))}</div>${j.st === 'wait' ? `<div class="muted" style="font-size:12.5px">هيجرب لوحده الساعة ${esc(new Date(j.next || Date.now()).toLocaleTimeString('ar-EG', {hour: 'numeric', minute: '2-digit'}))}، أو دوس «فكّر فيها» تاني دلوقتي</div>` : ''}</div>`;
+}
+function idPoll(done){
+  clearTimeout(S.idPollT); let n = 0;
+  const tick = async () => { if (!$('#sheet').classList.contains('on') || ++n > 40) return; await ideasLoad(true); if (done()) return; S.idPollT = setTimeout(tick, 6000); };
+  S.idPollT = setTimeout(tick, 6000);
 }
 // نص واحد فيه الأفكار وردود الذكاء الاصطناعي، يتلزق في محادثة Claude
 async function copyClaude(L){
@@ -5896,10 +5918,555 @@ const _rawOpen = openSheet; openSheet = function(h){
 const _rawToast = toast; toast = function(m){ _rawToast(m); const s = String(m || ''); if (/✓/.test(s)) buzz(15); else if (/مشكلة|غلط|خطأ|✗|ما اتحفظ|ما وصل|مرفوض|اترفض/.test(s)) buzz([30, 40, 30]); };
 
 
+/* ================= 0.13: 🛒 المشتريات والمصروفات والعهدة · الصلاحيات · لينك المورد · كشف العميل ================= */
+(function(){ const s = document.createElement('style'); s.textContent = `
+.pq{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:var(--card)}.pq.late{border-color:#E9B4AD}
+.pq .ln{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #EEF1F4}.pq .ln:last-of-type{border-bottom:0}
+.fx{border-radius:10px;padding:7px 9px;margin-top:6px;font-size:12.5px;line-height:1.7}.fx.g{background:#F4FBF7;border:1px solid #BFE3CF;color:#17683F}.fx.o{background:#FFFBF2;border:1px solid #F2D9A6;color:#7A4E0C}
+.fx.r{background:#FFF6F5;border:1px solid #E9B4AD;color:#9E2E22}.fx.w{background:#F6F7F9;border:1px solid #E3E6EB;color:#5B6270}
+.bub{background:#EEF1F4;border-radius:14px 14px 14px 3px;padding:8px 11px;margin:6px 0;max-width:90%;font-size:13.5px;text-align:start;display:block;width:fit-content}
+.bub.me{background:#E8F0FB;margin-inline-start:auto;border-radius:14px 14px 3px 14px}.bub.fl{background:#FFF6F5}.bub.cx{opacity:.55;text-decoration:line-through}
+.bub small{display:block;color:var(--muted);font-size:11.5px}.daysep{text-align:center;font-size:11.5px;color:var(--muted);margin:10px 0 2px}
+.prow{display:grid;grid-template-columns:1fr 64px 70px 30px;gap:6px;align-items:center;margin-top:6px}.prow.b{grid-template-columns:1fr 54px 58px 70px 30px}
+.xbtn{border:0;background:#F1F3F6;border-radius:8px;height:34px;color:var(--bad);font-weight:700}
+.pmat{display:grid;grid-template-columns:1.6fr repeat(7,1fr);font-size:11.5px;border:1px solid var(--line);border-radius:10px;overflow:hidden}.pmat>div{padding:5px 4px;border-bottom:1px solid #EEF1F4;text-align:center}.pmat>div.h{background:#F3F6FA;font-weight:700}.pmat>div.n{text-align:start}`; document.head.appendChild(s); })();
+
+const PUR_ST = {'مطلوب': ['🟦', 'p-info'], 'هيشتريه': ['🟨', 'p-warn'], 'اتشرى': ['🟩', 'p-ok'], 'وصل': ['✅', 'p-ok'], 'اتنقل': ['↔️', 'p-info'], 'اتلغى': ['⛔', 'p-bad']};
+const PUR_KINDS = ['خامات تأسيس', 'خامات تشطيب', 'لوازم', 'مصنعية', 'نقل', 'أخرى'], PUR_PAY = ['عهدتي', 'خزنة الشركة', 'حسابي', 'آجل على المورد'];
+['purBoard', 'expLog', 'custToday', 'purReport', 'purSet', 'purFlags'].forEach(a => READS.add(a));
+const purMon = () => !!(S.pur && S.pur.mon) || isOwner();
+const purMoney = () => S.pur ? S.pur.money : canPay();
+const pName = c => { const p = findProject(c); return p ? (p.short || p.name) : ((S.pur && S.pur.names || {})[c] || c); };
+const purPill = st => { const x = PUR_ST[st] || ['', 'p-info']; return `<span class="pill ${x[1]}">${x[0]} ${esc(st === 'هيشتريه' ? 'هيشتريه' : st)}</span>`; };
+async function purLoad(fresh){ const r = await api('purBoard'); if (r.ok) { S.pur = r; store.set('purSet', r.set); } return S.pur || null; }
+// «10 شكاير معجون و5 لفات سلك» ← سطور (زي السيرفر)
+const PU_UN = /^(شكاير|شكارة|شيكارة|شكارات|شيكاير|لفة|لفات|لفه|كيس|أكياس|اكياس|م2|م٢|م3|م٣|متر|مت|كجم|كيلو|طن|علبة|علب|بستلة|بستلات|جردل|قطعة|قطع|عدد|كرتونة|كراتين|لوح|ألواح|الواح|نقلة|لتر|جالون)$/;
+function purParse(text){
+  return digits(String(text || '')).split(/\n|،|,|\s+و\s*(?=\d)|\s+وكمان\s+/).map(s => s.trim()).filter(Boolean).map(s => {
+    const m = s.match(/^(\d+(?:\.\d+)?)\s+(\S+)\s+(.+)$/) || s.match(/^(\d+(?:\.\d+)?)\s+(.+)$/); if (!m) return null;
+    if (m.length === 4 && PU_UN.test(m[2])) return {qty: Number(m[1]), unit: m[2], mat: m[3].trim()};
+    return {qty: Number(m[1]), unit: '', mat: (m.length === 4 ? m[2] + ' ' + m[3] : m[2]).trim()}; }).filter(Boolean);
+}
+// «صرفت 150 نقل و80 ميه» ← مصاريف
+function expParse(text){
+  return digits(String(text || '')).replace(/^\s*(صرفت|دفعت)\s*/, '').split(/\n|،|,|\s+و\s*(?=\d)/).map(s => s.trim()).filter(Boolean).map(s => {
+    const m = s.match(/^(\d+(?:\.\d+)?)\s*(?:ج|جنيه)?\s+(.+)$/) || s.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*(?:ج|جنيه)?$/); if (!m) return null;
+    return /^\d/.test(m[1]) ? {amount: Number(m[1]), desc: m[2].trim()} : {amount: Number(m[2]), desc: m[1].trim()}; }).filter(Boolean);
+}
+const PUR_ERR = {price: 'اكتب سعر كل سطر، أو شيل السطر اللي ما اتشراش', taken: 'حد تاني قال إنه هيشتريها', done: 'الطلب ده اتقفل', reason: 'اكتب السبب', badNumber: 'اكتب رقم صح', missing: 'اكتب الصنف والكمية', noAI: 'مفتاح Gemini مش متركّب (setupGemini)'};
+const purErr = r => PUR_ERR[r.error] || (r.error === 'ai' && typeof idErrT === 'function' ? idErrT(r.why) : errMsg(r));
+const projPick = (id, cur) => { const P = S.projects.filter(p => p.status !== 'انتهى'); return `<select class="in" id="${id}">${P.map(p => `<option value="${esc(p.code)}" ${p.code === cur ? 'selected' : ''}>${esc(p.short || p.name)}</option>`).join('')}</select>`; };
+
+/* ---------- 🛒 لوحة الطلبات (المشروع أو كل المواقع) ---------- */
+async function purSheet(code, tab){
+  const t = tab || (code ? 'open' : 'all'); S.purTab = t;
+  openSheet(`<h3 class="row" style="gap:8px"><span style="flex:1">🛒 ${code ? 'المشتريات · ' + esc(pName(code)) : 'كل الطلبات'}</span></h3><div id="puB" class="muted">بيحمّل…</div>`);
+  const D = await purLoad(); if (!$('#puB')) return;
+  if (!D) { $('#puB').innerHTML = esc(navigator.onLine ? ERR.net : offMsg()); return; }
+  const today = tdy(), open = x => ['مطلوب', 'هيشتريه'].includes(x.st);
+  let L = D.items.filter(x => !code || x.proj === code);
+  if (t === 'open') L = L.filter(open); else if (t === 'mine') L = L.filter(x => x.mine || x.iBuy); else if (t === 'done') L = L.filter(x => !open(x)); else if (t === 'all') L = D.items.filter(open);
+  const G = {}; L.forEach(x => { (G[x.no] = G[x.no] || []).push(x); });
+  const cards = Object.keys(G).map(no => { const R = G[no], a = R[0], late = R.some(x => open(x) && x.need && x.need < today);
+    return `<div class="pq ${late ? 'late' : ''}"><div class="row" style="gap:6px"><b style="flex:1">${esc(a.by)} <small class="muted" style="font-weight:400">· ${esc(no)}${!code ? ' · ' + esc(pName(a.proj)) : ''}</small></b>${late ? '<span class="pill p-bad">متأخر</span>' : `<small class="muted">${a.need === today ? 'مطلوب النهارده' : a.need === addD(today, 1) ? 'بكرة' : esc(a.need)}</small>`}</div>
+      ${a.item ? `<div class="sline">البند: ${esc(a.item)}</div>` : ''}${a.note ? `<div class="sline">${esc(a.note)}</div>` : ''}
+      ${R.map(x => `<div class="ln"><span style="flex:1"><b style="font-weight:600">${esc(x.mat)}</b> · ${n1(x.qty)} ${esc(x.unit)}${x.bought && x.bought < x.qty ? ` <small class="muted">(اتشرى ${n1(x.bought)})</small>` : ''}
+          ${x.flag ? `<small class="redd" style="display:block;font-weight:600">${esc(x.flag)}${x.why ? ' · ' + esc(x.why) : ''}</small>` : ''}${x.buyer && x.st === 'هيشتريه' ? `<small class="muted" style="display:block">${esc(x.buyer)} هيشتريه</small>` : ''}</span>
+        ${purPill(x.st)}<button class="more" data-pqm="${esc(x.id)}" aria-label="اختيارات">⋯</button></div>`).join('')}
+      ${R.some(open) ? `<div class="row" style="gap:6px;margin-top:6px">${R.some(x => open(x) && !x.buyer) ? `<button class="btn ghost" data-pclaim="${esc(no)}" style="flex:1;padding:7px">🙋 أنا هشتريها</button>` : ''}<button class="btn ghost" data-pbuy="${esc(no)}" style="flex:1;padding:7px">🧾 اشتريته</button><button class="btn ghost" data-phave="${esc(no)}" style="flex:1;padding:7px">📦 عندي منها</button></div>` : ''}
+      ${R.some(x => x.exps.some(e => e.recv === '')) ? `<button class="btn ghost" data-precv="${esc(no)}" style="margin-top:6px;padding:7px">✅ استلمت في الموقع</button>` : ''}</div>`; }).join('');
+  const mon = D.mon && !code;
+  $('#puB').innerHTML = `${D.cust && D.cust.in ? `<button class="card" id="puCust" style="width:100%;text-align:start;display:flex;gap:8px;align-items:center;margin-bottom:8px"><span style="flex:1">💼 عهدتي: <b>${money(Math.round(D.cust.balance))}</b></span><small class="muted">تقفيلة اليوم ←</small></button>` : ''}
+    ${mon && D.tomorrow ? `<div class="card" style="margin-bottom:8px;background:#F5F9FF;border-color:#C6D7F0">🗓️ مطلوب لبكرة: <b>${D.tomorrow.n}</b> صنف${D.tomorrow.cost ? ` · حوالي ${money(D.tomorrow.cost)}` : ''}${D.flagsN ? `<button class="more" id="puFlags" style="color:var(--warn)">👁️ تستاهل نظرة (${D.flagsN})</button>` : ''}</div>` : ''}
+    ${mon && (D.groups || []).length ? D.groups.map(g => `<div class="fx o" style="margin-bottom:8px">💡 <b>اطلبهم مرة واحدة:</b> ${esc(g.mat)} مطلوب في ${g.projs.length} مواقع (${n1(g.qty)} ${esc(g.unit)})${g.cheap ? ` — الأرخص ${esc(g.cheap.sup || '')} ${money(g.cheap.price)}${g.cheap.phone ? ` <a href="tel:${esc(g.cheap.phone)}">📞</a>` : ''}` : ''}<button class="more" data-pslg="${esc(g.ids.join(','))}" style="color:var(--pri)">📲 لينك للمورد</button></div>`).join('') : ''}
+    <div class="row" style="gap:6px"><button class="btn gold" id="puNew" style="flex:1.3">${ic('plus')} طلب جديد</button><button class="btn ghost" id="puBuy" style="flex:1">🧾 اشتريت</button><button class="btn ghost" id="puExp" style="flex:1">💬 مصروف</button></div>
+    <div class="chips" style="margin-top:10px">${(code ? [['open', 'المفتوحة'], ['mine', 'بتاعتي'], ['done', 'خلصت'], ['all', 'كل المواقع']] : [['all', 'المفتوحة'], ['mine', 'بتاعتي'], ['done', 'خلصت']]).map(([k, n]) => `<button class="chip ${t === k ? 'on' : ''}" data-ptab="${k}">${n}</button>`).join('')}
+      <button class="chip" id="puLog">💬 سجل الصرف</button>${code && purMoney() ? `<button class="chip" id="puItems">📊 الصرف على البنود</button>` : ''}</div>
+    <div style="margin-top:10px">${cards || emptyBox('box', t === 'open' || t === 'all' ? 'مفيش طلبات مفتوحة 👌' : 'مفيش حاجة هنا')}</div>`;
+  const pc = code || (S.project) || (D.mine[0] || '');
+  $('#puNew').onclick = () => reqForm(pc); $('#puBuy').onclick = () => buyForm(pc); $('#puExp').onclick = () => expForm(pc);
+  $('#puLog').onclick = () => expChat(code); if ($('#puCust')) $('#puCust').onclick = custMe; if ($('#puFlags')) $('#puFlags').onclick = flagsSheet; if ($('#puItems')) $('#puItems').onclick = () => itemSpend(code);
+  document.querySelectorAll('[data-ptab]').forEach(b => b.onclick = () => b.dataset.ptab === 'all' && code ? purSheet('', 'all') : purSheet(code, b.dataset.ptab));
+  const byNo = no => D.items.filter(x => x.no === no);
+  document.querySelectorAll('[data-pclaim]').forEach(b => b.onclick = async () => { busy(b, true); let ok = 0; for (const x of byNo(b.dataset.pclaim).filter(x => open(x) && !x.buyer)) { const r = await qSave('purClaim', {id: x.id}, 'هشتري ' + x.mat); if (r.ok) ok++; else toast(purErr(r)); }
+    if (ok) { buzz(15); toast('اتكتب اسمك ✓'); } purSheet(code, t); });
+  document.querySelectorAll('[data-pbuy]').forEach(b => b.onclick = () => { const R = byNo(b.dataset.pbuy).filter(open); buyForm(R[0].proj, {lines: R.map(x => ({reqId: x.id, mat: x.mat, qty: Math.max(0, x.qty - x.bought), unit: x.unit, of: x.qty})), item: R[0].item}); });
+  document.querySelectorAll('[data-phave]').forEach(b => b.onclick = () => haveForm(byNo(b.dataset.phave).filter(open)));
+  document.querySelectorAll('[data-precv]').forEach(b => b.onclick = () => recvForm(byNo(b.dataset.precv).flatMap(x => x.exps.filter(e => e.recv === '').map(e => Object.assign({mat: x.mat, unit: x.unit, req: x.qty}, e)))));
+  document.querySelectorAll('[data-pslg]').forEach(b => b.onclick = () => supLinkForm(b.dataset.pslg.split(',')));
+  document.querySelectorAll('[data-pqm]').forEach(b => b.onclick = () => reqMenu(D.items.find(x => x.id === b.dataset.pqm), code, t));
+}
+function reqMenu(x, code, t){
+  if (!x) return; const open = ['مطلوب', 'هيشتريه'].includes(x.st);
+  openSheet(`<h3>${esc(x.mat)} · ${n1(x.qty)} ${esc(x.unit)}</h3><div class="muted" style="font-size:13px">${esc(x.no)} · طلبها ${esc(x.by)} يوم ${esc(x.date)} · ${esc(pName(x.proj))}${x.kind ? ' · ' + esc(x.kind) : ''}</div>
+    <div style="margin-top:6px">${purPill(x.st)}${x.why && x.st === 'اتلغى' ? ` <small class="muted">${esc(x.why)}</small>` : ''}</div>
+    ${x.exps.length ? `<div class="sline">${x.exps.map(e => `اشتراه ${esc(e.by)} ${n1(e.qty)} يوم ${esc(e.date)}${e.recv !== '' ? ' · وصل ' + n1(e.recv) : ''}`).join('<br>')}</div>` : ''}
+    ${open ? `<button class="btn ghost" id="rmLink" style="margin-top:10px">📲 ابعت لينك للمورد (يأكد السعر والميعاد)</button><button class="btn ghost" id="rmCan" style="margin-top:8px;color:var(--bad)">⛔ إلغاء بسبب</button>` : ''}
+    <button class="btn ghost" id="rmBack" style="margin-top:8px">رجوع</button>`);
+  $('#rmBack').onclick = () => purSheet(code, t);
+  if ($('#rmLink')) $('#rmLink').onclick = () => supLinkForm([x.id]);
+  if ($('#rmCan')) $('#rmCan').onclick = async () => { const why = prompt('ليه بتلغيه؟'); if (!why || !why.trim()) return; const r = await qSave('purCancel', {id: x.id, why: why.trim()}, 'إلغاء ' + x.mat); toast(r.ok ? (r.queued ? QMSG : 'اتلغى ✓') : purErr(r)); purSheet(code, t); };
+}
+
+/* ---------- ➕ طلب جديد: المراجعة جنب كل سطر ---------- */
+function reqForm(code, preset){
+  const D = S.pur || {}, f = Object.assign({code: code || (D.mine || [])[0] || '', need: tdy(), item: '', note: '', lines: [{mat: '', qty: '', unit: '', kind: ''}]}, preset || {});
+  let facts = [], chkT = 0, chkN = 0;
+  const its = () => (typeof bItems === 'function' ? bItems(f.code) : []).map(x => x.name);
+  const draw = () => {
+    openSheet(`<h3>➕ طلب شراء</h3>
+      <label class="f">المشروع</label>${projPick('rqP', f.code)}
+      <div class="row" style="gap:6px;align-items:flex-start;margin-top:8px"><textarea class="in" id="rqTx" placeholder="قول أو اكتب: 10 شكاير معجون و5 لفات سلك 2 مللي" style="min-height:54px"></textarea>${micBtn('rqTx')}</div>
+      <button class="more" id="rqPar" style="color:var(--pri)">← حوّل لسطور</button>
+      ${(D.recent || []).length || (D.like || []).length ? `<div class="chips" style="margin-top:4px">${(D.like || []).length ? `<button class="chip" id="rqLike">↺ زي اللي فاتت</button>` : ''}${(D.recent || []).map((x, i) => `<button class="chip" data-rqr="${i}">${esc(x.mat)}</button>`).join('')}</div>` : ''}
+      <datalist id="rqDl">${[...new Set((D.items || []).map(x => x.mat).concat((D.recent || []).map(x => x.mat)))].slice(0, 80).map(m => `<option value="${esc(m)}">`).join('')}</datalist>
+      <div id="rqL">${f.lines.map((l, i) => `<div class="prow"><input class="in" list="rqDl" data-rl="mat" data-i="${i}" value="${esc(l.mat)}" placeholder="الصنف"><input class="in" data-rl="qty" data-i="${i}" inputmode="decimal" value="${esc(l.qty)}" placeholder="كام"><input class="in" data-rl="unit" data-i="${i}" value="${esc(l.unit)}" placeholder="الوحدة"><button class="xbtn" data-rx="${i}" aria-label="شيل">×</button></div><div id="rqF${i}"></div>`).join('')}</div>
+      <button class="btn ghost" id="rqAdd" style="margin-top:6px;padding:7px">${ic('plus')} صنف كمان</button>
+      <label class="f">مطلوب إمتى</label><div class="chips">${[[tdy(), 'النهارده'], [addD(tdy(), 1), 'بكرة'], [addD(tdy(), 2), 'بعد بكرة']].map(([d, n]) => `<button class="chip ${f.need === d ? 'on' : ''}" data-rn="${d}">${n}</button>`).join('')}<input class="in" type="date" id="rqD" value="${esc(f.need)}" style="width:auto"></div>
+      ${its().length ? `<label class="f">البند (اختياري)</label><select class="in" id="rqI"><option value="">—</option>${its().map(n => `<option ${f.item === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>` : ''}
+      <label class="f">ملاحظة</label><input class="in" id="rqN" value="${esc(f.note)}" placeholder="اختياري">
+      <div class="err" id="rqE"></div><button class="btn gold" id="rqGo" style="margin-top:10px">ابعت الطلب</button>`);
+    wireMics($('#sheetBody'));
+    const sync = () => { f.code = $('#rqP').value; f.need = $('#rqD').value || f.need; f.note = $('#rqN').value; if ($('#rqI')) f.item = $('#rqI').value;
+      document.querySelectorAll('[data-rl]').forEach(e => { f.lines[e.dataset.i][e.dataset.rl] = e.value; }); };
+    $('#rqP').onchange = () => { sync(); draw(); };
+    document.querySelectorAll('[data-rl]').forEach(e => e.oninput = () => { sync(); clearTimeout(chkT); chkT = setTimeout(check, 700); });
+    document.querySelectorAll('[data-rx]').forEach(b => b.onclick = () => { sync(); f.lines.splice(Number(b.dataset.rx), 1); if (!f.lines.length) f.lines.push({mat: '', qty: '', unit: ''}); draw(); });
+    $('#rqAdd').onclick = () => { sync(); f.lines.push({mat: '', qty: '', unit: ''}); draw(); };
+    $('#rqPar').onclick = () => { sync(); const L = purParse($('#rqTx').value); if (!L.length) { toast('اكتبها كده: 10 شكاير معجون و5 لفات سلك'); return; } $('#rqTx').value = ''; f.lines = f.lines.filter(l => l.mat).concat(L); draw(); };
+    $('#rqTx').addEventListener('change', () => { const L = purParse($('#rqTx').value); if (L.length) { $('#rqTx').value = ''; sync(); f.lines = f.lines.filter(l => l.mat).concat(L); draw(); } });
+    if ($('#rqLike')) $('#rqLike').onclick = () => { sync(); f.lines = D.like.map(x => Object.assign({}, x)); draw(); };
+    document.querySelectorAll('[data-rqr]').forEach(b => b.onclick = () => { sync(); const x = D.recent[b.dataset.rqr]; f.lines = f.lines.filter(l => l.mat).concat([{mat: x.mat, qty: '', unit: x.unit, kind: x.kind}]); draw(); });
+    document.querySelectorAll('[data-rn]').forEach(b => b.onclick = () => { sync(); f.need = b.dataset.rn; draw(); });
+    $('#rqD').onchange = () => { sync(); draw(); };
+    $('#rqGo').onclick = () => { sync(); send(); };
+    paint(); if (f.lines.some(l => l.mat && Number(l.qty) > 0)) check();
+  };
+  const paint = () => f.lines.forEach((l, i) => { const el = $('#rqF' + i); if (!el) return; const x = facts[i]; if (!l.mat || !x || x.mat !== l.mat) { el.innerHTML = ''; return; } el.innerHTML = factBox(x, i); });
+  const check = async () => { const L = f.lines.filter(l => l.mat && Number(l.qty) > 0); if (!L.length) return;
+    if (!navigator.onLine) { f.lines.forEach((l, i) => { const el = $('#rqF' + i); if (el && l.mat) el.innerHTML = `<div class="fx w">⚪ من غير نت: المراجعة هتظهر لما النت يرجع</div>`; }); return; }
+    const n = ++chkN, r = await api('purCheck', {project: f.code, lines: f.lines.map(l => ({mat: l.mat, qty: Number(l.qty) || 0, unit: l.unit}))}); if (n !== chkN || !$('#rqL')) return;
+    if (r.ok) { let k = 0; facts = f.lines.map(l => l.mat ? r.lines[k++] : null); paint();
+      document.querySelectorAll('[data-mv]').forEach(b => b.onclick = async () => { const x = facts[b.dataset.mv], m = x.have.move; const r2 = await qSave('purMove', {from: m.from, to: f.code, mat: x.mat, unit: x.unit, qty: m.qty}, 'نقل ' + x.mat);
+        if (!r2.ok) { toast(purErr(r2)); return; } toast('اتسجل النقل ✓'); const l = f.lines[b.dataset.mv]; l.qty = Math.max(0, (Number(l.qty) || 0) - m.qty); if (!l.qty) f.lines.splice(b.dataset.mv, 1); if (!f.lines.length) f.lines.push({mat: '', qty: '', unit: ''}); facts = []; draw(); }); } };
+  const send = async () => {
+    const L = f.lines.filter(l => String(l.mat).trim() && Number(l.qty) > 0).map(l => ({mat: l.mat.trim(), qty: Number(l.qty), unit: l.unit, kind: l.kind || ''}));
+    if (!L.length) { $('#rqE').textContent = 'اكتب صنف وكمية'; return; }
+    const warn = facts.filter(x => x && (x.flag === 'r' || x.flag === 'o'));
+    let why = '';
+    if (warn.length) { why = await sureBox(warn.map(x => (x.flag === 'r' ? '🔴 ' : '🟠 ') + x.mat + ': ' + x.notes.join(' · '))); if (why === null) return; }
+    busy($('#rqGo'), true);
+    const r = await qSave('purRequest', {project: f.code, lines: L, need: f.need, item: f.item, note: f.note, why}, 'طلب: ' + L.map(l => l.mat).join('، ').slice(0, 40)); busy($('#rqGo'), false);
+    if (!r.ok) { $('#rqE').textContent = purErr(r); return; }
+    buzz(15); toast(r.queued ? QMSG : 'اتبعت الطلب ' + (r.no || '') + ' ✓'); S.pur = null; purSheet(f.code);
+  };
+  draw();
+}
+function factBox(x, i){
+  const h = x.have || {c: 'w', t: ''}, ic2 = {g: '🟢', o: '🟠', w: '⚪'}[h.c], fl = x.flag === 'r' ? '🔴 ' : x.flag === 'o' ? '🟠 ' : '';
+  return `<div class="fx ${h.c}">${ic2} ${esc(h.t)}${h.move ? ` <button class="more" data-mv="${i}" style="color:var(--pri)">↔️ انقل ${n1(h.move.qty)} من ${esc(h.move.name)}</button>` : ''}</div>
+    ${x.notes.length ? `<div class="fx ${x.flag || 'w'}">${fl}${x.notes.map(esc).join(' · ')}</div>` : ''}
+    ${x.price ? `<div class="fx w">💰 آخر سعر ${money(x.price.last.price)}${x.price.last.on ? '/' + esc(x.price.last.on) : ''}${x.price.last.sup ? ' (' + esc(x.price.last.sup) + ')' : ''}${x.price.cheap && x.price.cheap.price < x.price.last.price ? ` · الأرخص ${esc(x.price.cheap.sup || '')} ${money(x.price.cheap.price)}` : ''}${x.price.cheap && x.price.cheap.phone ? ` <a href="tel:${esc(x.price.cheap.phone)}">📞</a>` : ''}${x.price.cheap && x.price.cheap.rate != null ? ` · التزامه ${x.price.cheap.rate}%` : ''}</div>` : ''}`;
+}
+// «متأكد؟» + سبب اختياري. بيرجع السبب ('' لو من غير) أو null لو رجع
+function sureBox(lines){
+  return new Promise(res => {
+    const back = $('#sheetBody').innerHTML; let done = false;
+    const box = document.createElement('div'); box.id = 'sureOv'; box.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:90;display:flex;align-items:flex-end';
+    box.innerHTML = `<div style="background:var(--card);width:100%;border-radius:18px 18px 0 0;padding:16px;max-height:80vh;overflow:auto"><h3 style="margin:0 0 8px">متأكد؟</h3>${lines.map(t => `<div class="fx ${/^🔴/.test(t) ? 'r' : 'o'}">${esc(t)}</div>`).join('')}
+      <div class="chips" style="margin-top:8px;flex-wrap:wrap">${['الكمية خلصت', 'بند تاني', 'هلغي الطلب التاني', 'الموقع محتاج زيادة'].map(c => `<button class="chip" data-sb="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+      <input class="in" id="sbW" placeholder="سبب (اختياري)" style="margin-top:8px"><div class="row" style="gap:8px;margin-top:10px"><button class="btn ghost" id="sbNo" style="flex:1">رجوع</button><button class="btn gold" id="sbOk" style="flex:1">احفظ برضو</button></div></div>`;
+    document.body.appendChild(box);
+    const end = v => { if (done) return; done = true; box.remove(); res(v); };
+    box.querySelectorAll('[data-sb]').forEach(b => b.onclick = () => { box.querySelector('#sbW').value = b.dataset.sb; });
+    box.querySelector('#sbNo').onclick = () => end(null); box.querySelector('#sbOk').onclick = () => end(box.querySelector('#sbW').value.trim());
+    box.onclick = e => { if (e.target === box) end(null); };
+  });
+}
+
+/* ---------- 🧾 اشتريته (بصورة الفاتورة) ---------- */
+function buyForm(code, preset){
+  const D = S.pur || {}, f = Object.assign({code: code || (D.mine || [])[0] || '', lines: [{mat: '', qty: '', unit: '', price: ''}], pay: store.get('purPay', 'عهدتي'), sup: '', supCode: '', phone: '', inv: '', date: tdy(), photo: '', hash: '', item: '', kind: '', note: '', amount: ''}, preset || {});
+  if (f.lines.every(l => !l.mat) && preset && preset.lines) f.lines = preset.lines;
+  let reading = false;
+  const total = () => f.lines.reduce((s, l) => s + (Number(l.qty) || 0) * (Number(l.price) || 0), 0);
+  const draw = async () => {
+    const sups = (S.people && S.people.S) || [];
+    openSheet(`<h3>🧾 اشتريت${f.lines.length === 1 && f.lines[0].mat ? ' · ' + esc(f.lines[0].mat) : ''}</h3>
+      <label class="f">المشروع</label>${projPick('byP', f.code)}
+      <label class="btn ghost" style="margin-top:8px;display:flex;justify-content:center;gap:8px">${ic('camera')} ${f.photo ? (reading ? '🤖 بيقرا الفاتورة…' : 'الفاتورة ✓ (غيّرها)') : 'صوّر الفاتورة (الذكاء الاصطناعي يملى الباقي)'}<input type="file" id="byPh" accept="image/*" capture="environment" hidden></label>
+      ${f.photo ? `<img src="${f.photo}" alt="الفاتورة" id="byImg" style="width:100%;max-height:150px;object-fit:contain;border-radius:10px;margin-top:6px;background:#F3F6FA">` : ''}
+      <div id="byL">${f.lines.map((l, i) => `<div class="prow b"><input class="in" data-bl="mat" data-i="${i}" value="${esc(l.mat)}" placeholder="الصنف"><input class="in" data-bl="qty" data-i="${i}" inputmode="decimal" value="${esc(l.qty)}" placeholder="كام"><input class="in" data-bl="unit" data-i="${i}" value="${esc(l.unit)}" placeholder="وحدة"><input class="in" data-bl="price" data-i="${i}" inputmode="decimal" value="${esc(l.price)}" placeholder="سعر الوحدة"><button class="xbtn" data-bx="${i}" aria-label="شيل">×</button></div>${l.of && Number(l.qty) < l.of ? `<small class="muted">من ${n1(l.of)} (الباقي يفضل مطلوب)</small>` : ''}`).join('')}</div>
+      <button class="btn ghost" id="byAdd" style="margin-top:6px;padding:7px">${ic('plus')} سطر كمان</button>
+      <div class="row" style="gap:8px;margin-top:8px;align-items:center"><b style="flex:1">الإجمالي</b><input class="in" id="byAmt" inputmode="decimal" value="${esc(total() || f.amount)}" style="width:140px" placeholder="المبلغ"></div>
+      <label class="f">الدفع من</label><div class="chips" style="flex-wrap:wrap">${PUR_PAY.map(p => `<button class="chip ${f.pay === p ? 'on' : ''}" data-bp="${esc(p)}">${esc(p === 'عهدتي' && D.cust ? 'عهدتي (باقي ' + nf(Math.round(D.cust.balance)) + ')' : p)}</button>`).join('')}</div>
+      <label class="f">المورد</label><input class="in" id="bySup" list="bySl" value="${esc(f.sup)}" placeholder="اسم المحل"><datalist id="bySl">${sups.map(s => `<option value="${esc(s.name)}">`).join('')}</datalist>
+      <div class="row" style="gap:8px"><input class="in" id="byInv" value="${esc(f.inv)}" placeholder="رقم الفاتورة" style="flex:1"><input class="in" type="date" id="byD" value="${esc(f.date)}" style="flex:1"></div>
+      <label class="f">النوع</label><div class="chips" style="flex-wrap:wrap">${PUR_KINDS.map(k => `<button class="chip ${f.kind === k ? 'on' : ''}" data-bk="${esc(k)}">${esc(k)}</button>`).join('')}</div>
+      <input class="in" id="byN" value="${esc(f.note)}" placeholder="ملاحظة (اختياري)" style="margin-top:8px">
+      ${S.pur && S.pur.can && S.pur.can.pending ? `<div class="sline">تسجيلك «مبدئي» لحد ما المهندس يأكده</div>` : ''}
+      <div class="err" id="byE"></div><button class="btn gold" id="byGo" style="margin-top:10px">احفظ</button>
+      <div class="sline">بيتحدّث لوحده: العهدة، وسجل الأسعار، وسجل الصرف، والطلب${f.pay === 'آجل على المورد' ? '، وحساب المورد' : ''}</div>`);
+    const sync = () => { f.code = $('#byP').value; f.sup = $('#bySup').value.trim(); f.inv = $('#byInv').value.trim(); f.date = $('#byD').value || tdy(); f.note = $('#byN').value; f.amount = $('#byAmt').value;
+      document.querySelectorAll('[data-bl]').forEach(e => { f.lines[e.dataset.i][e.dataset.bl] = e.value; }); const s = sups.find(x => x.name === f.sup); f.supCode = s ? s.code : ''; };
+    document.querySelectorAll('[data-bl]').forEach(e => e.oninput = () => { sync(); const t = total(); if (t) $('#byAmt').value = Math.round(t * 100) / 100; });
+    document.querySelectorAll('[data-bx]').forEach(b => b.onclick = () => { sync(); f.lines.splice(Number(b.dataset.bx), 1); if (!f.lines.length) f.lines.push({mat: '', qty: '', unit: '', price: ''}); draw(); });
+    $('#byAdd').onclick = () => { sync(); f.lines.push({mat: '', qty: '', unit: '', price: ''}); draw(); };
+    document.querySelectorAll('[data-bp]').forEach(b => b.onclick = () => { sync(); f.pay = b.dataset.bp; store.set('purPay', f.pay); draw(); });
+    document.querySelectorAll('[data-bk]').forEach(b => b.onclick = () => { sync(); f.kind = f.kind === b.dataset.bk ? '' : b.dataset.bk; draw(); });
+    if ($('#byImg') && typeof imgViewer === 'function') $('#byImg').onclick = () => imgViewer(f.photo);
+    $('#byPh').onchange = async e => { const fl = e.target.files[0]; if (!fl) return; sync(); f.photo = await shrinkImage(fl, 1600); f.hash = await sha(f.photo.slice(-20000)); readInv(); };
+    $('#byGo').onclick = () => { sync(); send(); };
+  };
+  const readInv = async () => {
+    if (!navigator.onLine) { toast('الصورة اتحفظت. قراية الفاتورة محتاجة نت، املاها انت'); draw(); return; }
+    reading = true; draw(); const r = await api('purRead', {photo: f.photo}); reading = false; if (!$('#byL')) return;
+    if (!r.ok) { toast(purErr(r) + ' · املاها انت'); draw(); return; }
+    const v = r.inv; if (v.sup && !f.sup) f.sup = v.sup; if (v.no) f.inv = v.no; if (v.date && v.date <= tdy()) f.date = v.date; if (v.phone) f.phone = v.phone;
+    if (v.items.length) { const req = f.lines.filter(l => l.reqId);
+      f.lines = v.items.map(it => { const m = req.find(l => normN(l.mat).split(' ')[0] && normN(it.mat).includes(normN(l.mat).split(' ')[0])); return Object.assign({}, m || {}, {mat: m ? m.mat : it.mat, qty: it.qty || (m ? m.qty : ''), unit: it.unit || (m ? m.unit : ''), price: it.price || ''}); }); }
+    if (!total() && v.total) f.amount = v.total; buzz(15); toast('🤖 قريت الفاتورة ✓ راجعها'); draw();
+  };
+  const send = async () => {
+    const L = f.lines.filter(l => String(l.mat).trim() && Number(l.qty) > 0).map(l => ({reqId: l.reqId || '', mat: l.mat.trim(), qty: Number(l.qty), unit: l.unit, price: l.price === '' ? '' : Number(l.price)}));
+    if (!L.length) { $('#byE').textContent = 'اكتب الصنف والكمية'; return; }
+    if (!(total() > 0) && !(Number(f.amount) > 0)) { $('#byE').textContent = 'اكتب السعر أو المبلغ'; return; }
+    if (total() > 0 && L.some(l => !(Number(l.price) > 0))) { $('#byE').textContent = 'اكتب سعر كل سطر، أو شيل السطر اللي ما اتشراش'; return; }
+    busy($('#byGo'), true);
+    const r = await qSave('purBuy', {project: f.code, lines: L, amount: Number(f.amount) || '', pay: f.pay, supName: f.sup, supCode: f.supCode, phone: f.phone, inv: f.inv, date: f.date, photo: f.photo, hash: f.hash, item: f.item, kind: f.kind, note: f.note}, 'شراء: ' + L.map(l => l.mat).join('، ').slice(0, 40));
+    busy($('#byGo'), false); if (!r.ok) { $('#byE').textContent = purErr(r); return; }
+    buzz(15); S.pur = null;
+    if (r.queued) { toast(QMSG); purSheet(f.code); return; }
+    openSheet(`<h3>✓ اتسجل الشراء</h3><div class="card"><div class="row"><span style="flex:1">المبلغ</span><b>${money(r.amount)}</b></div>${r.cust && f.pay === 'عهدتي' ? `<div class="row"><span style="flex:1">الباقي في عهدتك</span><b>${money(Math.round(r.cust.balance))}</b></div>` : ''}${r.state === 'مبدئي' ? '<div class="sline">مبدئي لحد ما يتأكد</div>' : ''}</div>
+      ${(r.flags || []).map(t => `<div class="fx ${/^🔴/.test(t) ? 'r' : 'o'}">${esc(t)}</div>`).join('')}${(r.flags || []).length ? '<div class="sline">التنبيه وصل للمالك والمدير، والحفظ تم عادي.</div>' : ''}
+      <button class="btn gold" id="byOk" style="margin-top:10px">تمام</button>`);
+    $('#byOk').onclick = () => purSheet(f.code);
+  };
+  if (!(S.people && S.people.S)) loadPeople('S').then(() => { if ($('#byL')) draw(); });
+  draw();
+}
+
+/* ---------- ✅ استلمت + المطابقة ---------- */
+function recvForm(L){
+  if (!L.length) return;
+  openSheet(`<h3>✅ استلمت في الموقع</h3><p class="muted" style="font-size:13px">اكتب اللي وصل فعلا. أي فرق بيوصل للمالك والمدير.</p>
+    ${L.map((x, i) => `<div class="card" style="padding:10px 12px;margin-bottom:6px"><b>${esc(x.mat)}</b> <small class="muted">· مطلوب ${n1(x.req || x.qty)} · اتشرى ${n1(x.qty)} (${esc(x.by || '')})</small>
+      <div class="row" style="gap:8px;margin-top:6px"><span style="flex:1">وصل</span><input class="in" data-rv2="${i}" inputmode="decimal" value="${esc(x.qty)}" style="width:110px"> <span>${esc(x.unit || '')}</span></div></div>`).join('')}
+    <input class="in" id="rvN" placeholder="ملاحظة (كسر، ناقص…)"><div class="err" id="rvE"></div><button class="btn gold" id="rvGo" style="margin-top:10px">تمام</button>`);
+  $('#rvGo').onclick = async () => { busy($('#rvGo'), true); const out = [];
+    for (const [i, x] of L.entries()) { const q = Number(document.querySelector(`[data-rv2="${i}"]`).value); const r = await qSave('purRecv', {id: x.id, qty: q, note: $('#rvN').value}, 'استلام ' + x.mat); if (!r.ok) { $('#rvE').textContent = purErr(r); busy($('#rvGo'), false); return; } out.push(Object.assign({mat: x.mat}, r.match || {bought: x.qty, recv: q, diff: q - x.qty})); }
+    S.pur = null; buzz(15);
+    openSheet(`<h3>المطابقة</h3><table class="kt" style="width:100%;font-size:13px"><tr><th>الصنف</th><th>مطلوب</th><th>اتشرى</th><th>وصل</th></tr>${out.map(m => `<tr><td>${esc(m.mat)}</td><td>${m.req == null ? '—' : n1(m.req)}</td><td>${n1(m.bought)}</td><td><b style="color:${m.diff ? 'var(--bad)' : 'var(--ok)'}">${n1(m.recv)}</b></td></tr>`).join('')}</table>
+      ${out.some(m => m.diff) ? `<div class="fx r">⚠️ فيه فرق بين اللي اتدفع واللي وصل — وصل تنبيه للمالك والمدير</div>` : `<div class="fx g">✓ كله مطابق</div>`}<button class="btn gold" id="rvOk" style="margin-top:10px">تمام</button>`);
+    $('#rvOk').onclick = () => purSheet(S.project || ''); };
+}
+/* ---------- 📦 عندي منها / موجود عندنا X ---------- */
+function haveForm(L){
+  if (!L.length) return; const x = L[0];
+  openSheet(`<h3>📦 عندي منها</h3><p class="muted" style="font-size:13px">${esc(x.mat)} مطلوب في ${esc(pName(x.proj))}. عندك منها كام وفين؟</p>
+    <select class="in" id="hvM">${L.map((y, i) => `<option value="${i}">${esc(y.mat)} (${n1(y.qty)} ${esc(y.unit)})</option>`).join('')}</select>
+    <label class="f">موجود في</label>${projPick('hvP', S.project && S.project !== x.proj ? S.project : '')}
+    <label class="f">الكمية</label><input class="in" id="hvQ" inputmode="decimal" value="${esc(x.qty)}">
+    <label class="row" style="gap:6px;margin-top:10px"><input type="checkbox" id="hvMv" checked> انقلها للموقع اللي طالبها</label>
+    <div class="err" id="hvE"></div><button class="btn gold" id="hvGo" style="margin-top:10px">تمام</button>`);
+  $('#hvGo').onclick = async () => { const y = L[Number($('#hvM').value)], from = $('#hvP').value, q = Number($('#hvQ').value); if (!(q > 0)) { $('#hvE').textContent = 'اكتب الكمية'; return; }
+    busy($('#hvGo'), true);
+    let r = await qSave('purCorrect', {project: from, mat: y.mat, unit: y.unit, qty: q}, 'موجود ' + y.mat);
+    if (r.ok && $('#hvMv').checked && from !== y.proj) r = await qSave('purMove', {from, to: y.proj, mat: y.mat, unit: y.unit, qty: Math.min(q, y.qty), reqId: y.id}, 'نقل ' + y.mat);
+    busy($('#hvGo'), false); if (!r.ok) { $('#hvE').textContent = purErr(r); return; } toast(r.queued ? QMSG : 'اتسجل ✓'); S.pur = null; purSheet(S.project || ''); };
+}
+/* ---------- 📲 لينك للمورد ---------- */
+async function supLinkForm(ids){
+  await loadPeople('S'); const sups = (S.people && S.people.S) || [];
+  openSheet(`<h3>📲 لينك للمورد</h3><p class="muted" style="font-size:13px">المورد يفتح اللينك ويكتب السعر وميعاد التوصيل بدوسة، والرد بيتسجل عندنا لوحده.</p>
+    <label class="f">المورد</label><input class="in" id="slS" list="slL" placeholder="اسم المورد"><datalist id="slL">${sups.map(s => `<option value="${esc(s.name)}">`).join('')}</datalist>
+    <div class="err" id="slE"></div><button class="btn gold" id="slGo" style="margin-top:10px">ابعت واتساب</button>`);
+  $('#slGo').onclick = async () => { const nm = $('#slS').value.trim(), s = sups.find(x => x.name === nm); if (!nm) { $('#slE').textContent = 'اختار المورد'; return; }
+    if (!navigator.onLine) { $('#slE').textContent = 'اللينك محتاج نت'; return; }
+    busy($('#slGo'), true); const r = await api('supLinkMake', {ids, supName: nm, supCode: s ? s.code : ''}); busy($('#slGo'), false);
+    if (!r.ok) { $('#slE').textContent = purErr(r); return; }
+    const url = location.origin + location.pathname + '?sl=' + r.t, ph = s ? String(s.phones || '').split('،')[0] : '';
+    shareWa(ph, `السلام عليكم يا ${nm} 👋\nمحتاجين الطلب ده من MEC · الشرق الأوسط للإنشاءات.\nمن فضلك افتح اللينك واكتب السعر وميعاد التوصيل:\n${url}`); closeSheet(); };
+}
+
+/* ---------- 💬 مصروف حر (وبالصوت: «صرفت 150 نقل و80 ميه») ---------- */
+function expForm(code, preset){
+  const D = S.pur || {}, f = Object.assign({code: code || (D.mine || [])[0] || '', rows: [{amount: '', desc: ''}], pay: store.get('purPay', 'عهدتي'), photo: '', hash: '', kind: '', item: ''}, preset || {});
+  const petty = (store.get('purSet', {}) || {}).petty || 200;
+  const draw = () => {
+    openSheet(`<h3>💬 مصروف (من غير طلب)</h3>
+      <label class="f">المشروع</label>${projPick('exP', f.code)}
+      <div class="row" style="gap:6px;align-items:flex-start;margin-top:8px"><textarea class="in" id="exTx" placeholder="قول: صرفت 150 نقل و80 ميه" style="min-height:50px"></textarea>${micBtn('exTx')}</div>
+      <div id="exL">${f.rows.map((x, i) => `<div class="prow" style="grid-template-columns:90px 1fr 30px"><input class="in" data-er="amount" data-i="${i}" inputmode="decimal" value="${esc(x.amount)}" placeholder="المبلغ"><input class="in" data-er="desc" data-i="${i}" value="${esc(x.desc)}" placeholder="في إيه؟ (نقل، ميه…)"><button class="xbtn" data-ex="${i}" aria-label="شيل">×</button></div>${Number(x.amount) > petty ? `<small style="color:var(--warn)">🟠 فوق حد النثريات (${petty} ج) — هيتسجل عادي ويوصل تنبيه</small>` : ''}`).join('')}</div>
+      <button class="btn ghost" id="exAdd" style="margin-top:6px;padding:7px">${ic('plus')} مصروف كمان</button>
+      <label class="f">الدفع من</label><div class="chips" style="flex-wrap:wrap">${PUR_PAY.slice(0, 3).map(p => `<button class="chip ${f.pay === p ? 'on' : ''}" data-ep="${esc(p)}">${esc(p)}</button>`).join('')}</div>
+      <label class="btn ghost" style="margin-top:8px;display:flex;justify-content:center;gap:8px">${ic('camera')} ${f.photo ? 'الصورة ✓' : 'صورة (اختياري)'}<input type="file" id="exPh" accept="image/*" capture="environment" hidden></label>
+      <div class="err" id="exE"></div><button class="btn gold" id="exGo" style="margin-top:10px">احفظ</button>`);
+    wireMics($('#sheetBody'));
+    const sync = () => { f.code = $('#exP').value; document.querySelectorAll('[data-er]').forEach(e => { f.rows[e.dataset.i][e.dataset.er] = e.value; }); };
+    const parse = () => { const L = expParse($('#exTx').value); if (!L.length) return false; $('#exTx').value = ''; sync(); f.rows = f.rows.filter(x => Number(x.amount) > 0).concat(L); draw(); return true; };
+    $('#exTx').addEventListener('change', parse);
+    document.querySelectorAll('[data-er]').forEach(e => e.onchange = () => { sync(); draw(); });
+    document.querySelectorAll('[data-ex]').forEach(b => b.onclick = () => { sync(); f.rows.splice(Number(b.dataset.ex), 1); if (!f.rows.length) f.rows.push({amount: '', desc: ''}); draw(); });
+    $('#exAdd').onclick = () => { sync(); f.rows.push({amount: '', desc: ''}); draw(); };
+    document.querySelectorAll('[data-ep]').forEach(b => b.onclick = () => { sync(); f.pay = b.dataset.ep; draw(); });
+    $('#exPh').onchange = async e => { const fl = e.target.files[0]; if (!fl) return; sync(); f.photo = await shrinkImage(fl, 1400); f.hash = await sha(f.photo.slice(-20000)); draw(); };
+    $('#exGo').onclick = async () => { sync(); if ($('#exTx').value.trim() && !f.rows.some(x => Number(x.amount) > 0)) parse();
+      const L = f.rows.filter(x => Number(x.amount) > 0 && String(x.desc).trim()); if (!L.length) { $('#exE').textContent = 'اكتب المبلغ وفي إيه'; return; }
+      busy($('#exGo'), true); let q = false;
+      for (const [i, x] of L.entries()) { const r = await qSave('expAdd', {project: f.code, amount: Number(x.amount), desc: x.desc.trim(), pay: f.pay, photo: i === 0 ? f.photo : '', hash: i === 0 ? f.hash : '', kind: f.kind, item: f.item}, 'مصروف: ' + x.desc);
+        if (!r.ok) { $('#exE').textContent = purErr(r); busy($('#exGo'), false); return; } q = q || r.queued; }
+      buzz(15); toast(q ? QMSG : 'اتسجل ' + L.length + ' مصروف ✓'); S.pur = null; expChat(f.code); };
+  };
+  draw();
+}
+
+/* ---------- 💬 سجل الصرف (شات) ---------- */
+async function expChat(code, F0){
+  const F = Object.assign({per: 'month', k: '', person: ''}, S.exF || {}, F0 || {}); S.exF = F;
+  const from = F.per === 'today' ? tdy() : F.per === 'week' ? addD(tdy(), -6) : F.per === 'month' ? addD(tdy(), -30) : '2020-01-01';
+  openSheet(`<h3>💬 سجل الصرف${code ? ' · ' + esc(pName(code)) : ' · كل المواقع'}</h3><div id="ecB" class="muted">بيحمّل…</div>`);
+  const r = await api('expLog', {project: code || '', from, person: F.person}); if (!$('#ecB')) return;
+  if (!r.ok) { $('#ecB').innerHTML = esc(r.error === 'denied' ? 'سجل كل المواقع للمالك والمدير' : purErr(r)); return; }
+  const L = r.items.filter(m => !F.k || m.k === F.k), K = {buy: '🧾 شراء', exp: '💬 مصروف', pay: '👷 دفع', top: '💼 عهدة'};
+  let last = '';
+  const bub = m => { const sep = m.date !== last ? `<div class="daysep">${esc(new Date(m.date + 'T12:00:00').toLocaleDateString('ar-EG', {weekday: 'long', day: 'numeric', month: 'short'}))}</div>` : ''; last = m.date;
+    return sep + `<button class="bub ${m.byId === 'me' ? 'me' : ''} ${m.flags ? 'fl' : ''} ${m.st === 'اتلغى' ? 'cx' : ''}" data-em="${esc(m.id)}"><b>${esc(m.by)}</b>${m.amount !== '' ? ' · ' + money(m.amount) : ''} · ${esc(m.desc)}
+      <small>${esc(K[m.k] || '')}${m.pay ? ' · ' + esc(m.pay) : ''}${!code ? ' · ' + esc(pName(m.proj)) : ''}${m.item ? ' · ' + esc(m.item) : ''}${m.photo ? ' · 📎' : ''}${m.st === 'مبدئي' ? ' · مبدئي' : ''}${m.k === 'buy' && m.recv === '' ? ' · لسه ما وصلش' : ''}</small>
+      ${m.flags ? `<small style="color:var(--bad)">${esc(m.flags)}</small>` : ''}</button>`; };
+  $('#ecB').innerHTML = `${r.sum ? `<div class="card" style="margin-bottom:8px;display:flex;gap:12px;justify-content:space-around;text-align:center"><div><small class="muted">النهارده</small><br><b>${money(Math.round(r.sum.today))}</b></div><div><small class="muted">الأسبوع</small><br><b>${money(Math.round(r.sum.week))}</b></div><div><small class="muted">الفترة</small><br><b>${money(Math.round(r.sum.all))}</b></div></div>` : ''}
+    <div class="chips">${[['today', 'النهارده'], ['week', 'أسبوع'], ['month', 'شهر'], ['all', 'الكل']].map(([k, n]) => `<button class="chip ${F.per === k ? 'on' : ''}" data-ecp="${k}">${n}</button>`).join('')}</div>
+    <div class="chips" style="margin-top:6px">${[['', 'الكل'], ['buy', '🧾 شراء'], ['exp', '💬 مصروف'], ['pay', '👷 دفع'], ['top', '💼 عهدة']].map(([k, n]) => `<button class="chip ${F.k === k ? 'on' : ''}" data-eck="${k}">${n}</button>`).join('')}</div>
+    ${r.people.length ? `<select class="in" id="ecPe" style="margin-top:6px"><option value="">كل الناس</option>${r.people.map(p => `<option value="${esc(p.id)}" ${F.person === p.id ? 'selected' : ''}>${esc(p.dn)}</option>`).join('')}</select>` : ''}
+    <div style="margin-top:8px">${L.map(bub).join('') || emptyBox('cash', 'مفيش صرف في الفترة دي')}</div>
+    <div class="row" style="gap:6px;margin-top:10px"><button class="btn gold" id="ecAdd" style="flex:1">➕ مصروف</button><button class="btn ghost" id="ecBuy" style="flex:1">🧾 اشتريت</button><button class="btn ghost" id="ecXl" style="flex:1">⬇️ إكسيل</button><button class="btn ghost" id="ecPdf" style="flex:1">📄 PDF</button></div>`;
+  const sb = $('#sheetBody'); setTimeout(() => { sb.scrollTop = sb.scrollHeight; }, 30);
+  document.querySelectorAll('[data-ecp]').forEach(b => b.onclick = () => expChat(code, {per: b.dataset.ecp}));
+  document.querySelectorAll('[data-eck]').forEach(b => b.onclick = () => expChat(code, {k: b.dataset.eck}));
+  if ($('#ecPe')) $('#ecPe').onchange = e => expChat(code, {person: e.target.value});
+  const pc = code || S.project || ((S.pur || {}).mine || [])[0] || '';
+  $('#ecAdd').onclick = () => expForm(pc); $('#ecBuy').onclick = () => buyForm(pc);
+  const rows = () => [['التاريخ', 'المشروع', 'مين', 'النوع', 'الوصف', 'المبلغ', 'الدفع', 'البند', 'الحالة', 'تنبيه', 'الصورة']].concat(L.map(m => [m.date, pName(m.proj), m.by, K[m.k] || '', m.desc, m.amount, m.pay || '', m.item || '', m.st, m.flags || '', m.photo || '']));
+  $('#ecXl').onclick = () => { const csv = '﻿' + rows().map(r => r.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(',')).join('\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv;charset=utf-8'})); a.download = 'سجل الصرف ' + (code ? pName(code) : 'كل المواقع') + ' ' + tdy() + '.csv'; a.click(); };
+  $('#ecPdf').onclick = () => { const w = window.open('', '_blank'); if (!w) return; const R = rows();
+    w.document.write(`<html dir="rtl"><head><meta charset="utf-8"><title>سجل الصرف</title><style>body{font-family:Cairo,Tahoma;padding:16px}table{width:100%;border-collapse:collapse;font-size:11px}td,th{border:1px solid #999;padding:4px}th{background:#E8F0FB}.t{display:flex;align-items:center;gap:10px;border-bottom:2px solid #1D2E4F;margin-bottom:8px}</style></head><body>
+      <div class="t"><img src="${location.origin + location.pathname.replace(/[^/]*$/, '')}icon-192.png" style="width:46px"><div><b>MEC · الشرق الأوسط للإنشاءات</b><br>سجل الصرف · ${esc(code ? pName(code) : 'كل المواقع')} · ${esc(from)} ← ${esc(tdy())}</div></div>
+      <table><tr>${R[0].slice(0, 10).map(h => `<th>${esc(h)}</th>`).join('')}</tr>${R.slice(1).map(r => `<tr>${r.slice(0, 10).map(v => `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</table>${r.sum ? `<p><b>الإجمالي: ${nf(Math.round(r.sum.all))} ج</b></p>` : ''}<script>setTimeout(()=>print(),400)<\/script></body></html>`); w.document.close(); };
+  document.querySelectorAll('[data-em]').forEach(b => b.onclick = () => { const m = r.items.find(x => x.id === b.dataset.em); if (m) expDetail(m, code); });
+}
+function expDetail(m, code){
+  openSheet(`<h3>${esc(m.desc)}</h3><div class="muted" style="font-size:13px">${esc(m.by)} · ${esc(m.date)} · ${esc(pName(m.proj))}</div>
+    <div class="card" style="margin-top:8px">${m.amount !== '' ? `<div class="row"><span style="flex:1">المبلغ</span><b>${money(m.amount)}</b></div>` : ''}${m.pay ? `<div class="row"><span style="flex:1">الدفع من</span><b>${esc(m.pay)}</b></div>` : ''}
+      ${m.sup ? `<div class="row"><span style="flex:1">المورد</span><b>${esc(m.sup)}${m.inv ? ' · ' + esc(m.inv) : ''}</b></div>` : ''}${m.item ? `<div class="row"><span style="flex:1">البند</span><b>${esc(m.item)}</b></div>` : ''}${m.kind ? `<div class="row"><span style="flex:1">النوع</span><b>${esc(m.kind)}</b></div>` : ''}
+      ${m.k === 'buy' ? `<div class="row"><span style="flex:1">وصل</span><b>${m.recv === '' ? 'لسه' : n1(m.recv) + ' من ' + n1(m.qty)}</b></div>` : ''}${m.note ? `<div class="sline">${esc(m.note)}</div>` : ''}</div>
+    ${m.flags ? `<div class="fx r">${esc(m.flags)}</div>` : ''}
+    ${m.photo ? `<a class="btn ghost" href="${esc(m.photo)}" target="_blank" rel="noopener" style="margin-top:8px">📎 الفاتورة / الصورة</a>` : ''}
+    ${m.k === 'buy' && m.recv === '' && m.st !== 'اتلغى' ? `<button class="btn ghost" id="edRv" style="margin-top:8px">✅ استلمت في الموقع</button>` : ''}
+    ${(m.k === 'buy' || m.k === 'exp') && m.st !== 'اتلغى' && (m.byId === 'me' || purMon()) ? `<button class="btn ghost" id="edCx" style="margin-top:8px;color:var(--bad)">⛔ إلغاء بسبب</button>` : ''}
+    <button class="btn ghost" id="edBk" style="margin-top:8px">رجوع</button>`);
+  $('#edBk').onclick = () => expChat(code);
+  if ($('#edRv')) $('#edRv').onclick = () => recvForm([{id: m.id, mat: m.desc.split(' ×')[0], unit: '', qty: m.qty, by: m.by}]);
+  if ($('#edCx')) $('#edCx').onclick = async () => { const why = prompt('ليه بتلغيها؟'); if (!why || !why.trim()) return; const r = await qSave('purCancel', {kind: 'exp', id: m.id, why: why.trim()}, 'إلغاء صرفة'); toast(r.ok ? (r.queued ? QMSG : 'اتلغت ✓') : purErr(r)); expChat(code); };
+}
+
+/* ---------- 💼 عهدتي + تقفيلة اليوم ---------- */
+async function custMe(){
+  openSheet(`<h3>💼 عهدتي</h3><div id="cmB" class="muted">بيحمّل…</div>`);
+  const r = await api('custToday'); if (!$('#cmB')) return; if (!r.ok) { $('#cmB').innerHTML = esc(navigator.onLine ? purErr(r) : offMsg()); return; }
+  const d = r.day, pct = d.last && d.last.amount ? Math.max(0, Math.min(100, Math.round(d.balance / d.last.amount * 100))) : null, low = ((store.get('purSet', {}) || {}).low || 30);
+  $('#cmB').innerHTML = `<div class="card" style="text-align:center"><small class="muted">الباقي معاك</small><div style="font-size:26px;font-weight:700">${money(Math.round(d.balance))}</div>
+      ${pct != null ? `<div class="bar" style="height:10px;border-radius:5px;background:#EEF1F4;overflow:hidden;margin-top:6px"><i style="display:block;height:100%;width:${pct}%;background:${pct < low ? 'var(--warn)' : 'var(--ok)'}"></i></div><small class="muted">${pct < low ? 'قربت تخلص' : pct + '% من آخر تعزيز'}</small>` : ''}</div>
+    <div class="card" style="margin-top:8px;background:#F5F9FF;border-color:#C6D7F0"><b>🌙 تقفيلة النهارده</b>
+      <div class="row" style="margin-top:6px"><span style="flex:1">استلمت</span><b>${money(d.got)}</b></div><div class="row"><span style="flex:1">صرفت (${d.n})</span><b>${money(d.spent)}</b></div><div class="row"><span style="flex:1">المفروض معاك</span><b>${money(Math.round(d.balance))}</b></div>
+      ${d.list.map(x => `<div class="sline">• ${esc(x.type)} · ${nf(x.amount)}</div>`).join('')}
+      ${d.closed ? `<div class="fx g">✓ قفّلت النهارده</div>` : `<label class="f">معاك كام فعلا؟</label><input class="in" id="cmH" inputmode="decimal" value="${Math.round(d.balance)}">
+      <div class="row" style="gap:8px;margin-top:8px"><button class="btn gold" id="cmOk" style="flex:1">✓ مظبوط</button><button class="btn ghost" id="cmDf" style="flex:1">في فرق</button></div>`}</div>
+    <div class="row" style="gap:6px;margin-top:8px"><button class="btn ghost" id="cmBuy" style="flex:1">🧾 اشتريت</button><button class="btn ghost" id="cmExp" style="flex:1">💬 مصروف</button></div>`;
+  const go = async have => { const x = await qSave('custClose', {have}, 'تقفيلة العهدة'); if (!x.ok) { toast(purErr(x)); return; } buzz(15);
+    toast(x.queued ? QMSG : x.diff ? 'اتسجل الفرق ووصل للمالك' : 'اتقفلت ✓'); store.set('custClosed', tdy()); custMe(); };
+  if ($('#cmOk')) $('#cmOk').onclick = () => go(Math.round(d.balance));
+  if ($('#cmDf')) $('#cmDf').onclick = () => go(Number($('#cmH').value));
+  const pc = S.project || ((S.pur || {}).mine || [])[0] || ''; $('#cmBuy').onclick = () => buyForm(pc); $('#cmExp').onclick = () => expForm(pc);
+}
+/* ---------- 👁️ تستاهل نظرة ---------- */
+async function flagsSheet(){
+  openSheet(`<h3>👁️ تستاهل نظرة</h3><p class="muted" style="font-size:13px">علامات بتتحسب لوحدها. مش اتهام، بس تستاهل سؤال.</p><div id="flB" class="muted">بيحمّل…</div>`);
+  const r = await api('purFlags'); if (!$('#flB')) return; if (!r.ok) { $('#flB').innerHTML = esc(purErr(r)); return; }
+  const I = {dup: '🧾', price: '💰', round: '🔢', nosup: '❓', rep: '🔁', gap: '💼'};
+  $('#flB').innerHTML = r.items.map(f => `<div class="card" style="padding:10px 12px;margin-bottom:6px">${I[f.k] || '👁️'} ${esc(f.t)}</div>`).join('') || emptyBox('check', 'مفيش حاجة تستاهل نظرة 👌');
+}
+/* ---------- 📊 الصرف الفعلي على البنود (من المقايسة) ---------- */
+async function itemSpend(code){
+  if (typeof board === 'function') await board(false);
+  const its = typeof bItems === 'function' ? bItems(code) : [], sp = ((B().proj[code] || {}).spend) || {};
+  openSheet(`<h3>📊 الصرف على البنود · ${esc(pName(code))}</h3><p class="muted" style="font-size:13px">من المشتريات والمصروف المتسكّن على البند. (العمالة والتوريدات في «📈 المتابعة»)</p>
+    <table class="kt" style="width:100%;font-size:12.5px"><tr><th>البند</th><th>متسعّر</th><th>اتصرف</th><th></th></tr>
+    ${its.map(x => { const v = Number(x.price) * Number(x.qty) || 0, s = sp[x.name] || 0, p = v ? Math.round(s / v * 100) : null; return `<tr><td>${esc(x.name)}</td><td>${v ? nf(Math.round(v)) : '—'}</td><td>${s ? nf(s) : '—'}</td><td>${p == null ? '' : `<b style="color:${p > 100 ? 'var(--bad)' : p > 80 ? 'var(--warn)' : 'var(--ok)'}">${p}%</b>`}</td></tr>`; }).join('')}
+    ${Object.keys(sp).filter(k => !its.some(x => x.name === k)).map(k => `<tr><td>${esc(k)}</td><td>—</td><td>${nf(sp[k])}</td><td></td></tr>`).join('')}</table>`);
+}
+
+/* ---------- الرئيسية: كارت المشتريات + قايمة بكرة + تقفيلة العهدة ---------- */
+function purHome(){
+  if (!S.user || ['contractor'].includes(S.user.role)) return '';
+  const D = S.pur, h = new Date().getHours(), out = [];
+  if (D) { const open = D.items.filter(x => ['مطلوب', 'هيشتريه'].includes(x.st)), late = open.filter(x => x.need && x.need < tdy()).length, mineBuy = open.filter(x => x.iBuy).length;
+    if (open.length || purMon()) out.push(`<button class="card" id="hmPur" style="width:100%;text-align:start;display:flex;gap:10px;align-items:center;margin:10px 0"><span style="font-size:26px">🛒</span><span style="flex:1"><b style="display:block">المشتريات</b><small class="muted">${open.length} طلب مفتوح${late ? ` · <span class="redd">${late} متأخر</span>` : ''}${mineBuy ? ` · ${mineBuy} عليك` : ''}${D.mon && D.flagsN ? ` · 👁️ ${D.flagsN}` : ''}</small></span><small class="muted">←</small></button>`); }
+  if (S.purSug && S.purSug.items.length && h >= 16) out.push(`<div class="card" style="margin:10px 0;background:#FFF8E6;border-color:#F0DCA6"><b>🛒 مقترح لبكرة · ${esc(pName(S.purSug.code))}</b><div class="muted" style="font-size:12.5px">من الجدول واللي ناقص في الموقع</div>
+    ${S.purSug.items.map((x, i) => `<label class="row" style="gap:8px;padding:4px 0"><input type="checkbox" data-sg="${i}" checked><span style="flex:1">${esc(x.mat)} ${n1(x.qty)} ${esc(x.unit)}</span>${x.days != null ? `<small class="muted">يكفي ${x.days} يوم</small>` : ''}</label>`).join('')}
+    <button class="btn gold" id="sgGo" style="margin-top:6px">اطلبهم بدوسة</button></div>`);
+  if (D && D.cust && D.cust.in && h >= 18 && store.get('custClosed', '') !== tdy()) out.push(`<button class="card" id="hmCl" style="width:100%;text-align:start;margin:10px 0;background:#F5F9FF;border-color:#C6D7F0">🌙 <b>قفّل عهدة النهارده</b><small class="muted" style="display:block">الباقي معاك ${money(Math.round(D.cust.balance))} · دوسة واحدة</small></button>`);
+  return out.join('');
+}
+function wirePurHome(){
+  if ($('#hmPur')) $('#hmPur').onclick = () => purSheet('', 'all');
+  if ($('#hmCl')) $('#hmCl').onclick = custMe;
+  if ($('#sgGo')) $('#sgGo').onclick = async () => { const L = S.purSug.items.filter((x, i) => document.querySelector(`[data-sg="${i}"]`).checked); if (!L.length) return;
+    const r = await qSave('purRequest', {project: S.purSug.code, lines: L.map(x => ({mat: x.mat, qty: x.qty, unit: x.unit})), need: addD(tdy(), 1), note: 'مقترح من الجدول'}, 'طلب بكرة'); if (!r.ok) { toast(purErr(r)); return; }
+    buzz(15); toast(r.queued ? QMSG : 'اتبعت الطلب ✓'); S.purSug = null; S.pur = null; purLoad(true).then(render); };
+}
+async function purHomeLoad(){
+  if (S.purTried || !navigator.onLine || !S.user || S.user.role === 'contractor') return; S.purTried = true;
+  await purLoad(true);
+  if (new Date().getHours() >= 16 && ['engineer', 'tech', 'owner', 'manager'].includes(S.user.role)) { const p = S.projects.find(x => x.status === 'جاري' && (x.engId === S.user.id || isBoss()) && (typeof bItems !== 'function' || bItems(x.code).length));
+    if (p) { const r = await api('purSuggest', {project: p.code}); if (r.ok && r.items.length) S.purSug = {code: p.code, items: r.items}; } }
+  if (S.tab === 'home' && !S.project && !$('#sheet').classList.contains('on') && !$('#wkOv')) render();
+}
+
+/* ---------- 🔐 الصلاحيات: جدول «مين يشوف إيه» + استثناءات + خروج من كل الأجهزة ---------- */
+const PERM_ROWS = [['الحضور واليوميات', '✓', '✓', '👁️', '✓', '✓', '✓', '✓'], ['اليومية والرصيد والدفع', '✓', '✓', '✓', '✓*', '✓', '—', '—'], ['التوريدات والمعدات', '✓', '✓', '✓', '✓', '✓', '✓ كميات', 'مبدئي'],
+  ['🛒 يطلب شراء', '✓', '✓', '✓', '✓', '✓', '✓', '✓'], ['🧾 يشتري ويسجل صرف', '✓', '✓', '✓', '✓', '✓', '✓', 'مبدئي'], ['الأسعار والمبالغ', '✓', '✓', '✓', '✓', '✓', 'بتاعته بس', 'بتاعته بس'],
+  ['👁️ مراقبة كل المشتريات والعهد', '✓', '✓ (إعداد)', '—', '—', '—', '—', '—'], ['سجل الصرف لكل المواقع', '✓', '✓', '✓', '—', '—', '—', '—'], ['المقايسة والجدول', '✓', '✓', '👁️', '✓', '✓', '👁️', '—'],
+  ['«جاهز يبدأ؟» والفحص والجودة', '✓', '—', '—', '—', '—', '—', '—'], ['المتابعة (المنحنيات)', '✓', '✓', '✓', 'مشاريعه', 'الكل', 'من غير فلوس', '—'], ['الفريق والصلاحيات', '✓', '✓', '—', '—', '—', '—', '—'], ['دفتري', '✓', '—', '—', '—', '—', '—', '—']];
+function permSheet(){
+  openSheet(`<h3>🔐 مين يشوف إيه</h3><p class="muted" style="font-size:12.5px">الصلاحيات متطبقة في السيرفر نفسه، فمفيش فرق بين التطبيق والمتصفح. ✓* = المهندس بيدفع من عهدته. وأي شخص تقدر تديله استثناء من «تعديل» في الفريق.</p>
+    <div style="overflow-x:auto"><div class="pmat" style="min-width:560px">${['', 'مالك', 'مدير', 'محاسب', 'مهندس', 'مكتب فني', 'مشرف', 'مشرف 2'].map(h => `<div class="h">${h}</div>`).join('')}
+    ${PERM_ROWS.map(r => r.map((c, i) => `<div class="${i ? '' : 'n'}" style="${c === '—' ? 'color:#B4B2A9' : c === '✓' ? 'color:var(--ok);font-weight:700' : ''}">${esc(c)}</div>`).join('')).join('')}</div></div>
+    <p class="muted" style="font-size:12px;margin-top:8px">المراقبة: ${((store.get('purSet', {}) || {}).mon || 'both') === 'owner' ? 'المالك بس' : 'المالك والمدير'} (تتغير من الإعدادات).</p>`);
+}
+function purUserExtras(u){
+  const b = $('#sheetBody'); if (!b || !u || u.role === 'owner' || !isBoss()) return;
+  const X = new Set(u.extra || []);
+  b.insertAdjacentHTML('beforeend', `<h4 style="margin:16px 0 4px;font-size:14px">🔐 استثناءات لـ ${esc(dn(u))}</h4><p class="muted" style="font-size:12px;margin:0">زيادة على صلاحيات دوره، من غير ما تغيّر الدور.</p>
+    ${[['prices', 'يشوف الأسعار والمبالغ'], ['money', 'اليومية والرصيد'], ['monitor', 'يراقب المشتريات والعهد']].filter(([k]) => k !== 'monitor' || isOwner()).map(([k, n]) => `<label class="row" style="gap:8px;padding:6px 0"><input type="checkbox" data-xp="${k}" ${X.has(k) ? 'checked' : ''}> ${n}</label>`).join('')}
+    <button class="btn ghost" id="xpGo" style="margin-top:4px">احفظ الاستثناءات</button>
+    <button class="btn ghost" id="xpDrop" style="margin-top:8px;color:var(--bad)">🔒 طلّعه من كل الأجهزة (لو موبايله ضاع)</button>`);
+  $('#xpGo').onclick = async () => { const L = [...document.querySelectorAll('[data-xp]')].filter(x => x.checked).map(x => x.dataset.xp); const r = await api('setExtra', {id: u.id, extra: L}); toast(r.ok ? 'اتحفظ ✓' : purErr(r)); if (r.ok) { u.extra = r.extra; S.team = null; } };
+  $('#xpDrop').onclick = async () => { if (!confirm('يطلع من التطبيق على كل الموبايلات؟ هيدخل تاني برقمه السري.')) return; const r = await api('dropAll', {id: u.id}); toast(r.ok ? 'اتعمل خروج من ' + r.n + ' جهاز ✓' : purErr(r)); };
+}
+// إعدادات المشتريات (للمالك) + خروج من الأجهزة التانية (للكل)
+function purSettingsCard(){
+  const b = $('#sheetBody'); if (!b || $('#psCard')) return;
+  const s = store.get('purSet', null) || {near: 3, alert: 2000, petty: 200, price: 10, mon: 'both', bio: 1};
+  b.insertAdjacentHTML('beforeend', `${isOwner() ? `<div class="card" id="psCard" style="margin-top:12px"><b>🛒 إعدادات المشتريات</b>
+      ${[['near', '«اتشرى قريب» لو خلال (يوم)'], ['alert', 'صرفة توصلك لو فوق (ج)'], ['petty', 'حد النثريات من غير طلب (ج)'], ['price', 'نبّه لو السعر زاد (%)']].map(([k, n]) => `<div class="row" style="gap:8px;margin-top:6px"><span style="flex:1;font-size:13.5px">${n}</span><input class="in" data-ps="${k}" inputmode="decimal" value="${esc(s[k])}" style="width:90px"></div>`).join('')}
+      <label class="f">مين يراقب المشتريات والعهد</label><div class="chips">${[['both', 'المالك والمدير'], ['owner', 'المالك بس']].map(([k, n]) => `<button class="chip ${s.mon === k ? 'on' : ''}" data-psm="${k}">${n}</button>`).join('')}</div>
+      <label class="row" style="gap:8px;margin-top:10px"><input type="checkbox" id="psBio" ${s.bio ? 'checked' : ''}> البصمة إجباري للي معاهم فلوس (المالك والمدير والمحاسب)</label>
+      <button class="btn ghost" id="psGo" style="margin-top:8px">احفظ</button></div>` : ''}
+    <button class="btn ghost" id="psDrop" style="margin-top:10px">🔒 اطلع من كل الأجهزة التانية</button>`);
+  let mon = s.mon;
+  document.querySelectorAll('[data-psm]').forEach(x => x.onclick = () => { mon = x.dataset.psm; document.querySelectorAll('[data-psm]').forEach(y => y.classList.toggle('on', y === x)); });
+  if ($('#psGo')) $('#psGo').onclick = async () => { const set = {mon, bio: $('#psBio').checked ? 1 : 0}; document.querySelectorAll('[data-ps]').forEach(x => { set[x.dataset.ps] = Number(x.value); });
+    const r = await api('purSet', {set}); if (r.ok) { store.set('purSet', r.set); toast('اتحفظ ✓'); } else toast(purErr(r)); };
+  $('#psDrop').onclick = async () => { const r = await api('dropAll', {}); toast(r.ok ? (r.n ? 'اتعمل خروج من ' + r.n + ' جهاز تاني ✓' : 'مفيش أجهزة تانية') : purErr(r)); };
+}
+// البصمة إجباري للي معاهم فلوس (لو الموبايل بيدعمها)
+function bioMust(){
+  const s = store.get('purSet', {}) || {};
+  if (!S.user || S.publicMode || !s.bio || !['owner', 'manager', 'accountant'].includes(S.user.role) || store.get('bioId', '') || !bioOK() || store.get('bioNo', 0) > 2 || $('#bioMust')) return;
+  const ov = document.createElement('div'); ov.id = 'bioMust'; ov.style.cssText = 'position:fixed;inset:0;background:var(--bg,#F3F6FA);z-index:95;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center';
+  ov.innerHTML = `<div style="max-width:360px"><div style="font-size:54px">🔐</div><h3>فعّل القفل بالبصمة</h3><p class="muted">حسابك فيه فلوس وعهد. البصمة بتحميه لو الموبايل وقع في إيد حد.</p>
+    <button class="btn gold" id="bmGo">فعّل البصمة</button><button class="more" id="bmNo" style="margin-top:10px">الموبايل مش بيدعمها</button></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#bmGo').onclick = async () => { if (await bioEnable()) ov.remove(); };
+  ov.querySelector('#bmNo').onclick = () => { store.set('bioNo', store.get('bioNo', 0) + 1); ov.remove(); };
+}
+
+/* ---------- صفحات من غير دخول: لينك المورد + كشف مصروفات العميل ---------- */
+async function pubPage(kind, tok){
+  S.publicMode = true;
+  document.body.innerHTML = `<div id="cpg" style="max-width:520px;margin:0 auto;padding:12px;font-family:Cairo,Tahoma,sans-serif;direction:rtl"><div class="muted">بيحمّل…</div></div>`;
+  const call = async (a, d) => { try { const r = await fetch(execUrl(), {method: 'POST', body: JSON.stringify(Object.assign({action: a, t: tok}, d || {}))}); return await r.json(); } catch (e) { return {ok: false, error: 'net'}; } };
+  const box = $('#cpg'), head = (t, s) => `<div style="display:flex;gap:10px;align-items:center;background:#1D2E4F;color:#fff;border-radius:14px 14px 0 0;padding:12px"><img src="icon-192.png" alt="MEC" style="width:44px;height:44px;border-radius:50%;background:#fff"><div><b>${t}</b><div style="font-size:12.5px;opacity:.85">${s}</div></div></div>`;
+  if (kind === 'cl') { const draw = async m => { const r = await call('costLink', m ? {m} : {}); if (!r.ok) { box.innerHTML = head('MEC · الشرق الأوسط للإنشاءات', '') + `<div class="card">الرابط ده مش شغال. كلّم المهندس المسؤول.</div>`; return; }
+      const v = r.view; box.innerHTML = head('كشف مصروفات · ' + esc(v.project), esc(v.client || '') + ' · MEC') + `<div class="card" style="border-radius:0 0 14px 14px">
+        <select class="in" id="clM">${(v.months.includes(v.month) ? v.months : [v.month].concat(v.months)).map(x => `<option ${x === v.month ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select>
+        ${v.kinds.map(k => `<div class="row" style="padding:6px 0;border-bottom:1px solid #EEF1F4"><span style="flex:1">${esc(k.k)}</span><b>${nf(k.v)} ج</b></div>`).join('') || '<p class="muted">مفيش مصروفات في الشهر ده</p>'}
+        ${v.pct ? `<div class="row" style="padding:6px 0"><span style="flex:1">نسبة الشركة ${v.pct}%</span><b>${nf(v.fee)} ج</b></div>` : ''}<div class="row" style="padding:8px 0;border-top:2px solid #1D2E4F"><b style="flex:1">الإجمالي</b><b>${nf(v.total)} ج</b></div>
+        ${v.bills.length ? `<h4 style="margin:12px 0 6px">📎 الفواتير (${v.bills.length})</h4>${v.bills.map(b => `<a href="${esc(b.url)}" target="_blank" rel="noopener" class="row" style="padding:6px 0;border-bottom:1px solid #EEF1F4;color:inherit;text-decoration:none"><span style="flex:1;font-size:13px">${esc(b.date)} · ${esc(b.desc)}</span><b style="font-size:13px">${nf(b.amount)}</b></a>`).join('')}` : ''}
+        <button class="btn ghost" onclick="print()" style="margin-top:10px">📄 PDF</button></div>`;
+      $('#clM').onchange = e => draw(e.target.value); }; draw(''); return; }
+  const r = await call('supLink'); if (!r.ok) { box.innerHTML = head('MEC · الشرق الأوسط للإنشاءات', '') + `<div class="card">الرابط ده مش شغال أو اتقفل.</div>`; return; }
+  const v = r.view;
+  const thanks = a => { box.innerHTML = head('شكرا 🙏', 'اتسجل ردك') + `<div class="card" style="border-radius:0 0 14px 14px"><div style="background:#E6F4EC;border:1px solid #BFE3CF;border-radius:10px;padding:10px">✓ وصل ردك يوم ${esc((a.at || '').slice(0, 10))}${a.when ? '<br>التوصيل: <b>' + esc(a.when) + '</b>' : ''}</div><p>${esc(v.by)} هيتواصل معاك.</p></div>`; };
+  if (v.answered) { thanks(v.answered); return; }
+  box.innerHTML = head('طلب من MEC · الشرق الأوسط للإنشاءات', 'من ' + esc(v.by)) + `<div class="card" style="border-radius:0 0 14px 14px"><p style="margin-top:0">أهلا ${esc(v.sup || '')} 👋 محتاجين الأصناف دي. اكتب سعر الوحدة وميعاد التوصيل:</p>
+    ${v.lines.map(l => `<div style="padding:8px 0;border-bottom:1px solid #EEF1F4"><b>${esc(l.mat)}</b> · ${nf(l.qty)} ${esc(l.unit)} <small class="muted">(${esc(l.proj)})</small><input class="in" data-sp="${esc(l.id)}" inputmode="decimal" placeholder="سعر الوحدة" style="margin-top:4px"></div>`).join('')}
+    <label class="f">يوصل إمتى؟</label><div class="chips" style="flex-wrap:wrap">${['النهارده', 'بكرة الصبح', 'بكرة بعد الضهر', 'بعد بكرة'].map(w => `<button class="chip" data-wh="${w}">${w}</button>`).join('')}</div><input class="in" id="spW" placeholder="أو اكتب الميعاد" style="margin-top:6px">
+    <input class="in" id="spN" placeholder="ملاحظة (اختياري)" style="margin-top:6px"><input class="in" id="spNm" value="${esc(v.sup || '')}" placeholder="اسمك / اسم المحل" style="margin-top:6px">
+    <button class="btn gold" id="spGo" style="margin-top:10px">ابعت الرد</button><div class="err" id="spE"></div></div>`;
+  document.querySelectorAll('[data-wh]').forEach(b => b.onclick = () => { $('#spW').value = b.dataset.wh; document.querySelectorAll('[data-wh]').forEach(x => x.classList.toggle('on', x === b)); });
+  $('#spGo').onclick = async () => { const prices = [...document.querySelectorAll('[data-sp]')].map(i => ({id: i.dataset.sp, price: Number(digits(i.value)) || 0})).filter(x => x.price > 0);
+    if (!prices.length && !$('#spW').value.trim()) { $('#spE').textContent = 'اكتب السعر أو الميعاد'; return; }
+    busy($('#spGo'), true); const a = await call('supAnswer', {prices, when: $('#spW').value.trim(), note: $('#spN').value.trim(), name: $('#spNm').value.trim()}); busy($('#spGo'), false);
+    if (!a.ok) { $('#spE').textContent = 'ما وصلش، جرّب تاني'; return; } thanks(a.view.answered || {}); };
+}
+
+/* ---------- الربط بباقي التطبيق ---------- */
+(function(){
+  const ex = SECTIONS.find(s => s.k === 'exp'); if (ex) { ex.live = true; ex.n = 'المشتريات والمصروفات'; }
+  KT.pur = '🛒 المشتريات'; KC.pur = '#2F6DB5';
+  const _home = homeView; homeView = function(){ const h = _home(); const add = purHome(); if (!add) return h; const i = h.indexOf('<h2 class="sec">'); return i < 0 ? h + add : h.slice(0, i) + add + h.slice(i); };
+  const _more = moreView; moreView = function(){ const m = _more(), mon = purMon() || (S.pur && S.pur.mon);
+    const add = (S.user.role !== 'contractor' ? `<button class="mi" id="moPur">🛒 كل الطلبات (كل المواقع)</button><button class="mi" id="moCust">💼 عهدتي وتقفيلة اليوم</button>` : '')
+      + (mon || role() === 'accountant' ? `<button class="mi" id="moLog">💬 سجل الصرف (كل المواقع)</button>` : '') + (mon ? `<button class="mi" id="moFlags">👁️ تستاهل نظرة</button>` : '');
+    return m.replace('<button class="mi" id="items">', add + '<button class="mi" id="items">'); };
+  const _ws = wireShell; wireShell = function(){ _ws(); const v = $('#view');
+    v.querySelectorAll('[data-sec="exp"]').forEach(b => b.onclick = () => purSheet(S.project));
+    const id = x => document.getElementById(x);
+    if (id('moPur')) id('moPur').onclick = () => purSheet('', 'all'); if (id('moCust')) id('moCust').onclick = custMe; if (id('moLog')) id('moLog').onclick = () => expChat(''); if (id('moFlags')) id('moFlags').onclick = flagsSheet;
+    wirePurHome(); purHomeLoad(); setTimeout(bioMust, 800); };
+  const _eus = editUserSheet; editUserSheet = function(u){ _eus(u); try { purUserExtras(u); } catch (e) {} };
+  const _ts = teamSheet; teamSheet = async function(){ await _ts(); const b = $('#sheetBody'); if (b && !$('#permBtn')) { b.insertAdjacentHTML('beforeend', `<button class="btn ghost" id="permBtn" style="margin-top:10px">🔐 مين يشوف إيه (جدول الصلاحيات)</button>`); $('#permBtn').onclick = permSheet; } };
+  const _ss = settingsSheet; settingsSheet = function(){ _ss(); try { purSettingsCard(); } catch (e) {} };
+  const _sync = syncAll; syncAll = async function(force, prog){ const r = await _sync(force, prog); if (navigator.onLine && S.session && S.user && S.user.role !== 'contractor') { await api('purBoard'); await api('custToday'); } return r; };
+  const _po = pushOpen; pushOpen = function(d){ const ref = String((d && d.ref) || '');
+    if (/^idea:/.test(ref) && typeof ideaView === 'function') { ideasLoad(true).then(() => ideaView(ref.slice(5))); return; }
+    if (ref === 'ideas' && typeof ideasSheet === 'function') { S.ideas = null; ideasSheet(); return; }
+    if (/^pur:/.test(ref)) { purSheet(ref.slice(4), ref.slice(4) ? 'open' : 'all'); return; }
+    if (/^exp:/.test(ref)) { expChat(ref.slice(4)); return; }
+    if (/^cust:/.test(ref)) { custMe(); return; }
+    if (/^sug:/.test(ref)) { S.purTried = false; S.tab = 'home'; S.project = null; render(); return; }
+    return _po(d); };
+  const _sh = sharedIn; sharedIn = async function(){
+    let files = []; try { const c = await caches.open('mec-share'), ks = await c.keys(); for (const k of ks) { const r = await c.match(k); files.push(await r.blob()); } } catch (e) {}
+    const img = files.find(f => /^image\//.test(f.type)); await _sh(); if (!img || !$('#sheetBody')) return;
+    const b64 = await shrinkImage(img, 1600), pc = S.project || ((S.pur || {}).mine || [])[0] || (S.projects.find(p => p.status === 'جاري') || {}).code || '';
+    const h = $('#sheetBody').querySelector('h2.sec'); if (!h) return;
+    h.insertAdjacentHTML('afterend', `<button class="btn gold" id="shBuy" style="margin-top:4px">🧾 فاتورة شراء (اشتريت)</button><button class="btn ghost" id="shExp" style="margin-top:8px">💬 مصروف</button>`);
+    $('#shBuy').onclick = async () => buyForm(pc, {photo: b64, hash: await sha(b64.slice(-20000))});
+    $('#shExp').onclick = async () => expForm(pc, {photo: b64, hash: await sha(b64.slice(-20000))});
+    setTimeout(() => { if ($('#shBuy') && navigator.onLine) { /* فاتورة جاية من الواتساب: نقراها على طول لو اختارها */ } }, 0); };
+})();
+async function purKamFill(F){
+  const el = $('#kmPur'); if (!el) return; const R = perRange(F);
+  const r = await api('purReport', {from: R.from, to: R.to, project: F.proj || ''}); if (!$('#kmPur')) return;
+  if (!r.ok) { el.innerHTML = esc(r.error === 'denied' ? 'المشتريات بالفلوس للي بيشوف الأسعار' : purErr(r)); return; }
+  const s = r.stats, bar = (L, mx) => L.map(x => `<div class="row" style="gap:8px;margin:4px 0"><span style="width:110px;font-size:12.5px">${esc(x.k)}</span><div style="flex:1;height:10px;background:#EEF1F4;border-radius:5px;overflow:hidden"><i style="display:block;height:100%;width:${mx ? Math.round(x.v / mx * 100) : 0}%;background:#2F6DB5"></i></div><small>${nf(x.v)}</small></div>`).join('');
+  el.innerHTML = `<div class="kcards">${kCard('#2F6DB5', 'طلبات', s.n, '')}${kCard('#2F6DB5', 'في ميعادها', s.onTime == null ? '—' : s.onTime, s.onTime == null ? '' : '%')}${kCard('#2F6DB5', 'من الطلب للشراء', s.lead == null ? '—' : s.lead, 'يوم')}${kCard('#2F6DB5', 'اتصرف', nf(s.total), 'ج')}${kCard('#1D9E75', 'وفّرنا بالنقل', nf(s.saved), 'ج')}${kCard('#E08A2E', 'مصروف حر', nf(s.free), 'ج')}</div>
+    <h4 style="margin:12px 0 4px">الصرف حسب النوع</h4>${bar(s.byKind, (s.byKind[0] || {}).v)}<h4 style="margin:12px 0 4px">حسب الشخص</h4>${bar(s.byPerson, (s.byPerson[0] || {}).v)}
+    ${s.byItem.length ? `<h4 style="margin:12px 0 4px">حسب البند</h4>${bar(s.byItem, (s.byItem[0] || {}).v)}` : ''}${!F.proj && s.byProj.length ? `<h4 style="margin:12px 0 4px">حسب الموقع</h4>${bar(s.byProj, (s.byProj[0] || {}).v)}` : ''}
+    ${s.top.length ? `<div class="sline">أكتر الأصناف: ${s.top.map(x => esc(x.mat) + ' (' + x.n + ')').join('، ')}</div>` : ''}${s.dupes ? `<div class="sline redd">🔴 تنبيهات تكرار: ${s.dupes}</div>` : ''}`;
+}
+
+
 /* ================= البداية ================= */
 (function boot(){
   const ct = new URLSearchParams(location.search).get('c');
   if (ct && /^[a-f0-9]{10,40}$/i.test(ct)) { S.publicMode = true; setTimeout(() => clientPage(ct), 0); return; }
+  const sl = new URLSearchParams(location.search).get('sl'), cl = new URLSearchParams(location.search).get('cl');   // 0.13: لينك المورد وكشف العميل
+  if (sl && /^[a-f0-9]{10,40}$/i.test(sl)) { S.publicMode = true; setTimeout(() => pubPage('sl', sl), 0); return; }
+  if (cl && /^[a-f0-9]{10,40}$/i.test(cl)) { S.publicMode = true; setTimeout(() => pubPage('cl', cl), 0); return; }
   const code = new URLSearchParams(location.search).get('invite');
   if (code) {
     S.invite = code; store.set('pendingInvite', code);
