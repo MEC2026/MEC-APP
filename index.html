@@ -304,8 +304,8 @@ main.vin{animation:vin .22s ease-out}@keyframes vin{from{opacity:.4;transform:tr
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.16.1';
-const APP_NOTES = ["📐 الحصر: ح1 بقت الحيطة اللي فيها باب الأوضة، و📷 صورة لكل أوضة، و🎤 «نوم 4 في 3.5 ارتفاع 3»، والباب المشترك بيتحط لوحده في الأوضة التانية.", "✍️ البند العام المقفول: لينك للعميل يوقّع على الكمية من غير دخول.", "📊 لوحة المالك: ترتيب الكروت ▲▼، والفلوس المطلوبة من الجدول × المعدلات، و⏳ التأخير المتوقع لكل مقاول.", "📒 تقرير المحاسب كامل: التكلفة وWIP، وتسوية العهد، ولينا وعلينا بالأعمار، ودفتر اليومية.", "🏪 الموردين والهالك، و🖨️ نماذج الورق (إيصال، استلام خامات، تسليم، طلب استلام)، و⏰ إيجار المعدات وتنبيهات الانتهاء.", "🤖 التقرير الذكي بيوصلك كل خميس 8 بالليل، و📝 «عندك متعلقين» بيفتح الفورمة نفسها."];
+const APP_VERSION = '0.17.0';
+const APP_NOTES = ["🧾 الحصر بقى فيه كل بنود الشقة بالأقسام: هدم، ومباني، ومحارة ومناطق، وأطقم، وكهرباء وتكييف وشبكة، وعزل، وكرانيش، و60×60، ونجارة بالنوع، وشيش وناموسية، وبنود الشقة.", "✓ «اللي خلص» تحت كل أوضة، و«فاضل…»، والمنفذ والباقي في جدول الكميات.", "⚠️ التنبيهات المفتوحة: كمية عدّت المقايسة، أو بند خسران، أو هالك، أو تأخير مقاول، ومحدش يقفلها غير المالك.", "💰 تكلفة كل أوضة، و📅 مواعيد طلب الخامات، و🎨 اختيارات العميل لكل أوضة (لينك أو «العميل وافق»).", "📐 ملف الأوتوكاد بيتحفظ في درايف «MEC أوتوكاد» وبيتبعت واتساب، والكلام العربي بخط سوسة.", "👷 المقاول بيشوف في لينكه: فاضل كام ومحتاج كام في اليوم عشان يلحق."];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
 
@@ -697,7 +697,7 @@ function homeView(){
       ...locked.map(u => `<button class="li" data-team="1"><span class="ico">${ic('shield')}</span><span class="t"><b>حساب ${esc(dn(u))} اتقفل</b><small>محاولات رقم سري غلط. افتحه من الفريق</small></span><span class="pill p-bad">مقفول</span></button>`),
       ...waiting.map(u => `<button class="li" data-team="1"><span class="ico">${ic('users')}</span><span class="t"><b>${esc(dn(u))} لسه ما فعّلش حسابه</b><small>ابعتله لينك جديد لو اللي معاه ضاع</small></span><span class="pill p-warn">مستني</span></button>`)
     ].join('');
-    return news + (['owner','manager','accountant'].includes(role()) ? `<button class="card dsHome" id="dsOpen"><span style="font-size:26px">📊</span><span style="flex:1"><b>لوحة المالك</b><small class="muted" style="display:block">الموقع النهارده · المشاريع · الفلوس المطلوبة · المخاطر · التقارير</small></span><span class="muted">‹</span></button>` : '') + (typeof setupHome === 'function' ? setupHome() : '') + (typeof nightHome === 'function' ? nightHome() : '') + ideasHome() + supplyCards() + duesCard() + draftsHome() + expHome() + savedHome() + `
+    return news + (typeof alertsBar === 'function' ? alertsBar('') : '') + (['owner','manager','accountant'].includes(role()) ? `<button class="card dsHome" id="dsOpen"><span style="font-size:26px">📊</span><span style="flex:1"><b>لوحة المالك</b><small class="muted" style="display:block">الموقع النهارده · المشاريع · الفلوس المطلوبة · المخاطر · التقارير</small></span><span class="muted">‹</span></button>` : '') + (typeof setupHome === 'function' ? setupHome() : '') + (typeof nightHome === 'function' ? nightHome() : '') + ideasHome() + supplyCards() + duesCard() + draftsHome() + expHome() + savedHome() + `
     <h2 class="sec">المشاريع <button class="more" data-t2="projects">الكل</button></h2>
     ${S.projects.length ? statCards() : `<div class="card empty">${ic('folder')}<div>مفيش مشاريع لسه</div><button class="btn gold" id="newProj" style="margin-top:12px">${ic('plus')} مشروع جديد</button></div>`}
     ${act ? `<h2 class="sec">${ic('alert')} محتاج تتصرف فيه</h2>${act}` : ''}
@@ -705,7 +705,7 @@ function homeView(){
     ${recent.length ? `<h2 class="sec">آخر دخول <button class="more" id="openLog">سجل النشاط</button></h2>
       <div class="card" style="padding:4px 14px">${recent.map(u => `<div class="mi" style="font-weight:400"><span style="flex:1"><b style="font-weight:600">${esc(dn(u))}</b></span><small class="muted">${ago(u.last)}</small></div>`).join('')}</div>` : ''}`;
   }
-  return news + (['owner','manager','accountant'].includes(role()) ? `<button class="card dsHome" id="dsOpen"><span style="font-size:26px">📊</span><span style="flex:1"><b>لوحة المالك</b><small class="muted" style="display:block">الموقع النهارده · المشاريع · الفلوس المطلوبة · المخاطر · التقارير</small></span><span class="muted">‹</span></button>` : '') + (typeof setupHome === 'function' ? setupHome() : '') + supplyCards() + quickHome() + draftsHome() + (['engineer'].includes(role()) ? expHome() : '') + savedHome() + `
+  return news + (typeof alertsBar === 'function' ? alertsBar('') : '') + (['owner','manager','accountant'].includes(role()) ? `<button class="card dsHome" id="dsOpen"><span style="font-size:26px">📊</span><span style="flex:1"><b>لوحة المالك</b><small class="muted" style="display:block">الموقع النهارده · المشاريع · الفلوس المطلوبة · المخاطر · التقارير</small></span><span class="muted">‹</span></button>` : '') + (typeof setupHome === 'function' ? setupHome() : '') + supplyCards() + quickHome() + draftsHome() + (['engineer'].includes(role()) ? expHome() : '') + savedHome() + `
     <h2 class="sec">مشاريعي</h2>
     ${S.projects.length ? S.projects.filter(p => p.status !== 'انتهى').map(p => projectCard(p)).join('') : emptyBox('folder','مفيش مشاريع متسجلة عليك لسه')}
     <h2 class="sec">ملاحظة سريعة</h2>
@@ -773,6 +773,7 @@ function projectView(){
   return `
   <button class="row muted" id="back" style="margin-bottom:10px">${ic('arrowR')} المشاريع</button>
   ${projectCard(p, true, acts)}
+  ${typeof alertsBar === 'function' ? alertsBar(p.code) : ''}
   ${lifeCard(p)}
   ${typeof siteCard === 'function' ? siteCard(p) : ''}
   <h2 class="sec">أقسام المشروع</h2>
@@ -2856,7 +2857,7 @@ function wireShell(){
   if (id('reports')) id('reports').onclick = reportsSheet;
   /* تحديث من جوجل في الخلفية */
   loadProjects(); loadNotes().then(() => { bigNote(); if (S.tab === 'home' && !S.project && (S.notes || []).some(n => !n.read && n.type === 'توريدات') && !$('[data-scx],[data-scgo]') && !$('#sheet').classList.contains('on')) render(); }); flushAtt(); flushOut().then(() => syncAll(false)); qCount(); offBar(); setTimeout(sunHint, 1500); resumePay(); resumeTopup(); if (isBoss()) loadDuesHome(); if (S.tab === 'home' && !S.project && ['engineer','supervisor','supervisor2'].includes(role())) quickStatus();
-  if (typeof wxLoad === 'function' && !S.wxTried) { S.wxTried = true; setTimeout(() => { wxLoad(); expLoad(); }, 2500); }
+  if (typeof wxLoad === 'function' && !S.wxTried) { S.wxTried = true; setTimeout(() => { wxLoad(); expLoad(); if (typeof alertsLoad === 'function') alertsLoad(); }, 2500); }
   if (isBoss() && S.tab === 'home' && !S.project && !S.teamLoaded) { S.teamLoaded = true; loadTeam().then(() => { if (S.tab === 'home' && !S.project && !$('#sheet').classList.contains('on')) render(); }); }
 }
 
@@ -5946,7 +5947,7 @@ const _rawToast = toast; toast = function(m){ _rawToast(m); const s = String(m |
 .bub{background:#EEF1F4;border-radius:14px 14px 14px 3px;padding:8px 11px;margin:6px 0;max-width:90%;font-size:13.5px;text-align:start;display:block;width:fit-content}
 .bub.me{background:#E8F0FB;margin-inline-start:auto;border-radius:14px 14px 3px 14px}.bub.fl{background:#FFF6F5}.bub.cx{opacity:.55;text-decoration:line-through}
 .bub small{display:block;color:var(--muted);font-size:11.5px}.daysep{text-align:center;font-size:11.5px;color:var(--muted);margin:10px 0 2px}
-.dsc{padding:10px 12px;margin-top:8px}.dsbig{font-size:22px;font-weight:800;color:var(--navy,#1D2E4F);line-height:1.3}.dsbig small{font-size:12.5px;font-weight:500;color:var(--muted)}.dsl{font-size:13px;margin-top:3px;line-height:1.6}.dsd{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 2px;vertical-align:middle}.dsHome{display:flex;align-items:center;gap:10px;width:100%;text-align:right;font:inherit;margin-bottom:10px;border:1px solid var(--line)}.wx{display:flex;flex-wrap:wrap;gap:4px 14px;background:#16233D;color:#DCE3EE;font-size:11.5px;padding:3px 14px 4px;position:relative;z-index:1}.wx:empty{display:none}.gnum{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#E8F0FB;color:var(--pri);font-weight:800;font-size:12.5px;margin-inline-end:8px}.tkbt{position:sticky;bottom:0;display:flex;gap:4px;background:var(--card,#fff);border-top:1px solid var(--line);padding:6px 0;margin-top:12px}.tkbt button{flex:1;border:0;background:none;padding:8px 2px;font:inherit;font-size:13px;color:var(--muted);border-radius:10px}.tkbt button.on{background:#E8F0FB;color:var(--pri);font-weight:700}.tqr{border-bottom:1px solid var(--line);padding:8px 2px}.kpill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:11.5px;font-weight:600}.tgrow{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-top:8px}.sec-t{font-weight:700;font-size:13.5px;margin:6px 0 2px}table.kt{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}table.kt td,table.kt th{border-bottom:1px solid var(--line);padding:5px 3px;text-align:center}table.kt th{color:var(--muted);font-weight:600}
+.dsc{padding:10px 12px;margin-top:8px}.dsbig{font-size:22px;font-weight:800;color:var(--navy,#1D2E4F);line-height:1.3}.dsbig small{font-size:12.5px;font-weight:500;color:var(--muted)}.dsl{font-size:13px;margin-top:3px;line-height:1.6}.dsd{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 2px;vertical-align:middle}.dsHome{display:flex;align-items:center;gap:10px;width:100%;text-align:right;font:inherit;margin-bottom:10px;border:1px solid var(--line)}.wx{display:flex;flex-wrap:wrap;gap:4px 14px;background:#16233D;color:#DCE3EE;font-size:11.5px;padding:3px 14px 4px;position:relative;z-index:1}.wx:empty{display:none}.gnum{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#E8F0FB;color:var(--pri);font-weight:800;font-size:12.5px;margin-inline-end:8px}.alBar{display:block;width:100%;text-align:right;font:inherit;background:#FFF4F2;border:1px solid #F2C2BB;color:#8A1F17;margin-bottom:10px;padding:10px 12px}.alBar small{color:#8A1F17;opacity:.85}.tkbt{position:sticky;bottom:0;display:flex;gap:4px;background:var(--card,#fff);border-top:1px solid var(--line);padding:6px 0;margin-top:12px}.tkbt button{flex:1;border:0;background:none;padding:8px 2px;font:inherit;font-size:13px;color:var(--muted);border-radius:10px}.tkbt button.on{background:#E8F0FB;color:var(--pri);font-weight:700}.tqr{border-bottom:1px solid var(--line);padding:8px 2px}.kpill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:11.5px;font-weight:600}.tgrow{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-top:8px}.sec-t{font-weight:700;font-size:13.5px;margin:6px 0 2px}table.kt{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}table.kt td,table.kt th{border-bottom:1px solid var(--line);padding:5px 3px;text-align:center}table.kt th{color:var(--muted);font-weight:600}
 .kps{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:6px}.kp{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 6px;text-align:center}.kp small{display:block;color:var(--muted);font-size:11.5px}.kp b{font-size:15px}
 .seg{display:flex;background:#EEF1F4;border-radius:10px;padding:3px;margin-top:8px}.seg button{flex:1;border:0;background:none;padding:7px;border-radius:8px;font-weight:600;font-size:13px}.seg button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .fpan{margin-top:8px;background:#F8FAFD}
@@ -7258,6 +7259,7 @@ function noteGo(n){
   const ref = String(n.ref || ''), ty = String(n.type || ''), p = ref && findProject(ref.split(':')[0]) ? findProject(ref.split(':')[0]) : null;
   if (/^(pur|exp|cust|sug|idea):|^ideas$/.test(ref)) return pushOpen({ref});
   if (/^est:/.test(ref)) return estOpen(ref.slice(4));
+  if (/^al:/.test(ref) && typeof alertsSheet === 'function') return alertsLoad(true).then(() => alertsSheet(ref.slice(3)));
   if (/^del:/.test(ref)) return canPay() ? pendingSupplySheet() : supplySheet(S.project || '');
   if (/^sup:/.test(ref)) { const c = ref.split(':')[1]; return /:empty$/.test(ref) && typeof supplyChoice === 'function' ? supplyChoice(c) : supplySheet(c); }
   if (ref === 'supall') return supplySheet('');
@@ -7571,6 +7573,7 @@ async function kPubPage(kind, tok){
   box.innerHTML = hd('حساب ' + r.name) + `<div style="padding:14px">${r.projects.map(p => `<h4 style="margin:10px 0 4px">${esc(p.name)}</h4>
     ${p.card.money ? row('قيمة اللي اتعمل', nf(p.card.money.done) + ' ج') + row('اتقبض', nf(p.card.money.paid) + ' ج') + row('سلف', nf(p.card.money.adv) + ' ج') + row('محتجز', nf(p.card.money.ret) + ' ج') : ''}
     ${row('منفذ الأسبوع ده', nf(p.card.week.qty) + ' ' + esc(p.card.week.unit))}
+    ${(p.pace || []).map(x => `<div style="background:${x.late ? '#FBEFEF' : '#EEF6F1'};border-radius:10px;padding:8px 10px;margin-top:6px;font-size:13.5px"><b>${x.late ? '⏳' : '✓'} ${esc(x.item)}${x.sub ? ' · ' + esc(x.sub) : ''}</b><br>${esc(x.msg)}</div>`).join('')}
     ${p.card.pending.length ? '<div style="margin-top:6px"><b>مستني استلام</b>' + p.card.pending.map(x => row(esc(x.name), nf(x.qty))).join('') + '</div>' : ''}
     ${p.exts.map(e => `<div style="border:1px solid #ddd;border-radius:10px;padding:8px;margin:6px 0"><b>مستخلص ${e.no}</b> · ${esc(e.st)} · لحد ${esc(e.to)}${e.lines.map(l => row(esc(l.name), nf(l.cur) + ' (الإجمالي ' + nf(l.tot) + ')')).join('')}
       ${e.pays.filter(x => x.type === 'دفع').map(x => row(esc(x.date) + ' · ' + esc(x.method || '') + (x.note ? ' · ' + esc(x.note) : ''), nf(x.amount))).join('')}${row('<b>الصافي</b>', nf(Math.round(e.net)) + ' ج')}</div>`).join('')}
@@ -7595,7 +7598,7 @@ const TK_ELEC = {'نوم': 8, 'صالة': 12, 'حمام': 4, 'مطبخ': 10, 'ط
 const tkWet = r => r.type === 'حمام' || r.type === 'مطبخ';
 const tkN = v => { const n = Number(digits(String(v == null ? '' : v)).replace(/[٫,]/g, '.')); return isFinite(n) ? n : 0; };
 const tkId = p => p + Math.random().toString(36).slice(2, 9);
-function tkCfg(){ return Object.assign({minDed: 0.5, sillOver: 0.05, wallIn: 0.12, wallOut: 0.25}, store.get('tkCfg', {})); }
+function tkCfg(){ return Object.assign({minDed: 0.5, sillOver: 0.05, wallIn: 0.12, wallOut: 0.25, wpUp: 0.3, sub: 'سيلف ليفلينج', lead: 7}, store.get('tkCfg', {})); }
 function tkGeom(r){
   const parts = (r.parts || []).filter(p => p.l > 0 && p.w > 0);
   let area, perim, walls, bw, bh;
@@ -7639,44 +7642,108 @@ function tkCheck(r, apt){
   const ign = r.ign || []; return {err, warn: warn.filter(w => !ign.includes(w)), g};
 }
 // كميات الأوضة: كل سطر {key, name, unit, qty, place, calc}
-function tkRoomQty(r, apt, cfg){
+// ===== 0.17: كتالوج بنود الحصر بالأقسام (أكواد الشركة). how: أوتو = من المقاسات · قالب = بالعدد من نوع الأوضة · إيد = بتكتبه · شقة = مرة للشقة =====
+const TK_CAT = [
+  {s: 'DM', n: 'هدم', items: [['demoSan', 'فك صحي', 'عدد', 'إيد'], ['demoTile', 'فك وتكسير بلاط', 'م²', 'إيد'], ['demoWall', 'هدم حوائط', 'م²', 'إيد']]},
+  {s: 'BR', n: 'مباني', items: [['brick', 'مباني طوب', 'م²', 'أوتو أو إيد']]},
+  {s: 'PL', n: 'محارة', items: [['plaster', 'محارة حوائط وأسقف', 'م²', 'أوتو أو مناطق'], ['repair', 'ترميم محارة', 'م²', 'مناطق']]},
+  {s: 'PB', n: 'صحي', items: [['plumb', 'نقط سباكة', 'نقطة', 'قالب'], ['pbLump', 'تأسيس تغذية وصرف', 'مقطوعية', 'لكل حمام ومطبخ'], ['fix', 'أطقم وأحواض وخلاطات', 'عدد', 'قالب'], ['tank', 'خزان وطلمبة', 'عدد', 'شقة'], ['heater', 'سخان', 'عدد', 'شقة']]},
+  {s: 'EL', n: 'كهرباء', items: [['elec', 'نقط كهرباء', 'نقطة', 'قالب'], ['ac', 'نقط تكييف', 'نقطة', 'قالب'], ['net', 'نقط شبكة CAT6', 'نقطة', 'قالب'], ['dish', 'نقط دش', 'نقطة', 'قالب'], ['spot', 'سبوتات', 'عدد', 'إيد'], ['panel', 'لوحة توزيع', 'عدد', 'شقة']]},
+  {s: 'IN', n: 'عزل', items: [['wp', 'عزل حمامات ومطابخ وبلكونات', 'م²', 'أوتو'], ['flood', 'اختبار غمر', 'عدد', 'أوتو']]},
+  {s: 'CR', n: 'أرضيات وسيراميك', items: [['floor', 'أرضيات', 'م²', 'أوتو'], ['walltile', 'سيراميك حوائط', 'م²', 'أوتو'], ['skirt', 'وزرة', 'م.ط', 'أوتو'], ['slope', 'ميول', 'م²', 'أوتو'], ['sub', 'تحت الأرضية (HDF/SPC/باركيه)', 'م²', 'أوتو']]},
+  {s: 'MR', n: 'رخام', items: [['thr', 'عتب', 'م.ط', 'أوتو'], ['sill', 'جلسات', 'م.ط', 'أوتو']]},
+  {s: 'GY', n: 'جبس', items: [['gyps', 'سقف جبس معلق', 'م²', 'لو اخترته'], ['nur', 'بيت نور', 'م.ط', 'إيد'], ['cur', 'بيت ستارة', 'م.ط', 'إيد'], ['cornice', 'كرانيش', 'م.ط', 'أوتو (المحيط)'], ['t60', 'سقف بلاطات 60×60', 'م²', 'لو اخترته'], ['access', 'باب كشف', 'عدد', 'إيد']]},
+  {s: 'DH', n: 'دهانات', items: [['wall', 'دهان حوائط', 'م²', 'أوتو'], ['ceil', 'دهان أسقف', 'م²', 'أوتو'], ['panels', 'بانوهات حوائط', 'م.ط', 'إيد']]},
+  {s: 'WD', n: 'نجارة', items: [['door', 'أبواب (بالنوع)', 'عدد', 'أوتو'], ['frame', 'حلوق', 'عدد', 'أوتو'], ['kitchen', 'مطبخ خلايا', 'م.ط', 'إيد'], ['ward', 'دواليب', 'م²', 'إيد'], ['aptDoor', 'باب شقة', 'عدد', 'شقة']]},
+  {s: 'AL', n: 'ألوميتال', items: [['win', 'شبابيك (عدد)', 'عدد', 'أوتو'], ['winm2', 'شبابيك (متر مسطح)', 'م²', 'أوتو'], ['shut', 'شيش حصيرة', 'م²', 'من الشبابيك'], ['mesh', 'ناموسية', 'م²', 'من الشبابيك'], ['rail', 'درابزين', 'م.ط', 'إيد']]},
+  {s: 'OT', n: 'أخرى', items: [['protect', 'حماية أرضيات', 'م²', 'شقة'], ['clean', 'تنظيف نهائي', 'م²', 'شقة'], ['debris', 'نقل مخلفات', 'مقطوعية', 'شقة']]}
+];
+const TK_KEYS = TK_CAT.flatMap(c => c.items.map(i => i[0]));
+const TK_DEF = ['floor', 'walltile', 'wall', 'ceil', 'plaster', 'skirt', 'thr', 'sill', 'door', 'win', 'elec', 'plumb', 'slope', 'gyps', 'nur', 'cur', 'fix', 'pbLump', 'wp', 'flood', 'frame', 'winm2', 'sub'];
+const tkSec = k => (TK_CAT.find(c => c.items.some(i => i[0] === k)) || {s: 'OT'}).s;
+const tkSel = T => (T && T.map && Array.isArray(T.map._sel)) ? T.map._sel : TK_DEF;
+const TK_FIX = {'حمام': {'قاعدة': 1, 'حوض': 1, 'شاور': 1, 'خلاط': 2, 'إكسسوار (طقم)': 1, 'بانيو': 0, 'بيديه': 0}, 'مطبخ': {'حوض مطبخ': 1, 'خلاط مطبخ': 1}};
+const TK_AC = {'نوم': 1, 'صالة': 2, 'أوضة': 1}, TK_NET = {'نوم': 1, 'صالة': 1, 'أوضة': 1}, TK_DISH = {'صالة': 1};
+const TK_DTYPES = ['خشب', 'WPC', 'HPL', 'ألوميتال', 'باب شقة'];
+const tkSubFloor = f => /HDF|SPC|باركيه|فينيل/i.test(f || '');
+const tkAreas = L => (L || []).reduce((s, a) => s + tkN(a.l) * tkN(a.w), 0);
+function tkRoomQty(r, apt, cfg, sel){
   const c = tkCheck(r, apt); if (c.err.length) return {lines: [], bad: true};
-  const g = c.g, H = r.h, L = [], add = (key, name, unit, qty, calc) => { if (qty > 0.0001) L.push({key, name, unit, qty: Math.round(qty * 100) / 100, place: r.name, calc}); };
+  const on = k => (!sel || sel.includes(k)) && !(r.off || []).includes(k);
+  const g = c.g, H = r.h, L = [], add = (key, name, unit, qty, calc) => { if (qty > 0.0001 && on(key.split(':')[0])) L.push({key, name, unit, qty: Math.round(qty * 100) / 100, place: r.name, calc, done: (r.done || {})[key] || ''}); };
   const ex = r.ex || {}, beams = (ex.beams || []).reduce((s, b) => s + 2 * (b.l || 0) * (b.d || 0), 0), cols = (ex.cols || []).reduce((s, b) => s + 2 * (b.d || 0) * H, 0);
   const ops = (r.openings || []).map(o => ({o, a: o.w * o.h * (o.n || 1), dep: o.dep || (cfg.wallIn), sh: o.shared ? 0.5 : 1}));
   const ded = ops.reduce((s, x) => s + (x.o.w * x.o.h >= cfg.minDed ? x.a : 0), 0);
   const rev = ops.reduce((s, x) => s + (x.o.kind === 'door' ? 0 : (2 * x.o.h + x.o.w) * x.dep / 2 * (x.o.n || 1)), 0);   // تلابيس الشباك نص سمك الحيطة جوه، والباب الحلق بيغطيه
-  const gross = g.perim * H + cols, net = Math.max(0, gross - ded + rev);
-  if (r.floor) add('floor:' + r.floor, 'أرضيات ' + r.floor, 'م²', g.area, `${n1(g.bw, 2)} × ${n1(g.bh, 2)}`);
-  const th = tkWet(r) && r.tile !== 'none' ? (r.tile === 'full' || !r.tile ? H : Math.min(H, tkN(r.tile))) : 0;
+  const gross = g.perim * H + cols, net = Math.max(0, gross - ded + rev), wet = tkWet(r), num = (v, d) => v != null && v !== '' ? tkN(v) : d;
+  // هدم
+  add('demoSan', 'فك صحي', 'عدد', tkN(ex.demoSan), 'معدود'); add('demoTile', 'فك وتكسير بلاط', 'م²', tkN(ex.demoTile), ''); add('demoWall', 'هدم حوائط', 'م²', tkN(ex.demoWall), '');
+  // مباني: الأوضة كلها أو حيطان جديدة بس
+  const bm = (ex.brick || {}).mode || 'none';
+  if (bm === 'all') add('brick', 'مباني طوب', 'م²', Math.max(0, g.perim * H - ded), `محيط ${n1(g.perim, 2)} × ${H} − فتحات ${n1(ded, 2)}`);
+  else if (bm === 'walls') add('brick', 'مباني طوب', 'م²', ((ex.brick || {}).walls || []).reduce((s, w) => s + tkN(w.l) * tkN(w.h), 0), ((ex.brick || {}).walls || []).map(w => w.l + '×' + w.h).join(' + '));
+  // محارة: الأوضة كلها أو مناطق
+  if ((ex.plMode || 'all') === 'areas') add('plaster', 'محارة حوائط وأسقف', 'م²', tkAreas(ex.plAreas), (ex.plAreas || []).map(a => (a.d || '') + ' ' + a.l + '×' + a.w).join(' + '));
+  else add('plaster', 'محارة حوائط وأسقف', 'م²', net + g.area + beams, `حوائط ${n1(net, 2)} + سقف ${n1(g.area + beams, 2)}`);
+  add('repair', 'ترميم محارة', 'م²', tkAreas(ex.rep), (ex.rep || []).map(a => (a.d || '') + ' ' + a.l + '×' + a.w).join(' + '));
+  // صحي
+  if (TK_PLUMB[r.type] || ex.plumb) add('plumb', 'نقط سباكة', 'نقطة', num(ex.plumb, TK_PLUMB[r.type]), ex.plumb != null && ex.plumb !== '' ? 'معدودة' : 'من القالب');
+  if (wet) add('pbLump', 'تأسيس تغذية وصرف ' + r.type, 'مقطوعية', 1, r.name);
+  const fx = Object.assign({}, TK_FIX[r.type] || {}, ex.fix || {}); Object.keys(fx).forEach(f => add('fix:' + f, f, 'عدد', tkN(fx[f]), ex.fix && ex.fix[f] != null ? 'معدود' : 'من القالب'));
+  // كهرباء
+  add('elec', 'نقط كهرباء', 'نقطة', num(ex.elec, TK_ELEC[r.type] || 0), ex.elec != null && ex.elec !== '' ? 'معدودة' : 'من القالب');
+  add('ac', 'نقط تكييف', 'نقطة', num(ex.ac, TK_AC[r.type] || 0), ex.ac != null && ex.ac !== '' ? 'معدودة' : 'من القالب');
+  add('net', 'نقط شبكة CAT6', 'نقطة', num(ex.net, TK_NET[r.type] || 0), ex.net != null && ex.net !== '' ? 'معدودة' : 'من القالب');
+  add('dish', 'نقط دش', 'نقطة', num(ex.dish, TK_DISH[r.type] || 0), ex.dish != null && ex.dish !== '' ? 'معدودة' : 'من القالب');
+  add('spot', 'سبوتات', 'عدد', tkN(ex.spot), '');
+  // عزل: الأرضية + طلعة على الحيطة (30 سم ⚙️)، واختبار غمر
+  if (wet || r.type === 'بلكونة') { add('wp', 'عزل ' + r.type, 'م²', g.area + (g.perim - ops.filter(x => x.o.kind === 'door').reduce((s, x) => s + x.o.w, 0)) * cfg.wpUp, `${n1(g.area, 2)} + محيط × ${cfg.wpUp}`); add('flood', 'اختبار غمر', 'عدد', 1, r.name); }
+  // أرضيات وسيراميك
+  if (r.floor) { add('floor:' + r.floor, 'أرضيات ' + r.floor, 'م²', g.area, `${n1(g.bw, 2)} × ${n1(g.bh, 2)}`); if (tkSubFloor(r.floor)) add('sub:' + (cfg.sub || 'سيلف ليفلينج'), 'تحت الأرضية: ' + (cfg.sub || 'سيلف ليفلينج'), 'م²', g.area, r.floor); }
+  const th = wet && r.tile !== 'none' ? (r.tile === 'full' || !r.tile ? H : Math.min(H, tkN(r.tile))) : 0;
   if (th > 0) { const below = ops.reduce((s, x) => s + x.o.w * Math.max(0, Math.min(th, (x.o.sill || 0) + x.o.h) - (x.o.sill || 0)) * (x.o.n || 1), 0);
     add('walltile:' + (r.wallTile || 'سيراميك حوائط'), (r.wallTile || 'سيراميك حوائط') + ' (' + r.type + ')', 'م²', g.perim * th - below + rev * th / H, `محيط ${n1(g.perim, 2)} × ${th}`);
     if (H - th > 0.05 && r.wallPaint && r.wallPaint !== 'بدون') add('wall:' + r.wallPaint, 'دهان حوائط ' + r.wallPaint, 'م²', Math.max(0, g.perim * (H - th) - (ded - below)), `محيط ${n1(g.perim, 2)} × ${n1(H - th, 2)}`); }
   else if (r.wallPaint && r.wallPaint !== 'بدون') add('wall:' + r.wallPaint, 'دهان حوائط ' + r.wallPaint, 'م²', net, `محيط ${n1(g.perim, 2)} × ${H} − ${n1(ded, 2)} فتحات + ${n1(rev, 2)} تلابيس`);
   if (r.ceilPaint && r.ceilPaint !== 'بدون') add('ceil:' + r.ceilPaint, 'دهان أسقف ' + r.ceilPaint, 'م²', g.area + beams, `${n1(g.area, 2)} + كمرات ${n1(beams, 2)}`);
-  add('plaster', 'محارة حوائط وأسقف', 'م²', net + g.area + beams, `حوائط ${n1(net, 2)} + سقف ${n1(g.area + beams, 2)}`);
+  add('panels', 'بانوهات حوائط', 'م.ط', tkN(ex.panels), '');
   const doorsW = ops.filter(x => x.o.kind === 'door').reduce((s, x) => s + x.o.w * (x.o.n || 1), 0);   // الباب المشترك بيتخصم من وزرة الأوضتين
   if (!th && r.floor) add('skirt', 'وزرة', 'م.ط', g.perim - doorsW, `محيط ${n1(g.perim, 2)} − أبواب ${n1(doorsW, 2)}`);
-  ops.forEach(x => { const o = x.o, n = (o.n || 1);
-    if (o.kind === 'door') { if (!o.shared || o.own) { add('door:' + (o.code || o.w + '×' + o.h), 'باب ' + (o.code || '') + ' ' + o.w + '×' + o.h, 'عدد', n, ''); add('thr', 'عتب رخام', 'م.ط', o.w * n, `عرض ${o.w} × عمق ${x.dep}`); } }
-    else { add('win:' + (o.code || o.w + '×' + o.h), 'شباك ' + (o.code || '') + ' ' + o.w + '×' + o.h, 'عدد', n, ''); add('sill', 'جلسات رخام', 'م.ط', (o.w + 2 * cfg.sillOver) * n, `${o.w} + ${cfg.sillOver * 2} زيادة · عمق ${x.dep}`); } });
-  add('elec', 'نقط كهرباء', 'نقطة', ex.elec != null && ex.elec !== '' ? tkN(ex.elec) : (TK_ELEC[r.type] || 0), ex.elec != null && ex.elec !== '' ? 'معدودة' : 'من القالب');
-  if (TK_PLUMB[r.type] || ex.plumb) add('plumb', 'نقط سباكة', 'نقطة', ex.plumb != null && ex.plumb !== '' ? tkN(ex.plumb) : TK_PLUMB[r.type], '');
   if (r.slope ?? (r.type === 'حمام' || r.type === 'بلكونة')) add('slope', 'ميول أرضيات', 'م²', g.area, '');
+  // جبس
   if (ex.ceil && ex.ceil.on) { add('gyps', 'سقف جبس معلق', 'م²', g.area, ''); if (ex.ceil.nur) add('nur', 'بيت نور', 'م.ط', tkN(ex.ceil.nur), ''); if (ex.ceil.cur) add('cur', 'بيت ستارة', 'م.ط', tkN(ex.ceil.cur), ''); }
+  if (!wet && r.type !== 'بلكونة') add('cornice', 'كرانيش', 'م.ط', g.perim, `محيط ${n1(g.perim, 2)}`);
+  if (ex.t60) add('t60', 'سقف بلاطات 60×60', 'م²', g.area, '');
+  add('access', 'باب كشف', 'عدد', tkN(ex.access), '');
+  // نجارة وألوميتال
+  ops.forEach(x => { const o = x.o, n = (o.n || 1);
+    if (o.kind === 'door') { if (!o.shared || o.own) { const dt = o.dtype || 'خشب'; add('door:' + dt + ':' + (o.code || o.w + '×' + o.h) + (o.model ? ':' + o.model : ''), 'باب ' + dt + ' ' + (o.code || '') + ' ' + o.w + '×' + o.h + (o.model ? ' · ' + o.model : ''), 'عدد', n, ''); add('thr', 'عتب رخام', 'م.ط', o.w * n, `عرض ${o.w} × عمق ${x.dep}`); if (dt !== 'ألوميتال') add('frame', 'حلق باب', 'عدد', n, o.code || ''); } }
+    else { const ar = o.w * o.h * n; add('win:' + (o.code || o.w + '×' + o.h), 'شباك ' + (o.code || '') + ' ' + o.w + '×' + o.h, 'عدد', n, ''); add('winm2', 'شبابيك ألوميتال', 'م²', ar, `${o.w}×${o.h}${n > 1 ? '×' + n : ''}`);
+      add('sill', 'جلسات رخام', 'م.ط', (o.w + 2 * cfg.sillOver) * n, `${o.w} + ${cfg.sillOver * 2} زيادة · عمق ${x.dep}`); if (o.shut) add('shut', 'شيش حصيرة', 'م²', ar, o.code || ''); if (o.mesh) add('mesh', 'ناموسية', 'م²', ar, o.code || ''); } });
+  add('kitchen', 'مطبخ خلايا', 'م.ط', tkN(ex.kitchen), ''); add('ward', 'دواليب', 'م²', tkN(ex.ward), ''); add('rail', 'درابزين', 'م.ط', tkN(ex.rail), '');
   return {lines: L, bad: false};
 }
-// تجميع: كل الشقق (أو نطاق) + البنود العامة
+// بنود الشقة مرة واحدة: اللوحة والخزان والسخان وباب الشقة + الحماية والتنظيف من مساحة الأرضيات
+function tkAptQty(a, sel){
+  const on = k => !sel || sel.includes(k), ex = a.ex || {}, L = [], add = (key, name, unit, qty, calc) => { if (qty > 0.0001 && on(key)) L.push({key, name, unit, qty: Math.round(qty * 100) / 100, place: 'الشقة كلها', calc, done: (a.done || {})[key] || ''}); };
+  const fa = a.rooms.reduce((s, r) => s + (tkCheck(r, a).err.length ? 0 : tkGeom(r).area), 0), n = (v, d) => v != null && v !== '' ? tkN(v) : d;
+  add('panel', 'لوحة توزيع', 'عدد', n(ex.panel, 1), ''); add('tank', 'خزان وطلمبة', 'عدد', n(ex.tank, 0), ''); add('heater', 'سخان', 'عدد', n(ex.heater, a.rooms.filter(r => r.type === 'حمام').length), 'حمام = سخان');
+  add('aptDoor', 'باب شقة', 'عدد', n(ex.aptDoor, 1), ''); add('protect', 'حماية أرضيات', 'م²', fa, 'مساحة الأوض'); add('clean', 'تنظيف نهائي', 'م²', fa, 'مساحة الأوض'); add('debris', 'نقل مخلفات', 'مقطوعية', n(ex.debris, 1), '');
+  return L;
+}
+// تجميع: كل الشقق (أو نطاق أو أوضة) + البنود العامة. rooms = فلتر بالأوض
 function tkAll(T, scopeIds){
-  const cfg = tkCfg(), items = {}, bad = [];
-  T.apts.forEach(a => a.rooms.forEach(r => { if (scopeIds && !scopeIds.includes(r.id)) return; const q = tkRoomQty(r, a, cfg); if (q.bad) { bad.push(a.floor + ' · ' + r.name); return; }
-    q.lines.forEach(l => { const it = items[l.key] = items[l.key] || {key: l.key, name: l.name, unit: l.unit, qty: 0, lines: []}; it.qty += l.qty; it.lines.push(Object.assign({apt: a.floor + (a.name ? ' ' + a.name : '')}, l)); }); }));
+  const cfg = tkCfg(), items = {}, bad = [], sel = tkSel(T);
+  const put = (l, apt) => { const it = items[l.key] = items[l.key] || {key: l.key, name: l.name, unit: l.unit, qty: 0, done: 0, lines: []}; it.qty += l.qty; if (l.done) it.done += l.qty; it.lines.push(Object.assign({apt}, l)); };
+  T.apts.forEach(a => { const an = a.floor + (a.name ? ' ' + a.name : '');
+    a.rooms.forEach(r => { if (scopeIds && !scopeIds.includes(r.id)) return; const q = tkRoomQty(r, a, cfg, sel); if (q.bad) { bad.push(a.floor + ' · ' + r.name); return; } q.lines.forEach(l => put(Object.assign({rid: r.id}, l), an)); });
+    if (!scopeIds) tkAptQty(a, sel).forEach(l => put(l, an)); });
   if (!scopeIds) T.gens.forEach(gn => { const tot = (gn.sessions || []).reduce((s, se) => s + se.lines.reduce((t, l) => t + tkGenLine(gn, l), 0), 0);
-    if (tot > 0) items['gen:' + gn.id] = {key: 'gen:' + gn.id, name: gn.name, unit: gn.unit, qty: tot, gen: true, lines: (gn.sessions || []).flatMap(se => se.lines.map(l => ({place: (l.desc || '') + ' · ' + se.date, calc: [l.l, l.w, l.h, l.n].filter(Boolean).join(' × '), qty: tkGenLine(gn, l)})))}; });
-  Object.values(items).forEach(i => i.qty = Math.round(i.qty * 100) / 100);
+    if (tot > 0) items['gen:' + gn.id] = {key: 'gen:' + gn.id, name: gn.name, unit: gn.unit, qty: tot, done: gn.status === 'closed' ? tot : 0, gen: true, lines: (gn.sessions || []).flatMap(se => se.lines.map(l => ({place: (l.desc || '') + ' · ' + se.date, calc: [l.l, l.w, l.h, l.n].filter(Boolean).join(' × '), qty: tkGenLine(gn, l)})))}; });
+  Object.values(items).forEach(i => { i.qty = Math.round(i.qty * 100) / 100; i.done = Math.round(i.done * 100) / 100; });
   return {items: Object.values(items).sort((a, b) => tkOrd(a.key) - tkOrd(b.key)), bad};
 }
-const tkOrd = k => ['floor', 'walltile', 'wall', 'ceil', 'plaster', 'skirt', 'thr', 'sill', 'door', 'win', 'elec', 'plumb', 'slope', 'gyps', 'nur', 'cur', 'gen'].indexOf(k.split(':')[0]);
+const tkOrd = k => { const p = k.split(':')[0]; if (p === 'gen') return 9999; const i = TK_KEYS.indexOf(p); return i < 0 ? 9000 : i; };
 const tkGenLine = (gn, l) => { const v = [l.l, l.w, l.h].map(tkN), n = tkN(l.n) || 1; return gn.shape === 'count' ? n : gn.shape === 'len' ? v[0] * n : gn.shape === 'vol' ? v[0] * v[1] * v[2] * n : v[0] * (v[1] || 1) * n; };
 // الخامات من معدلات (⚙️)
 function tkMatsFor(items){
@@ -7694,9 +7761,9 @@ async function takeoffSheet(code, page){
     const r = await api('tkGet', {project: code}); const loc = store.get('tk_' + code, null);
     if (!r.ok && !loc) { $('#sheetBody').innerHTML = `<h3>📐 الحصر</h3>${esc(errMsg(r))}`; return; }
     const rows = r.ok ? r.rows : loc.rows;
-    S.tk = {code, can: r.ok ? r.can : true, boq: r.ok ? r.boq : loc.boq, mats: r.ok ? r.mats : loc.mats, vers: r.ok ? r.vers : [], apts: [], gens: [], scopes: [], map: {}, aIdx: 0, sub: 'apt'};
+    S.tk = {code, money: r.ok ? !!r.money : !!(loc && loc.money), can: r.ok ? r.can : true, boq: r.ok ? r.boq : loc.boq, mats: r.ok ? r.mats : loc.mats, vers: r.ok ? r.vers : [], apts: [], gens: [], scopes: [], map: {}, aIdx: 0, sub: 'apt'};
     rows.forEach(x => { if (x.kind === 'apt') S.tk.apts.push(Object.assign({rid: x.id}, x.data)); else if (x.kind === 'gen') S.tk.gens.push(Object.assign({rid: x.id}, x.data)); else if (x.kind === 'scope') S.tk.scopes = (x.data && x.data.list) || [], S.tk.scopeRid = x.id; else if (x.kind === 'map') S.tk.map = x.data || {}, S.tk.mapRid = x.id; });
-    store.set('tk_' + code, {rows, boq: S.tk.boq, mats: S.tk.mats}); }
+    store.set('tk_' + code, {rows, boq: S.tk.boq, mats: S.tk.mats, money: S.tk.money}); }
   tkDraw();
 }
 function tkStoreLocal(){ const T = S.tk, rows = [...T.apts.map(a => ({id: a.rid, kind: 'apt', name: a.floor, data: a})), ...T.gens.map(g => ({id: g.rid, kind: 'gen', name: g.name, data: g})), {id: T.scopeRid, kind: 'scope', data: {list: T.scopes}}, {id: T.mapRid, kind: 'map', data: T.map}]; store.set('tk_' + T.code, {rows, boq: T.boq, mats: T.mats}); }
@@ -7715,7 +7782,8 @@ function tkDraw(){
 // صفحة 1: بيانات الموقع (الشقق / بنود عامة)
 function tkIn(){
   const T = S.tk, a = T.apts[T.aIdx];
-  let h = `<div class="seg"><button class="${T.sub === 'apt' ? 'on' : ''}" data-tks="apt">الشقق</button><button class="${T.sub === 'gen' ? 'on' : ''}" data-tks="gen">بنود عامة</button></div>`;
+  let h = `<div class="row" style="gap:6px;margin-bottom:6px;flex-wrap:wrap"><button class="chip" id="tkSelB">🧾 بنود الحصر (${tkSel(T).length})</button>${a && T.sub !== 'gen' ? `<button class="chip" id="tkAptB">🏠 بنود الشقة</button><button class="chip" id="tkCho">🎨 اختيارات العميل</button>` : ''}</div>
+  <div class="seg"><button class="${T.sub === 'apt' ? 'on' : ''}" data-tks="apt">الشقق</button><button class="${T.sub === 'gen' ? 'on' : ''}" data-tks="gen">بنود عامة</button></div>`;
   if (T.sub === 'gen') h += tkGenList();
   else { h += `<div class="chips" style="flex-wrap:wrap;margin-top:8px">${T.apts.map((x, i) => `<button class="chip ${i === T.aIdx ? 'on' : ''}" data-ta="${i}">${esc(x.floor)}${x.name ? ' · ' + esc(x.name) : ''}</button>`).join('')}${T.can ? `<button class="chip" id="tkNA">➕ دور / شقة</button>` : ''}</div>`;
     if (!a) h += emptyBox('ruler', T.apts.length ? '' : 'ابدأ بدور أو شقة، أو استورد حصر قديم') + (T.can ? `<button class="btn ghost" id="tkImp" style="margin-top:8px">⬇️ استيراد حصر قديم</button>` : '');
@@ -7725,12 +7793,16 @@ function tkIn(){
         ${a.rooms.map((r, i) => { const c = tkCheck(r, a); const st = c.err.length ? ['غلط', 'var(--bad)'] : c.warn.length ? ['تنبيه', 'var(--warn)'] : ['سليمة', 'var(--ok)'];
           return `<button class="irow" data-tr="${i}" style="${c.err.length ? 'border-color:#F2C2BB' : ''}"><div class="row"><b style="flex:1">${esc(r.name)}</b><small style="color:${st[1]};font-weight:700">${st[0]}</small></div>
             <div class="row" style="gap:8px;align-items:center">${tkSvg(r, 96, 64)}<small class="muted" style="flex:1">${c.g.irregular ? 'أجزاء ' + (r.parts || []).length : n1(r.L, 2) + ' × ' + n1(r.W, 2)} × ${n1(r.h, 2)}<br>${n1(c.g.area, 2)} م² · محيط ${n1(c.g.perim, 2)}<br>${esc(r.floor || '')}${(r.openings || []).length ? ' · ' + r.openings.length + ' فتحة' : ''}${r.photo ? ' · 📷' : ''}</small>${r.photo ? `<img src="${esc(tkThumb(r.photo))}" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:8px" loading="lazy">` : ''}</div>
-            ${c.err.length ? `<small style="color:var(--bad)">${esc(c.err[0])}</small>` : c.warn.length ? `<small style="color:var(--warn)">${esc(c.warn[0])}</small>` : ''}</button>`; }).join('')}
+            ${c.err.length ? `<small style="color:var(--bad)">${esc(c.err[0])}</small>` : c.warn.length ? `<small style="color:var(--warn)">${esc(c.warn[0])}</small>` : ''}</button>${c.err.length ? '' : tkRemRow(r, a, i)}`; }).join('')}
         ${T.can ? `<div class="row" style="gap:6px;margin-top:8px"><button class="btn gold" id="tkNR" style="flex:1">➕ أوضة</button><button class="btn ghost" id="tkTpl" style="flex:1">قالب</button><button class="btn ghost" id="tkImp" style="flex:1">⬇️ استيراد</button></div>` : ''}`; } }
   $('#tkB').innerHTML = h;
   document.querySelectorAll('[data-tks]').forEach(b => b.onclick = () => { T.sub = b.dataset.tks; tkDraw(); });
   document.querySelectorAll('[data-ta]').forEach(b => b.onclick = () => { T.aIdx = Number(b.dataset.ta); tkDraw(); });
   document.querySelectorAll('[data-tr]').forEach(b => b.onclick = () => tkRoomForm(Number(b.dataset.tr)));
+  document.querySelectorAll('[data-tdn]').forEach(b => b.onclick = () => tkDoneSheet(Number(b.dataset.tdn)));
+  if ($('#tkSelB')) $('#tkSelB').onclick = () => tkSelSheet();
+  if ($('#tkAptB')) $('#tkAptB').onclick = () => tkAptSheet();
+  if ($('#tkCho')) $('#tkCho').onclick = () => tkChoiceSheet();
   if ($('#tkNA')) $('#tkNA').onclick = () => tkAptForm();
   if ($('#tkEA')) $('#tkEA').onclick = () => tkAptForm(a);
   if ($('#tkNR')) $('#tkNR').onclick = () => tkRoomForm(-1);
@@ -7757,6 +7829,38 @@ function tkAptForm(a){
 // «350» ← «تقصد 3.50 م؟»
 const tkAsk = v => { let n = tkN(v); if (n >= 100 && n <= 2500 && Number.isInteger(n) && confirmBox(`تقصد ${n / 100} متر؟`)) n = n / 100; return n; };
 // 🎤 «نوم 4 في 3.5 ارتفاع 3» ← النوع والطول والعرض والارتفاع
+// 0.17: خانات البنود المختارة في «إضافات الأوضة»
+const TK_NUMS = [['demoSan', 'فك صحي (عدد)'], ['demoTile', 'فك وتكسير بلاط (م²)'], ['demoWall', 'هدم حوائط (م²)'], ['spot', 'سبوتات (عدد)'], ['access', 'باب كشف (عدد)'], ['panels', 'بانوهات حوائط (م.ط)'], ['kitchen', 'مطبخ خلايا (م.ط)'], ['ward', 'دواليب (م²)'], ['rail', 'درابزين (م.ط)']];
+const TK_TPL = [['ac', 'نقط تكييف', TK_AC], ['net', 'نقط شبكة CAT6', TK_NET], ['dish', 'نقط دش', TK_DISH]];
+function tkExtraHtml(r){
+  const sel = tkSel(S.tk), ex = r.ex || {}, has = k => sel.includes(k), area = (lst, id) => `${(ex[lst] || []).map((a, i) => `<div class="row" style="gap:4px;margin-top:4px"><input class="in" data-xa="${lst}:${i}:d" value="${esc(a.d || '')}" placeholder="المكان" style="flex:2"><input class="in" data-xa="${lst}:${i}:l" inputmode="decimal" value="${esc(a.l || '')}" placeholder="طول" style="flex:1"><input class="in" data-xa="${lst}:${i}:w" inputmode="decimal" value="${esc(a.w || '')}" placeholder="عرض/ارتفاع" style="flex:1"><button class="chip" data-xad="${lst}:${i}">✕</button></div>`).join('')}<button class="chip" data-xaa="${lst}" style="margin-top:4px">➕ ${id}</button>`;
+  let h = '';
+  if (has('brick')) { const m = (ex.brick || {}).mode || 'none'; h += `<div class="sec-t" style="margin-top:8px">مباني</div><div class="chips">${[['none', 'مفيش'], ['all', 'الأوضة كلها'], ['walls', 'حيطان جديدة بس']].map(([k, n]) => `<button class="chip ${m === k ? 'on' : ''}" data-xbm="${k}">${n}</button>`).join('')}</div>`;
+    if (m === 'walls') { ex.bw = ((ex.brick || {}).walls || []).map(w => ({d: w.d || '', l: w.l, w: w.h})); h += area('bw', 'حيطة (طول × ارتفاع)'); delete ex.bw; } }
+  if (has('plaster')) { const m = ex.plMode || 'all'; h += `<div class="sec-t" style="margin-top:8px">المحارة</div><div class="chips">${[['all', 'الأوضة كلها'], ['areas', 'مناطق بس']].map(([k, n]) => `<button class="chip ${m === k ? 'on' : ''}" data-xpm="${k}">${n}</button>`).join('')}</div>${m === 'areas' ? area('plAreas', 'منطقة محارة') : ''}`; }
+  if (has('repair')) h += `<div class="sec-t" style="margin-top:8px">ترميم</div>${area('rep', 'منطقة ترميم')}`;
+  if (has('fix') && TK_FIX[r.type]) { const fx = Object.assign({}, TK_FIX[r.type], ex.fix || {}); h += `<div class="sec-t" style="margin-top:8px">الأطقم والأحواض (بالعدد)</div><div class="row" style="flex-wrap:wrap;gap:6px">${Object.keys(fx).map(f => `<label style="flex:1 1 30%"><small>${esc(f)}</small><input class="in" data-xf="${esc(f)}" inputmode="numeric" value="${esc(fx[f])}"></label>`).join('')}</div>`; }
+  const tp = TK_TPL.filter(([k]) => has(k)); if (tp.length) h += `<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px">${tp.map(([k, n, T]) => `<label style="flex:1 1 30%"><small>${n} (القالب ${T[r.type] || 0})</small><input class="in" data-xn="${k}" inputmode="numeric" value="${esc(ex[k] ?? '')}"></label>`).join('')}</div>`;
+  const nm = TK_NUMS.filter(([k]) => has(k)); if (nm.length) h += `<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px">${nm.map(([k, n]) => `<label style="flex:1 1 45%"><small>${n}</small><input class="in" data-xn="${k}" inputmode="decimal" value="${esc(ex[k] ?? '')}"></label>`).join('')}</div>`;
+  if (has('t60')) h += `<label class="row" style="gap:8px;margin-top:8px"><input type="checkbox" id="xT60" ${ex.t60 ? 'checked' : ''}> سقف بلاطات 60×60</label>`;
+  const offable = sel.filter(k => !['fix'].includes(k)); h += `<div class="sec-t" style="margin-top:8px">مش في الأوضة دي</div><div class="chips" style="flex-wrap:wrap">${offable.map(k => `<button class="chip ${(r.off || []).includes(k) ? 'on' : ''}" data-xo="${k}">${esc((TK_CAT.flatMap(c => c.items).find(i => i[0] === k) || [k, k])[1])}</button>`).join('')}</div>`;
+  return h;
+}
+function tkExtraSync(r){
+  if (!$('#exBL')) return; r.ex = r.ex || {}; const ex = r.ex;
+  document.querySelectorAll('[data-xn]').forEach(e => { ex[e.dataset.xn] = e.value === '' ? '' : tkN(e.value); });
+  document.querySelectorAll('[data-xf]').forEach(e => { ex.fix = ex.fix || {}; ex.fix[e.dataset.xf] = tkN(e.value); });
+  document.querySelectorAll('[data-xa]').forEach(e => { const [l, i, f] = e.dataset.xa.split(':'); const L = l === 'bw' ? ((ex.brick = ex.brick || {}).walls = ex.brick.walls || []) : (ex[l] = ex[l] || []); L[i] = L[i] || {}; L[i][f === 'w' && l === 'bw' ? 'h' : f] = f === 'd' ? e.value : tkN(e.value); });
+  if ($('#xT60')) ex.t60 = $('#xT60').checked;
+}
+function tkExtraWire(r, redraw){
+  const ex = () => (r.ex = r.ex || {});
+  document.querySelectorAll('[data-xbm]').forEach(b => b.onclick = () => { tkExtraSync(r); ex().brick = Object.assign({walls: []}, ex().brick || {}, {mode: b.dataset.xbm}); redraw(); });
+  document.querySelectorAll('[data-xpm]').forEach(b => b.onclick = () => { tkExtraSync(r); ex().plMode = b.dataset.xpm; redraw(); });
+  document.querySelectorAll('[data-xaa]').forEach(b => b.onclick = () => { tkExtraSync(r); const l = b.dataset.xaa; if (l === 'bw') { ex().brick = ex().brick || {mode: 'walls'}; (ex().brick.walls = ex().brick.walls || []).push({l: '', h: r.h || ''}); } else (ex()[l] = ex()[l] || []).push({d: '', l: '', w: ''}); redraw(); });
+  document.querySelectorAll('[data-xad]').forEach(b => b.onclick = () => { tkExtraSync(r); const [l, i] = b.dataset.xad.split(':'); (l === 'bw' ? ex().brick.walls : ex()[l]).splice(Number(i), 1); redraw(); });
+  document.querySelectorAll('[data-xo]').forEach(b => b.onclick = () => { tkExtraSync(r); const k = b.dataset.xo; r.off = (r.off || []).includes(k) ? r.off.filter(x => x !== k) : (r.off || []).concat([k]); redraw(); });
+}
 const tkThumb = u => { const m = String(u).match(/[-\w]{25,}/); return m ? 'https://drive.google.com/thumbnail?id=' + m[0] + '&sz=w120' : u; };
 function tkVoice(t){
   t = digits(String(t || '')).replace(/[٫,]/g, '.').replace(/ونص/g, '.5').replace(/وربع/g, '.25');
@@ -7790,7 +7894,7 @@ function tkRoomForm(idx, preset){
       <div class="sec-t" style="margin-top:10px">الأبواب والشبابيك</div>
       ${(r.openings || []).map((o, i) => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)"><span style="flex:1">${o.kind === 'door' ? '🚪' : '🪟'} ${esc(o.code || '')} ${o.w}×${o.h} · ${o.wall != null ? tkWl(r, o.wall) : 'من غير حيطة'}${o.off != null ? ' · بعد ' + o.off : o.wall != null ? ' · في النص (تقريبي)' : ''}${o.shared ? ' · 🔗 ' + esc(tkDoorName(a, r, o)) : ''}</span>${o.own === false ? '<small class="muted">بيتعدّل من الأوضة التانية</small>' : `<button class="chip" data-oe="${i}">✏️</button>`}</div>`).join('')}
       <div class="row" style="gap:6px;margin-top:6px"><button class="chip" id="rmAD">➕ باب</button><button class="chip" id="rmAWn">➕ شباك</button></div>
-      <button class="irow" id="rmEx" style="margin-top:8px"><div class="row"><b style="flex:1">➕ إضافات الأوضة</b><small class="muted">كمرات · سقف · نقط · ميول</small><span>${showEx ? '▴' : '▾'}</span></div></button>
+      <button class="irow" id="rmEx" style="margin-top:8px"><div class="row"><b style="flex:1">➕ إضافات الأوضة</b><small class="muted">كمرات · سقف · نقط · أطقم · مباني · هدم</small><span>${showEx ? '▴' : '▾'}</span></div></button>
       ${showEx ? `<div class="card" style="padding:8px 10px">
         <label class="f">كمرة ساقطة (طول × سقوط)</label><div class="row" style="gap:6px"><input class="in" id="exBL" inputmode="decimal" placeholder="الطول" value="${esc(((r.ex || {}).beams || [])[0] ? r.ex.beams[0].l : '')}" style="flex:1"><input class="in" id="exBD" inputmode="decimal" placeholder="السقوط" value="${esc(((r.ex || {}).beams || [])[0] ? r.ex.beams[0].d : '')}" style="flex:1"></div>
         <label class="f">عمود بارز (عرض × بروز)</label><div class="row" style="gap:6px"><input class="in" id="exCW" inputmode="decimal" value="${esc(((r.ex || {}).cols || [])[0] ? r.ex.cols[0].w : '')}" style="flex:1"><input class="in" id="exCD" inputmode="decimal" value="${esc(((r.ex || {}).cols || [])[0] ? r.ex.cols[0].d : '')}" style="flex:1"></div>
@@ -7798,7 +7902,8 @@ function tkRoomForm(idx, preset){
         <div class="row" style="gap:6px"><input class="in" id="exNur" inputmode="decimal" placeholder="بيت نور م.ط" value="${esc(((r.ex || {}).ceil || {}).nur || '')}" style="flex:1"><input class="in" id="exCur" inputmode="decimal" placeholder="بيت ستارة م.ط" value="${esc(((r.ex || {}).ceil || {}).cur || '')}" style="flex:1"></div>
         <label class="f">نقط الكهرباء (عدّها، ولو فاضية تتوزع من القالب: ${TK_ELEC[r.type] || 0})</label><input class="in" id="exEl" inputmode="numeric" value="${esc((r.ex || {}).elec ?? '')}">
         ${TK_PLUMB[r.type] ? `<label class="f">نقط السباكة (القالب: ${TK_PLUMB[r.type]})</label><input class="in" id="exPl" inputmode="numeric" value="${esc((r.ex || {}).plumb ?? '')}">` : ''}
-        <label class="row" style="gap:8px;margin-top:8px"><input type="checkbox" id="exSl" ${(r.slope ?? (r.type === 'حمام' || r.type === 'بلكونة')) ? 'checked' : ''}> ميول أرضية${r.type === 'مطبخ' ? ' (المطبخ في الغالب من غير ميول)' : ''}</label></div>` : ''}
+        <label class="row" style="gap:8px;margin-top:8px"><input type="checkbox" id="exSl" ${(r.slope ?? (r.type === 'حمام' || r.type === 'بلكونة')) ? 'checked' : ''}> ميول أرضية${r.type === 'مطبخ' ? ' (المطبخ في الغالب من غير ميول)' : ''}</label>${tkExtraHtml(r)}</div>` : ''}
+      <div class="row" style="gap:6px;margin-top:8px"><input class="in" id="rmClr" placeholder="لون الدهان (اختيار العميل)" value="${esc(r.color || '')}" style="flex:1"><button class="chip ${r.cOk ? 'on' : ''}" id="rmCok">${r.cOk ? '✓ العميل وافق' + (r.cOk.by === 'العميل' ? ' (لينك)' : '') : 'العميل وافق؟'}</button></div>
       ${a.rooms.length && (isNew || r.place || a.rooms.length > 1) ? `<div class="sec-t" style="margin-top:10px">مكانها في الدور</div><div class="row" style="gap:6px"><select class="in" id="plR" style="flex:2"><option value="">لازقة في…</option>${a.rooms.filter(x => x.id !== r.id).map(x => `<option value="${esc(x.id)}" ${r.place && r.place.ref === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
         <select class="in" id="plW" style="flex:1">${[0, 1, 2, 3].map(k => `<option value="${k}" ${r.place && r.place.wall === k ? 'selected' : ''}>${TK_POS[k]}ها</option>`).join('')}</select><input class="in" id="plO" inputmode="decimal" placeholder="بعد" value="${esc(r.place ? r.place.off : '')}" style="flex:1"></div>` : ''}
       ${c.err.length ? `<div class="sline" style="color:var(--bad)">🔴 ${c.err.map(esc).join('<br>🔴 ')}</div>` : ''}${c.warn.length ? `<div class="sline" style="color:var(--warn)">🟠 ${c.warn.map(w => esc(w) + ` <button class="more" data-ign="${esc(w)}" style="color:var(--pri)">تجاهل</button>`).join('<br>🟠 ')}</div>` : ''}
@@ -7811,7 +7916,8 @@ function tkRoomForm(idx, preset){
     if ($('#exBL')) { r.ex = r.ex || {}; const bl = tkN($('#exBL').value), bd = tkN($('#exBD').value), cw = tkN($('#exCW').value), cd = tkN($('#exCD').value);
       r.ex.beams = bl && bd ? [{l: bl, d: bd}] : []; r.ex.cols = cw && cd ? [{w: cw, d: cd}] : []; r.ex.ceil = {on: $('#exGy').checked, nur: tkN($('#exNur').value), cur: tkN($('#exCur').value)};
       r.ex.elec = $('#exEl').value === '' ? '' : tkN($('#exEl').value); if ($('#exPl')) r.ex.plumb = $('#exPl').value === '' ? '' : tkN($('#exPl').value); r.slope = $('#exSl').checked; }
-    if ($('#plR')) r.place = $('#plR').value ? {ref: $('#plR').value, wall: Number($('#plW').value), off: tkN($('#plO').value)} : null; };
+    if ($('#plR')) r.place = $('#plR').value ? {ref: $('#plR').value, wall: Number($('#plW').value), off: tkN($('#plO').value)} : null;
+    tkExtraSync(r); if ($('#rmClr')) r.color = $('#rmClr').value.trim(); };
   const wire = () => {
     if (typeof wireMics === 'function') wireMics();
     $('#rmV').onchange = () => { sync(); const v = tkVoice($('#rmV').value); if (v.type) { const auto = !r.name || TKT.some(t => r.name.startsWith(t + ' ')); r.type = v.type; if (auto) r.name = ''; if (tkWet(r) && !r.tile) r.tile = 'full'; }
@@ -7831,6 +7937,8 @@ function tkRoomForm(idx, preset){
     $('#rmAWn').onclick = () => { sync(); tkOpenForm(r, a, null, 'win', draw); };
     document.querySelectorAll('[data-oe]').forEach(b => b.onclick = () => { sync(); tkOpenForm(r, a, Number(b.dataset.oe), null, draw); });
     $('#rmEx').onclick = () => { sync(); showEx = !showEx; draw(); };
+    $('#rmCok').onclick = () => { sync(); r.cOk = r.cOk ? null : {by: 'المهندس', name: (S.user && S.user.name) || '', at: new Date().toISOString(), what: [r.floor, r.wallPaint, r.color].filter(Boolean).join(' · ')}; draw(); };
+    tkExtraWire(r, () => { sync(); draw(); });
     document.querySelectorAll('[data-ign]').forEach(b => b.onclick = () => { sync(); const why = prompt('سبب التجاهل'); if (!why) return; r.ign = (r.ign || []).concat(b.dataset.ign); r.ignWhy = (r.ignWhy || []).concat(why); draw(); });
     wireSvg();
     $('#rmGo').onclick = async () => { sync(); if (isNew) a.rooms.push(r); else a.rooms[idx] = r; (r.openings || []).filter(o => o.shared && o.own !== false).forEach(o => tkMirror(a, r, o)); await tkSaveRow('apt', a, a.floor); const c = tkCheck(r, a);
@@ -7852,6 +7960,7 @@ function tkOpenForm(r, a, i, kind, back){
     <label class="f">على أنهي حيطة؟</label><div class="chips">${g.walls.map((w, k) => `<button class="chip ${o.wall === k ? 'on' : ''}" data-ow="${k}">${tkWl(r, k)}${(r.parts || []).length ? '' : ' ' + TK_POS[k]} · ${n1(w, 2)}</button>`).join('')}</div>
     <label class="f">بعد كام من الركن اللي على يمينك (وانت جوه الأوضة باصص للحيطة)</label><div class="row" style="gap:6px"><input class="in" id="opO" inputmode="decimal" value="${o.off == null ? '' : esc(o.off)}" style="flex:1"><button class="chip ${o.off == null ? 'on' : ''}" id="opMid">في النص (تقريبي)</button></div>
     <label class="f">سمك الحيطة عند ${o.kind === 'door' ? 'الباب (للعتب والحلق)' : 'الشباك (للجلسة)'}</label><input class="in" id="opD" inputmode="decimal" value="${esc(o.dep)}">
+    ${o.kind === 'door' ? `<label class="f">نوع الباب</label><div class="chips" style="flex-wrap:wrap">${TK_DTYPES.map(t => `<button class="chip ${(o.dtype || 'خشب') === t ? 'on' : ''}" data-dt2="${t}">${t}</button>`).join('')}</div><label class="f">الشكل / الموديل (اختياري)</label><input class="in" id="opM" value="${esc(o.model || '')}" placeholder="مثلا: كلاسيك حشو، سادة لاكيه">` : `<div class="row" style="gap:14px;margin-top:8px"><label class="row" style="gap:6px"><input type="checkbox" id="opSh2" ${o.shut ? 'checked' : ''}> شيش حصيرة</label><label class="row" style="gap:6px"><input type="checkbox" id="opMs" ${o.mesh ? 'checked' : ''}> ناموسية</label></div>`}
     ${o.kind === 'win' ? `<label class="f">الجلسة (ارتفاعها من الأرض)</label><input class="in" id="opS" inputmode="decimal" value="${esc(o.sill)}">` : `<label class="f">مشترك مع</label><select class="in" id="opSh"><option value="">مش مشترك</option>${a.rooms.filter(x => x.id !== r.id).map(x => `<option value="${esc(x.id)}" ${o.shared === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>`}
     <label class="f">العدد</label><input class="in" id="opN" inputmode="numeric" value="${esc(o.n || 1)}">
     <div class="row" style="gap:6px;margin-top:10px"><button class="btn gold" id="opGo" style="flex:2">تمام</button>${i != null ? `<button class="btn ghost" id="opDel" style="flex:1;color:var(--bad)">امسح</button>` : ''}</div>`);
@@ -7859,10 +7968,12 @@ function tkOpenForm(r, a, i, kind, back){
   document.querySelectorAll('[data-ow]').forEach(b => b.onclick = () => { o.wall = Number(b.dataset.ow); document.querySelectorAll('[data-ow]').forEach(c => c.classList.toggle('on', c === b)); });
   $('#opMid').onclick = () => { $('#opO').value = ''; $('#opMid').classList.add('on'); };
   $('#opGo').onclick = () => { o.code = $('#opC').value.trim(); o.w = tkAsk($('#opW').value); o.h = tkAsk($('#opH').value); o.off = $('#opO').value === '' ? null : tkN($('#opO').value); o.dep = tkN($('#opD').value) || tkCfg().wallIn; o.n = Math.max(1, tkN($('#opN').value) || 1);
+    if (o.kind === 'win') { o.shut = $('#opSh2').checked; o.mesh = $('#opMs').checked; } else o.model = $('#opM').value.trim();
     if (o.kind === 'win') o.sill = tkN($('#opS').value); else { const sh = $('#opSh').value;
       if (sh !== o.shared && o.shared) { const old = a.rooms.find(x => x.id === o.shared); if (old) old.openings = (old.openings || []).filter(p => p.id !== o.id + '-s'); }
       o.shared = sh; o.own = true; if (sh) tkMirror(a, r, o); }
     if (i == null) r.openings.push(o); back(); };
+  document.querySelectorAll('[data-dt2]').forEach(b => b.onclick = () => { o.dtype = b.dataset.dt2; document.querySelectorAll('[data-dt2]').forEach(c => c.classList.toggle('on', c === b)); });
   if ($('#opDel')) $('#opDel').onclick = () => { if (o.shared) { const t = a.rooms.find(x => x.id === o.shared); if (t) t.openings = (t.openings || []).filter(p => p.id !== o.id + '-s'); } r.openings.splice(i, 1); back(); };
 }
 // رسمة الأوضة: الحيطان متنمّرة، والأبواب بقوس، والشبابيك خطين
@@ -7886,17 +7997,20 @@ function tkSvg(r, W, H, big){
 }
 // صفحة 2: جدول الكميات (سطر لكل بند: ▾ كشف الحصر · 📦 الخامات · ⬇️)
 function tkQtyPage(){
-  const T = S.tk, sc = T.scopes.find(x => x.id === T.scope), res = tkAll(T, sc ? sc.rooms : null);
+  const T = S.tk, sc = T.scopes.find(x => x.id === T.scope), res = tkAll(T, sc ? sc.rooms : /^R:/.test(T.scope || '') ? [T.scope.slice(2)] : null), canM = T.money;
   S.tkRes = res;
-  $('#tkB').innerHTML = `<div class="row" style="gap:6px"><select class="in" id="tqS" style="flex:1"><option value="">كل الحصر</option>${T.scopes.map(x => `<option value="${esc(x.id)}" ${T.scope === x.id ? 'selected' : ''}>نطاق: ${esc(x.name)}</option>`).join('')}</select><button class="btn ghost" id="tqM" style="width:auto;padding:8px 12px">📦 الخامات</button></div>
+  $('#tkB').innerHTML = `<div class="row" style="gap:6px"><select class="in" id="tqS" style="flex:1"><option value="">كل الحصر</option>${T.scopes.map(x => `<option value="${esc(x.id)}" ${T.scope === x.id ? 'selected' : ''}>نطاق: ${esc(x.name)}</option>`).join('')}${T.apts.flatMap(a => a.rooms.map(r => `<option value="R:${esc(r.id)}" ${T.scope === 'R:' + r.id ? 'selected' : ''}>أوضة: ${esc(a.floor + ' · ' + r.name)}</option>`)).join('')}</select><button class="btn ghost" id="tqM" style="width:auto;padding:8px 12px">📦 الخامات</button></div>
     ${res.bad.length ? `<div class="sline" style="color:var(--bad)">🔴 ${res.bad.length} أوضة فيها غلط ومش داخلة: ${esc(res.bad.slice(0, 4).join('، '))}</div>` : ''}
-    ${res.items.map((i, k) => `<div class="tqr"><div class="row" style="gap:8px"><button class="more" data-tqx="${k}" style="font-size:16px">${T.open === k ? '▴' : '▾'}</button><b style="flex:1">${esc(i.name)}</b><span>${n1(i.qty, 2)} ${esc(i.unit)}</span><button class="more" data-tqm="${k}">📦</button><button class="more" data-tqp="${k}">⬇️</button></div>
+    ${res.items.some(i => i.done) ? `<div class="dsl">✓ المنفذ (من علامات الأوض) ${Math.round(res.items.reduce((s, i) => s + i.done, 0) / Math.max(1, res.items.reduce((s, i) => s + i.qty, 0)) * 100)}% من الكميات</div>` : ''}
+    ${canM ? `<button class="btn ghost" id="tqCost" style="margin-top:6px">💰 تكلفة كل أوضة</button>` : ''}
+    ${res.items.map((i, k) => `${k === 0 || tkSec(i.key.split(':')[0]) !== tkSec(res.items[k - 1].key.split(':')[0]) ? `<div class="sec-t" style="margin-top:10px;color:var(--pri)">${esc((TK_CAT.find(c => c.s === tkSec(i.key.split(':')[0])) || {n: 'بنود عامة'}).n)}</div>` : ''}<div class="tqr"><div class="row" style="gap:8px"><button class="more" data-tqx="${k}" style="font-size:16px">${T.open === k ? '▴' : '▾'}</button><b style="flex:1">${esc(i.name)}${i.done ? `<br><small style="color:var(--ok);font-weight:500">منفذ ${n1(i.done, 2)} · باقي ${n1(i.qty - i.done, 2)}</small>` : ''}</b><span>${n1(i.qty, 2)} ${esc(i.unit)}</span><button class="more" data-tqm="${k}">📦</button><button class="more" data-tqp="${k}">⬇️</button></div>
       ${T.open === k ? `<table class="kt"><tr><th style="width:40%">المكان</th><th>الحساب</th><th>الكمية</th></tr>${i.lines.map(l => `<tr><td>${esc((l.apt ? l.apt + ' · ' : '') + (l.place || ''))}</td><td><small>${esc(l.calc || '')}</small></td><td>${n1(l.qty, 2)}</td></tr>`).join('')}</table>` : ''}</div>`).join('') || emptyBox('ruler', 'لسه مفيش كميات')}
     <div class="row" style="gap:6px;margin-top:10px"><button class="btn gold" id="tqPush" style="flex:1">رحّل للمقايسة</button><button class="btn ghost" id="tqPr" style="flex:1">🖨️ طباعة A4</button></div>
     ${isBoss() ? `<button class="btn ghost" id="tqVer" style="margin-top:6px">🔒 اقفل نسخة (بعد اعتماد العميل)${T.vers.length ? ' · آخر نسخة: ' + esc(T.vers[T.vers.length - 1].name) : ''}</button>` : ''}`;
   $('#tqS').onchange = e => { T.scope = e.target.value; tkDraw(); };
   document.querySelectorAll('[data-tqx]').forEach(b => b.onclick = () => { const k = Number(b.dataset.tqx); T.open = T.open === k ? null : k; tkDraw(); });
   document.querySelectorAll('[data-tqm]').forEach(b => b.onclick = () => tkMatsSheet([res.items[Number(b.dataset.tqm)].key]));
+  if ($('#tqCost')) $('#tqCost').onclick = () => tkCostSheet();
   document.querySelectorAll('[data-tqp]').forEach(b => b.onclick = () => tkPrint([res.items[Number(b.dataset.tqp)]]));
   $('#tqM').onclick = () => tkMatsSheet(null);
   $('#tqPr').onclick = () => tkPrint(res.items);
@@ -7910,6 +8024,7 @@ function tkMatsSheet(keys){
     openSheet(`<h3>📦 الخامات المطلوبة</h3><small class="muted">${T.scope ? 'نطاق: ' + esc((T.scopes.find(x => x.id === T.scope) || {}).name || '') : 'كل الحصر'} · المعدلات من ⚙️</small>
       <div class="chips" style="flex-wrap:wrap;margin-top:6px">${res.items.map(i => `<button class="chip ${sel.has(i.key) ? 'on' : ''}" data-mk="${esc(i.key)}">${esc(i.name)}</button>`).join('')}</div>
       ${M.map(m => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)"><b style="flex:1">${esc(m.name)}</b><span>${n1(m.qty, 1)} ${esc(m.unit)}</span><small class="muted" style="margin-inline-start:6px">${m.from > 1 ? 'من ' + m.from + ' بنود' : ''}</small></div>`).join('') || '<small class="muted">اختار بنود</small>'}
+      ${(() => { const P = tkOrderPlan(its); return P.length ? `<div class="sec-t" style="margin-top:10px">📅 مواعيد الطلب (قبل بداية البند بـ ${tkCfg().lead} أيام)</div>${P.map(o => `<div class="row" style="padding:5px 0;border-bottom:1px solid var(--line)"><span style="flex:1">${esc(o.mat)} <small class="muted">${n1(o.qty, 1)} ${esc(o.unit)} · لـ ${esc(o.item)}</small></span><b style="color:${o.by < tdy() ? 'var(--bad)' : o.by <= addD(tdy(), 3) ? 'var(--warn)' : 'var(--ink)'}">${o.by < tdy() ? 'متأخر · ' : ''}${esc(o.by.slice(5))}</b></div>`).join('')}` : (T.boq.some(b => b.start) ? '<small class="muted">اربط البنود بالمقايسة («رحّل للمقايسة») عشان مواعيد الطلب تطلع</small>' : ''); })()}
       <button class="btn gold" id="mkReq" style="margin-top:10px">🛒 اطلبهم مرة واحدة في المشتريات</button><button class="btn ghost" id="mkBk" style="margin-top:6px">رجوع</button>`);
     document.querySelectorAll('[data-mk]').forEach(b => b.onclick = () => { const k = b.dataset.mk; sel.has(k) ? sel.delete(k) : sel.add(k); draw(); });
     $('#mkBk').onclick = tkDraw;
@@ -7925,7 +8040,7 @@ function tkPushSheet(items){
     ${items.map((i, k) => `<div style="margin-top:8px"><b>${esc(i.name)}</b> <small class="muted">${n1(i.qty, 2)} ${esc(i.unit)}</small><select class="in" data-mp="${esc(i.key)}"><option value="">— ما يترحّلش —</option>${T.boq.map(b => `<option value="${esc(b.id)}" ${T.map[i.key] === b.id ? 'selected' : ''}>${esc(b.name)} (${esc(b.unit)})</option>`).join('')}</select></div>`).join('')}
     <button class="btn gold" id="tpDiff" style="margin-top:10px">شوف الفرق</button><div id="tpOut"></div>`);
   const collect = () => { document.querySelectorAll('[data-mp]').forEach(s => T.map[s.dataset.mp] = s.value); const q = {}; items.forEach(i => { const b = T.map[i.key]; if (b) q[b] = (q[b] || 0) + i.qty; }); return Object.entries(q).map(([bq, qty]) => ({bq, qty})); };
-  $('#tpDiff').onclick = async () => { const q = collect(); await tkSaveRow('map', Object.assign({rid: T.mapRid}, T.map), 'الربط'); T.mapRid = T.mapRid || (S.tk && S.tk.mapRid);
+  $('#tpDiff').onclick = async () => { const q = collect(); await tkSaveMap();
     const r = await api('tkPush', {project: T.code, q}); if (!r.ok) { $('#tpOut').innerHTML = esc(errMsg(r)); return; }
     $('#tpOut').innerHTML = r.diff.length ? `<table class="kt"><tr><th>البند</th><th>القديم</th><th>الجديد</th></tr>${r.diff.map(x => `<tr><td>${esc(x.name)}</td><td>${n1(x.old, 2)}</td><td><b>${n1(x.qty, 2)}</b></td></tr>`).join('')}</table><button class="btn gold" id="tpGo" style="margin-top:8px">طبّق على المقايسة</button>` : '<div class="sline">مفيش فرق ✓</div>';
     if ($('#tpGo')) $('#tpGo').onclick = async () => { const s = await api('tkPush', {project: T.code, q, apply: true}); toast(s.ok ? 'اتحدّث ' + s.n + ' بند ✓' : errMsg(s)); if (typeof board === 'function') board(true); tkDraw(); }; };
@@ -7979,12 +8094,18 @@ function tkPlan(){
   $('#tpCad').onclick = () => tkCad(a);
 }
 // تصدير أوتوكاد: ملف أرقام (MEC) + أمر MECDRAW
-function tkCad(a){
+async function tkCad(a){
   const Lo = tkLayout(a), lines = ['MEC,1,' + a.floor];
   a.rooms.forEach(r => { const p = Lo.pos[r.id]; if (!p) return; const g = tkGeom(r); lines.push(['ROOM', r.name, n2(p.x), n2(-p.y - p.h), n2(p.w), n2(p.h), n2(g.area)].join(','));
     (r.openings || []).forEach(o => { if (o.wall == null || o.own === false) return; const wl = g.walls[o.wall] || 0, off = o.off != null ? o.off : (wl - o.w) / 2; lines.push([o.kind === 'door' ? 'DOOR' : 'WIN', o.code || '', n2(p.x), n2(-p.y - p.h), n2(p.w), n2(p.h), o.wall + 1, n2(off), n2(o.w), o.swing || 0].join(',')); }); });
-  const blob = new Blob([lines.join('\r\n')], {type: 'text/plain'}), l = document.createElement('a'); l.href = URL.createObjectURL(blob); l.download = (pName(S.tk.code) + ' ' + a.floor).replace(/[\\/:*?"<>|]/g, '-') + '.mec'; l.click();
-  toast('اتنزل ملف الأرقام ✓ · افتحه في الأوتوكاد بأمر MECDRAW');
+  const txt = lines.join('\r\n'), name = (pName(S.tk.code) + ' ' + a.floor).replace(/[\\/:*?"<>|]/g, '-'), dl = () => { const l = document.createElement('a'); l.href = URL.createObjectURL(new Blob([txt], {type: 'text/plain'})); l.download = name + '.mec'; l.click(); };
+  if (!navigator.onLine) { dl(); toast('اتنزل على الموبايل ✓ · أول ما النت يرجع دوس «أوتوكاد» تاني عشان يتحفظ على درايف'); return; }
+  toast('بيحفظ على درايف…'); const r = await api('tkCad', {project: S.tk.code, name, text: txt});
+  openSheet(`<h3>📐 ملف الأوتوكاد · ${esc(a.floor)}</h3>${r.ok ? `<div class="sline" style="color:var(--ok)">✓ اتحفظ في فولدر «MEC أوتوكاد» على درايف، وهيظهر على اللابتوب لوحده</div>` : `<div class="sline" style="color:var(--warn)">ما اتحفظش على درايف (${esc(errMsg(r))})، نزّله من هنا</div>`}
+    <ol class="steps"><li>على اللابتوب افتح الأوتوكاد واكتب <b>MECDRAW</b></li><li>اختار الملف «${esc(name)}.mec» من فولدر «MEC أوتوكاد»</li><li>الدور بيترسم لوحده (متر)</li></ol>
+    <div class="row" style="gap:6px;margin-top:8px">${r.ok ? `<button class="btn gold" id="cdWa" style="flex:1">📲 واتساب</button>` : ''}<button class="btn ghost" id="cdDl" style="flex:1">⬇️ نزّله</button></div><button class="btn ghost" id="cdBk" style="margin-top:6px">رجوع</button>`);
+  if ($('#cdWa')) $('#cdWa').onclick = () => open('https://wa.me/?text=' + encodeURIComponent('ملف أوتوكاد ' + name + ' (افتحه بأمر MECDRAW): ' + r.url), '_blank');
+  $('#cdDl').onclick = dl; $('#cdBk').onclick = tkDraw;
 }
 const n2 = v => (Math.round(v * 1000) / 1000).toFixed(3);
 // البنود العامة: بند من المقايسة (أو مؤقت) وحصر بتاريخه ومفتوح / مقفول / ملحق
@@ -8044,9 +8165,13 @@ function tkSettings(){
   const c = tkCfg(), M = S.tk.mats || {};
   openSheet(`<h3>⚙️ إعدادات الحصر</h3><label class="f">الفتحة الأقل من كام م² ما تتخصمش</label><input class="in" id="tsD" inputmode="decimal" value="${c.minDed}">
     <label class="f">زيادة الجلسة من كل ناحية (م)</label><input class="in" id="tsS" inputmode="decimal" value="${c.sillOver}">
+    <label class="f">طلعة العزل على الحيطة (م)</label><input class="in" id="tsW" inputmode="decimal" value="${c.wpUp}">
+    <label class="f">تحت أرضيات HDF / SPC / باركيه</label><div class="chips">${['سيلف ليفلينج', 'بلاط موزايكو'].map(x => `<button class="chip ${c.sub === x ? 'on' : ''}" data-tsub="${x}">${x}</button>`).join('')}</div>
+    <label class="f">مدة توريد الخامات قبل بداية البند (يوم)</label><input class="in" id="tsL" inputmode="numeric" value="${c.lead}">
     ${isBoss() ? `<div class="sec-t" style="margin-top:10px">معدلات الخامات (لكل وحدة من البند)</div>${Object.keys(M).map(k => (M[k] || []).map((x, i) => `<div class="row" style="gap:6px;margin-top:4px"><small style="flex:2">${esc(x[0])}</small><input class="in" data-tm="${k}:${i}" inputmode="decimal" value="${x[2]}" style="flex:1"><small>${esc(x[1])}</small></div>`).join('')).join('')}` : ''}
     <button class="btn gold" id="tsGo" style="margin-top:10px">احفظ</button>`);
-  $('#tsGo').onclick = async () => { store.set('tkCfg', Object.assign(c, {minDed: tkN($('#tsD').value), sillOver: tkN($('#tsS').value)}));
+  document.querySelectorAll('[data-tsub]').forEach(b => b.onclick = () => { c.sub = b.dataset.tsub; document.querySelectorAll('[data-tsub]').forEach(x => x.classList.toggle('on', x === b)); });
+  $('#tsGo').onclick = async () => { store.set('tkCfg', Object.assign(c, {minDed: tkN($('#tsD').value), sillOver: tkN($('#tsS').value), wpUp: tkN($('#tsW').value) || 0.3, lead: tkN($('#tsL').value) || 7}));
     if (isBoss()) { document.querySelectorAll('[data-tm]').forEach(e => { const [k, i] = e.dataset.tm.split(':'); M[k][i][2] = tkN(e.value); }); const r = await api('tkMats', {set: true, mats: M}); if (r.ok) S.tk.mats = r.mats; }
     toast('اتحفظ ✓'); tkDraw(); };
 }
@@ -8075,6 +8200,101 @@ async function tkSignPage(tok){
   document.getElementById('tsClr').onclick = () => { x.clearRect(0, 0, c.width, c.height); any = false; };
   document.getElementById('tsOk').onclick = async () => { const nm = document.getElementById('tsN').value.trim(); if (!nm || !any) { alert('اكتب اسمك ووقّع'); return; }
     const s = await call('tkSd', {name: nm, note: document.getElementById('tsM').value, sign: c.toDataURL('image/png')}); if (s.ok) tkSignPage(tok); else alert('حصلت مشكلة، جرّب تاني'); };
+}
+
+// ===== 0.17: الباقي في كل أوضة (✓ على اللي خلص) =====
+function tkRemRow(r, a, i){
+  const q = tkRoomQty(r, a, tkCfg(), tkSel(S.tk)); if (q.bad || !q.lines.length) return '';
+  const rem = q.lines.filter(l => !l.done), nm = l => l.name.replace(/^(أرضيات|دهان حوائط|دهان أسقف) /, '$1 ').split(' ').slice(0, 3).join(' ');
+  return `<div class="row" style="gap:6px;margin:-4px 0 6px;padding:0 4px"><small style="flex:1;color:${rem.length ? 'var(--muted)' : 'var(--ok)'}">${rem.length ? 'فاضل ' + rem.length + ': ' + esc([...new Set(rem.map(nm))].slice(0, 4).join('، ')) + (rem.length > 4 ? '…' : '') : '✓ خلصت كلها'}${r.cOk ? ' · 🎨 ✓' : ''}</small>${S.tk.can ? `<button class="chip" data-tdn="${i}">✓ اللي خلص</button>` : ''}</div>`;
+}
+function tkDoneSheet(i){
+  const T = S.tk, a = T.apts[T.aIdx], r = a.rooms[i], q = tkRoomQty(r, a, tkCfg(), tkSel(T));
+  openSheet(`<h3>✓ اللي خلص في ${esc(r.name)}</h3><small class="muted">علّم على البند لما يخلص في الأوضة دي، والتاريخ بيتسجل</small>
+    ${q.lines.map((l, k) => `<label class="row tgrow" style="gap:8px"><input type="checkbox" data-dn="${k}" ${l.done ? 'checked' : ''}><span style="flex:1">${esc(l.name)} <small class="muted">${n1(l.qty, 2)} ${esc(l.unit)}</small></span><small class="muted">${esc(l.done || '')}</small></label>`).join('')}
+    <div class="row" style="gap:6px;margin-top:10px"><button class="btn gold" id="dnGo" style="flex:2">احفظ</button><button class="btn ghost" id="dnAll" style="flex:1">علّم الكل</button></div>`);
+  $('#dnAll').onclick = () => document.querySelectorAll('[data-dn]').forEach(e => e.checked = true);
+  $('#dnGo').onclick = async () => { r.done = r.done || {}; document.querySelectorAll('[data-dn]').forEach(e => { const l = q.lines[Number(e.dataset.dn)]; if (e.checked) r.done[l.key] = r.done[l.key] || tdy(); else delete r.done[l.key]; });
+    await tkSaveRow('apt', a, a.floor); toast('اتحفظ ✓'); tkDraw(); };
+}
+// ===== 0.17: 🧾 بنود الحصر (اختيار للمشروع كله بالأقسام) =====
+async function tkSaveMap(){ const T = S.tk, o = Object.assign({rid: T.mapRid}, T.map); await tkSaveRow('map', o, 'الربط'); T.mapRid = o.rid; }
+function tkSelSheet(tab){
+  const T = S.tk, sel = new Set(tkSel(T)); tab = tab || TK_CAT[0].s;
+  const draw = () => { const C = TK_CAT.find(c => c.s === tab);
+    openSheet(`<h3>🧾 بنود الحصر</h3><small class="muted">اختار البنود اللي هتتحصر في المشروع ده. التطبيق بيحسب الأوتوماتيك لوحده، والباقي بتكتبه في «إضافات الأوضة».</small>
+      <div class="tabs" style="margin-top:8px;overflow-x:auto;flex-wrap:nowrap">${TK_CAT.map(c => `<button class="tab ${c.s === tab ? 'on' : ''}" data-ss="${c.s}" style="white-space:nowrap">${esc(c.n)} ${c.items.filter(i => sel.has(i[0])).length ? '(' + c.items.filter(i => sel.has(i[0])).length + ')' : ''}</button>`).join('')}</div>
+      ${C.items.map(([k, n, u, how]) => `<label class="row tgrow" style="gap:8px"><input type="checkbox" data-sk="${k}" ${sel.has(k) ? 'checked' : ''}><span style="flex:1">${esc(n)} <small class="muted">${esc(u)}</small></span><span class="kpill" style="background:#EEF1F5">${esc(how)}</span></label>`).join('')}
+      <div class="row" style="gap:6px;margin-top:8px"><button class="chip" id="ssAll">الكل</button><button class="chip" id="ssNone">شيل الكل</button><button class="chip" id="ssDef">الافتراضي</button>${T.boq.length ? '<button class="chip" id="ssBoq">من المقايسة</button>' : ''}</div>
+      <button class="btn gold" id="ssGo" style="margin-top:10px">احفظ (${sel.size} بند)</button>`);
+    document.querySelectorAll('[data-ss]').forEach(b => b.onclick = () => { tab = b.dataset.ss; draw(); });
+    document.querySelectorAll('[data-sk]').forEach(e => e.onchange = () => { e.checked ? sel.add(e.dataset.sk) : sel.delete(e.dataset.sk); draw(); });
+    $('#ssAll').onclick = () => { TK_KEYS.forEach(k => sel.add(k)); draw(); }; $('#ssNone').onclick = () => { sel.clear(); draw(); }; $('#ssDef').onclick = () => { sel.clear(); TK_DEF.forEach(k => sel.add(k)); draw(); };
+    if ($('#ssBoq')) $('#ssBoq').onclick = () => { const B = T.boq.map(b => normN(b.name)).join(' | '); TK_CAT.forEach(c => c.items.forEach(([k, n]) => { const w = normN(n).split(' ')[0]; if (w.length > 2 && B.includes(w)) sel.add(k); })); draw(); toast('اتعلّم اللي في المقايسة'); };
+    $('#ssGo').onclick = async () => { T.map._sel = [...sel]; await tkSaveMap(); toast('اتحفظ ✓'); tkDraw(); }; };
+  draw();
+}
+// ===== 0.17: 🏠 بنود الشقة مرة واحدة =====
+function tkAptSheet(){
+  const T = S.tk, a = T.apts[T.aIdx], ex = a.ex || {}, L = tkAptQty(a, tkSel(T));
+  const F = [['panel', 'لوحة توزيع', 1], ['tank', 'خزان وطلمبة', 0], ['heater', 'سخان', a.rooms.filter(r => r.type === 'حمام').length], ['aptDoor', 'باب شقة', 1], ['debris', 'نقل مخلفات (مقطوعية)', 1]].filter(f => tkSel(T).includes(f[0]));
+  openSheet(`<h3>🏠 بنود ${esc(a.floor)}${a.name ? ' · ' + esc(a.name) : ''}</h3><small class="muted">بتتحسب مرة واحدة للشقة. الحماية والتنظيف من مساحة الأوض.</small>
+    ${F.map(([k, n, d]) => `<label class="f">${n} (افتراضي ${d})</label><input class="in" data-ak2="${k}" inputmode="numeric" value="${esc(ex[k] ?? '')}">`).join('') || '<div class="dsl muted">مفيش بنود شقة مختارة (من «🧾 بنود الحصر»)</div>'}
+    <div class="sec-t" style="margin-top:10px">اللي خلص</div>${L.map((l, k) => `<label class="row tgrow" style="gap:8px"><input type="checkbox" data-adn="${esc(l.key)}" ${l.done ? 'checked' : ''}><span style="flex:1">${esc(l.name)}</span><small class="muted">${n1(l.qty, 2)} ${esc(l.unit)}</small></label>`).join('')}
+    <button class="btn gold" id="akGo" style="margin-top:10px">احفظ</button>`);
+  $('#akGo').onclick = async () => { a.ex = a.ex || {}; document.querySelectorAll('[data-ak2]').forEach(e => { a.ex[e.dataset.ak2] = e.value === '' ? '' : tkN(e.value); });
+    a.done = a.done || {}; document.querySelectorAll('[data-adn]').forEach(e => { if (e.checked) a.done[e.dataset.adn] = a.done[e.dataset.adn] || tdy(); else delete a.done[e.dataset.adn]; });
+    await tkSaveRow('apt', a, a.floor); toast('اتحفظ ✓'); tkDraw(); };
+}
+// ===== 0.17: 🎨 اختيارات العميل لكل أوضة (لينك، أو المهندس يكتب «العميل وافق») =====
+function tkChoiceSheet(){
+  const T = S.tk, a = T.apts[T.aIdx];
+  openSheet(`<h3>🎨 اختيارات العميل · ${esc(a.floor)}</h3>${a.rooms.map(r => `<div class="row tgrow" style="gap:8px"><span style="flex:1"><b>${esc(r.name)}</b><br><small class="muted">${esc([r.floor, r.wallPaint, r.color, r.ceilPaint ? 'سقف ' + r.ceilPaint : ''].filter(Boolean).join(' · ') || 'لسه مفيش اختيارات')}</small></span>${r.cOk ? `<small style="color:var(--ok)">✓ ${esc(r.cOk.by)}${r.cOk.note ? '<br>' + esc(r.cOk.note) : ''}</small>` : '<small class="muted">مستني</small>'}</div>`).join('')}
+    <small class="muted">تعدّل الاختيار من الأوضة نفسها («لون الدهان» و«العميل وافق؟»)</small>
+    <button class="btn gold" id="chL" style="margin-top:10px">📲 لينك للعميل يوافق</button>`);
+  $('#chL').onclick = async () => { if (!navigator.onLine) { toast('اللينك محتاج نت'); return; } const x = await api('tkChoiceLink', {project: T.code, id: a.rid}); if (!x.ok) { toast(errMsg(x)); return; }
+    const url = location.origin + location.pathname + '?tc=' + x.tok, msg = 'برجاء مراجعة اختيارات التشطيب لكل أوضة والموافقة عليها: ' + url;
+    open('https://wa.me/' + (x.phone ? waNum(x.phone) : '') + '?text=' + encodeURIComponent(msg), '_blank'); navigator.clipboard && navigator.clipboard.writeText(url).catch(() => {}); };
+}
+async function tkChoicePage(tok){
+  S.publicMode = true;
+  document.body.innerHTML = `<div id="tcg" style="max-width:560px;margin:0 auto;font-family:Cairo,Tahoma,sans-serif;direction:rtl;background:#fff;min-height:100vh"><div style="padding:20px;color:#777">بيحمّل…</div></div>`;
+  const call = async (a, d) => { try { const r = await fetch(execUrl(), {method: 'POST', body: JSON.stringify(Object.assign({action: a, t: tok}, d || {}))}); return await r.json(); } catch (e) { return {ok: false, error: 'net'}; } };
+  const r = await call('tkC'), box = document.getElementById('tcg'), hd = `<div style="background:#1D2E4F;color:#fff;padding:16px"><b>MEC · الشرق الأوسط للإنشاءات</b><div style="font-size:13px;opacity:.85">اختيارات التشطيب</div></div>`;
+  if (!r.ok) { box.innerHTML = hd + `<div style="padding:16px">${r.error === 'net' ? 'مفيش نت. جرّب تاني' : 'اللينك ده مش شغال'}</div>`; return; }
+  const v = r.view;
+  box.innerHTML = hd + `<div style="padding:14px"><div style="color:#666">${esc(v.project)} · ${esc(v.floor)}</div>${v.rooms.map((x, i) => `<div style="border:1px solid #e3e6ea;border-radius:12px;padding:10px;margin-top:10px"><b>${esc(x.name)}</b>
+      <div style="font-size:13px;color:#444;margin-top:4px">${x.floor ? 'الأرضية: ' + esc(x.floor) + '<br>' : ''}${x.wallPaint ? 'الحوائط: ' + esc(x.wallPaint) + (x.color ? ' · ' + esc(x.color) : '') + '<br>' : ''}${x.ceilPaint ? 'السقف: ' + esc(x.ceilPaint) : ''}</div>
+      ${x.ok ? `<div style="color:#085041;margin-top:6px">✓ ${esc(x.ok.by)}${x.ok.note ? ' · ' + esc(x.ok.note) : ''}</div>` : `<input data-tcn="${i}" placeholder="عاوز تغيّر حاجة؟ اكتبها هنا" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:8px;margin-top:6px;font:inherit">`}</div>`).join('')}
+    ${v.rooms.every(x => x.ok) ? '' : `<label style="display:block;margin-top:12px">الاسم</label><input id="tcN" value="${esc(v.client || '')}" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:10px;font:inherit"><button id="tcOk" style="width:100%;margin-top:10px;padding:12px;border:0;border-radius:12px;background:#E8AA2E;font:inherit;font-weight:800">✓ موافق على الاختيارات</button>`}</div>`;
+  const b = document.getElementById('tcOk'); if (b) b.onclick = async () => { const nm = document.getElementById('tcN').value.trim(); if (!nm) { alert('اكتب اسمك'); return; }
+    const notes = {}; document.querySelectorAll('[data-tcn]').forEach(e => { if (e.value.trim()) notes[e.dataset.tcn] = e.value.trim(); });
+    const s = await call('tkCd', {name: nm, notes}); if (s.ok) tkChoicePage(tok); else alert('حصلت مشكلة، جرّب تاني'); };
+}
+
+// ===== 0.17: 💰 تكلفة كل أوضة (الحصر × أسعار المقايسة عن طريق الربط) =====
+function tkCostSheet(fl){
+  const T = S.tk, cfg = tkCfg(), sel = tkSel(T), price = k => { const b = T.boq.find(x => x.id === T.map[k]); return b ? Number(b.price) || 0 : 0; }, rows = [];
+  T.apts.forEach(a => a.rooms.forEach(r => { const q = tkRoomQty(r, a, cfg, sel); if (q.bad) return; const by = {}; let t = 0, miss = 0;
+    q.lines.forEach(l => { const p = price(l.key); if (!p) { miss++; return; } const v = l.qty * p, sec = tkSec(l.key.split(':')[0]); by[sec] = (by[sec] || 0) + v; t += v; });
+    rows.push({apt: a.floor, name: r.name, type: r.type, area: tkGeom(r).area, t: Math.round(t), by, miss}); }));
+  const f = fl || '', list = rows.filter(x => !f || x.type === f || x.apt === f), tot = list.reduce((s, x) => s + x.t, 0), mx = Math.max(1, ...list.map(x => x.t));
+  openSheet(`<h3>💰 تكلفة كل أوضة</h3><small class="muted">الكمية × سعر بند المقايسة المربوط («رحّل للمقايسة» بيعمل الربط). المالك والمدير والمحاسب بس.</small>
+    <div class="chips" style="flex-wrap:wrap;margin-top:6px"><button class="chip ${!f ? 'on' : ''}" data-cf="">الكل</button>${[...new Set(rows.map(x => x.type))].map(t => `<button class="chip ${f === t ? 'on' : ''}" data-cf="${esc(t)}">${esc(t)}</button>`).join('')}${[...new Set(rows.map(x => x.apt))].length > 1 ? [...new Set(rows.map(x => x.apt))].map(t => `<button class="chip ${f === t ? 'on' : ''}" data-cf="${esc(t)}">${esc(t)}</button>`).join('') : ''}</div>
+    <div class="dsbig" style="margin-top:6px">${money(tot)}</div>
+    ${list.map(x => `<div class="card dsc"><div class="row"><b style="flex:1">${esc(x.name)} <small class="muted">${esc(x.apt)} · ${n1(x.area, 1)} م²</small></b><b>${money(x.t)}</b></div>${dsBar(x.t / mx * 100)}
+      <small class="muted">${Object.keys(x.by).map(k => esc((TK_CAT.find(c => c.s === k) || {n: k}).n) + ' ' + money(Math.round(x.by[k]))).join(' · ')}${x.area ? ' · ' + money(Math.round(x.t / x.area)) + '/م²' : ''}${x.miss ? ` · <span style="color:var(--warn)">${x.miss} بند مش مربوط</span>` : ''}</small></div>`).join('') || emptyBox('chart', 'مفيش أوض')}
+    <button class="btn ghost" id="cfBk" style="margin-top:8px">رجوع</button>`);
+  document.querySelectorAll('[data-cf]').forEach(b => b.onclick = () => tkCostSheet(b.dataset.cf));
+  $('#cfBk').onclick = tkDraw;
+}
+// ===== 0.17: 📅 مواعيد طلب الخامات (الحصر + بداية البند في الجدول − مدة التوريد ⚙️) =====
+function tkOrderPlan(items){
+  const T = S.tk, lead = tkCfg().lead || 7, out = [];
+  items.forEach(i => { const b = T.boq.find(x => x.id === T.map[i.key]); if (!b || !b.start) return; const by = addD(b.start, -lead);
+    tkMatsFor([i]).forEach(m => out.push({mat: m.name, qty: m.qty, unit: m.unit, item: i.name, start: b.start, by})); });
+  const M = {}; out.forEach(o => { const k = o.mat + '|' + o.unit; if (!M[k] || o.by < M[k].by) M[k] = Object.assign({}, o, {qty: (M[k] ? M[k].qty : 0) + o.qty}); else M[k].qty += o.qty; });
+  return Object.values(M).sort((a, b) => a.by < b.by ? -1 : 1);
 }
 /* ================= 0.16: 📊 لوحة المالك + التوقعات + التقارير ================= */
 const DS_TABS = [['site', ''], ['proj', 'المشاريع'], ['money', 'الفلوس'], ['risk', 'الجودة والمخاطر'], ['rep', 'التقارير اليومية']];
@@ -8364,6 +8584,8 @@ const GUIDE = [
   {r: 'eng', t: 'توقيع العميل على كمية', s: ['الحصر ← «بنود عامة» ← البند', '«🔒 اقفل» (دي كل الكمية)', '«✍️ لينك للعميل يوقّع» ← واتساب العميل'], go: () => openTakeoff()},
   {r: 'all', t: 'نماذج الورق والإيصال', s: ['المزيد ← «🖨️ نماذج الورق»', 'اختار النموذج يتطبع A4', 'الإيصال: «🖨️» جنب أي دفعة للمقاول'], go: () => formsSheet()},
   {r: 'money', t: 'الموردين والهالك', s: ['لوحة المالك ← «الفلوس» ← «🏪 الموردين والهالك»', '«الأسعار»: الأرخص فعلا لكل خامة 🟢', '«الهالك»: الفعلي مقابل المسموح و«عدّل الهالك»'], go: () => supRepSheet()},
+  {r: 'eng', t: 'بنود الحصر واللي خلص', s: ['الحصر ← «🧾 بنود الحصر»: اختار بنود المشروع بالأقسام', 'في الأوضة ← «إضافات الأوضة»: الأطقم والمباني والهدم والمناطق', '«✓ اللي خلص» تحت كل أوضة ← «فاضل…» بيتحدّث'], go: () => openTakeoff()},
+  {r: 'all', t: 'التنبيهات المفتوحة', s: ['الشريط الأحمر ⚠️ في الرئيسية أو المشروع', 'كمية عدّت المقايسة، بند خسران، هالك، تأخير مقاول', 'المالك بس يقفلها بسبب'], go: () => alertsLoad(true).then(() => alertsSheet(''))},
   {r: 'boss', t: 'المكتبة الفنية', s: ['المزيد ← «📖 المكتبة الفنية»', '«📂 الفولدرات» ارفع الملفات في درايف', '«📚 فهرس الملفات الجديدة» وبعدين «اسأل المكتبة»'], go: () => libSheet()}
 ];
 function guideSheet(){
@@ -8476,6 +8698,31 @@ function expiryAddSheet(){
 }
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-x161]'); if (!b) return;
   ({sup: () => supRepSheet(), forms: formsSheet, expAdd: expiryAddSheet}[b.dataset.x161] || (() => {}))(); });
+/* ================= 0.17: ⚠️ التنبيهات المفتوحة (لحد ما المالك يقفلها) ================= */
+async function alertsLoad(force){
+  if (!navigator.onLine || !S.user || ['client', 'contractor'].includes(role())) return;
+  const old = store.get('alerts', null); if (old && !force && Date.now() - old.at < 20 * 60e3) return;
+  const r = await api('alerts', {}); if (!r.ok) return; store.set('alerts', {at: Date.now(), items: r.items, canClose: r.canClose});
+  document.querySelectorAll('.alH').forEach(el => { el.outerHTML = alertsBar(el.dataset.p || ''); });
+}
+function alertsBar(code){
+  const A = (store.get('alerts', {}) || {}), L = (A.items || []).filter(x => x.st === 'مفتوح' && (!code || x.proj === code));
+  if (!L.length) return `<div class="alH" data-p="${esc(code || '')}"></div>`;
+  const K = {}; L.forEach(x => { K[x.kindName] = (K[x.kindName] || 0) + 1; });
+  return `<button class="card alH alBar" data-p="${esc(code || '')}" data-x17="alerts"><b>⚠️ ${L.length} تنبيه مفتوح</b><small style="display:block">${Object.keys(K).map(k => esc(k) + ' ' + K[k]).join(' · ')}</small></button>`;
+}
+function alertsSheet(code){
+  const A = store.get('alerts', {}) || {}, L = (A.items || []).filter(x => !code || x.proj === code), op = L.filter(x => x.st === 'مفتوح'), cl = L.filter(x => x.st !== 'مفتوح');
+  const row = x => `<div class="card dsc" style="${x.st === 'مفتوح' ? 'border-color:#F2C2BB' : 'opacity:.75'}"><div class="row"><small style="flex:1;font-weight:700">${esc(x.kindName)}</small><small class="muted">${esc(x.projName)} · ${esc((x.at || '').slice(0, 10))}</small></div>
+    <div class="dsl">${esc(x.text)}</div>${x.st !== 'مفتوح' ? `<small class="muted">🔒 قفله ${esc(x.by)}: ${esc(x.why)}</small>` : A.canClose ? `<button class="chip" data-alc="${esc(x.id)}" style="margin-top:6px">🔒 اقفله</button>` : '<small class="muted">بيتقفل من المالك بس</small>'}</div>`;
+  openSheet(`<h3>⚠️ التنبيهات${code ? ' · ' + esc(pName(code)) : ''}</h3><small class="muted">بتفضل مفتوحة لحد ما المالك يقفلها بسبب. ولو الحالة زادت أكتر من 10% بتتفتح تاني.</small>
+    ${op.map(row).join('') || '<div class="dsl" style="color:var(--ok)">✓ مفيش تنبيهات مفتوحة</div>'}${cl.length ? `<div class="sec-t" style="margin-top:10px">اتقفلت (آخر 30 يوم)</div>${cl.map(row).join('')}` : ''}
+    <button class="btn ghost" id="alRf" style="margin-top:8px">↻ تحديث</button>`);
+  document.querySelectorAll('[data-alc]').forEach(b => b.onclick = async () => { const why = prompt('سبب القفل؟ (مثلا: أمر تغيير اتفقنا عليه، أو الكمية اتراجعت)'); if (!why) return;
+    const r = await api('alertClose', {id: b.dataset.alc, why}); if (!r.ok) { toast(errMsg(r)); return; } toast('اتقفل ✓'); await alertsLoad(true); alertsSheet(code); });
+  $('#alRf').onclick = async () => { await alertsLoad(true); alertsSheet(code); };
+}
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-x17]'); if (!b) return; if (b.dataset.x17 === 'alerts') alertsSheet(b.dataset.p || ''); });
 /* ================= البداية ================= */
 (function boot(){
   const ct = new URLSearchParams(location.search).get('c');
@@ -8490,6 +8737,8 @@ document.addEventListener('click', e => { const b = e.target.closest && e.target
   if (wq && /^[\w-]{8,40}$/.test(wq)) { S.publicMode = true; setTimeout(() => kPubPage('w', wq), 0); return; }
   const tsq = new URLSearchParams(location.search).get('ts');   // 0.16.1: توقيع العميل على كمية بند عام
   if (tsq && /^[\w-]{8,40}$/.test(tsq)) { S.publicMode = true; setTimeout(() => tkSignPage(tsq), 0); return; }
+  const tcq = new URLSearchParams(location.search).get('tc');   // 0.17: اختيارات العميل لكل أوضة
+  if (tcq && /^[\w-]{8,40}$/.test(tcq)) { S.publicMode = true; setTimeout(() => tkChoicePage(tcq), 0); return; }
   const code = new URLSearchParams(location.search).get('invite');
   if (code) {
     S.invite = code; store.set('pendingInvite', code);
