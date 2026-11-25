@@ -304,8 +304,8 @@ main.vin{animation:vin .22s ease-out}@keyframes vin{from{opacity:.4;transform:tr
 <script>
 'use strict';
 /* ================= إعدادات ثابتة (مفيش أي سر هنا) ================= */
-const APP_VERSION = '0.15.0';
-const APP_NOTES = ["🧮 حاسبة الشقة الجديدة: خطوة خطوة بكروت وصور، والسعر الحي تحت، وجنب كل اختيار فرقه في السعر.", "🍩 النتيجة دايرة بالأقسام (والأبواب والشبابيك منفصلين)، والسعر رينج «بين كذا وكذا» ودرجة الدقة والمدة.", "⚖️ 3 عروض جنب بعض، و🔗 لينك للعميل يشوف فيه العروض والصور والدفعات ويدوس «موافق».", "📄 PDF للعميل (الأقسام والكميات) وPDF تفصيلي للشركة، و🏗️ التقدير يتحوّل مشروع ومقايسة وطلبات خامات.", "💰 مراجعة الأسعار بعمر كل سعر، و🖼️ صور الاختيارات، و💳 قوالب الدفعات، و📐 الشقة المرجعية (للمالك).", "🔔 أي إشعار في الجرس تدوس عليه يوديك على مكانه على طول."];
+const APP_VERSION = '0.16.0';
+const APP_NOTES = ["📐 الحصر بقى جوه التطبيق: مربع «📐 الحصر» في المشروع، 3 صفحات (بيانات الموقع · جدول الكميات · المسقط الأفقي) وبيشتغل من غير نت.", "👷 المقاولين والمستخلصات: إسناد البنود، والكميات من «إنجاز النهارده»، ومستخلص كل خميس، والدفعات، والمحتجز، ولينك للمقاول.", "🧾 مستخلص العميل والضمان: مسودة جاهزة، والحالات، وتذكير الصرف ورفع النسخة.", "📊 لوحة المالك في الرئيسية: الموقع النهارده/الأسبوع/الشهر، وصحة المشاريع، والفلوس المطلوبة، والمخاطر، والتقارير اليومية.", "📒 تقرير المحاسب الشهري (تكلفة كل مشروع + الأعمال تحت التنفيذ) Excel وPDF، و🤖 تقرير ذكي.", "🔍 البحث العام فوق، و☁️ الطقس تحت الشريط، و📝 «عندك متعلقين»، و📘 الدليل في المزيد."];
 const DEFAULT_EXEC = 'https://script.google.com/macros/s/AKfycbwnuGSvVmsDOeQhQP0NwERUdAPuGeKczGtzsM-vZa5JYeoLzLpGON8kRmPQ1vbO2OcnXQ/exec';
 const LS = 'mec.';
 
@@ -331,7 +331,7 @@ const ERR = {
 const SECTIONS = [
   {k:'att', n:'الحضور', i:'users', live:true},
   {k:'takeoff', n:'الحصر', i:'ruler', live:true},
-  {k:'boq', n:'المقايسة والمستخلصات', i:'doc'},
+  {k:'boq', n:'المقايسة والمستخلصات', i:'doc', live:true},
   {k:'exp', n:'المصروفات والعهدة', i:'cash'},
   {k:'mat', n:'التوريدات والخامات', i:'box', live:true},
   {k:'eq', n:'المعدات', i:'truck', live:true},
@@ -381,7 +381,7 @@ const errMsg = r => (r && r.error === 'offline' ? offMsg() : ERR[(r && r.error) 
 function offMsg(){ const at = store.get('syncAt', 0);
   return at ? `مفيش نت، والشاشة دي ما نزلتش على الموبايل في آخر تحميل (${new Date(at).toLocaleString('ar-EG', {weekday: 'long', hour: 'numeric', minute: '2-digit'})}). هتنزل لوحدها أول ما يبقى فيه نت.`
     : 'مفيش نت، والموبايل لسه ما نزّلش البيانات ولا مرة. افتح التطبيق مرة بالنت، ومن «الإعدادات» دوس «نزّل كل البيانات دلوقتي».'; }
-function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); }
+function toast(msg){ if (/✓/.test(msg) && typeof drDone === 'function') drDone(); const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); }
 function soon(name){ toast(`«${name}» جاي في مرحلة جاية`); }
 const digits = s => String(s || '').replace(/[٠-٩]/g, c => String(c.charCodeAt(0) - 1632));
 async function sha(s){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,'0')).join(''); }
@@ -629,7 +629,7 @@ function shell(){
     <button class="ibtn" id="searchBtn" aria-label="بحث">${ic('search')}</button>
     ${S.qn + S.qbad ? `<button class="ibtn" id="qBtn" aria-label="مستني النت" style="width:auto;padding:0 8px;font-size:13px;font-weight:700;color:${S.qbad ? 'var(--bad)' : 'var(--gold)'}">⏳ ${S.qn + S.qbad}</button>` : ''}
     <button class="ibtn" id="bellBtn" aria-label="الإشعارات">${ic('bell')}${unreadCount() ? `<span class="bdg">${unreadCount() > 9 ? '9+' : unreadCount()}</span>` : ''}</button>
-  </header>
+  </header>${S.tab === 'home' && !S.project && typeof wxStrip === 'function' ? wxStrip() : ''}
   <main id="view" class="money ${S.masked ? 'masked' : ''}">${view()}</main>
   <nav class="bn">
     <button data-t="home" class="${S.tab==='home'?'on':''}">${ic('home')}الرئيسية</button>
@@ -697,7 +697,7 @@ function homeView(){
       ...locked.map(u => `<button class="li" data-team="1"><span class="ico">${ic('shield')}</span><span class="t"><b>حساب ${esc(dn(u))} اتقفل</b><small>محاولات رقم سري غلط. افتحه من الفريق</small></span><span class="pill p-bad">مقفول</span></button>`),
       ...waiting.map(u => `<button class="li" data-team="1"><span class="ico">${ic('users')}</span><span class="t"><b>${esc(dn(u))} لسه ما فعّلش حسابه</b><small>ابعتله لينك جديد لو اللي معاه ضاع</small></span><span class="pill p-warn">مستني</span></button>`)
     ].join('');
-    return news + (typeof setupHome === 'function' ? setupHome() : '') + (typeof nightHome === 'function' ? nightHome() : '') + ideasHome() + supplyCards() + duesCard() + savedHome() + `
+    return news + (['owner','manager','accountant'].includes(role()) ? `<button class="card dsHome" id="dsOpen"><span style="font-size:26px">📊</span><span style="flex:1"><b>لوحة المالك</b><small class="muted" style="display:block">الموقع النهارده · المشاريع · الفلوس المطلوبة · المخاطر · التقارير</small></span><span class="muted">‹</span></button>` : '') + (typeof setupHome === 'function' ? setupHome() : '') + (typeof nightHome === 'function' ? nightHome() : '') + ideasHome() + supplyCards() + duesCard() + draftsHome() + expHome() + savedHome() + `
     <h2 class="sec">المشاريع <button class="more" data-t2="projects">الكل</button></h2>
     ${S.projects.length ? statCards() : `<div class="card empty">${ic('folder')}<div>مفيش مشاريع لسه</div><button class="btn gold" id="newProj" style="margin-top:12px">${ic('plus')} مشروع جديد</button></div>`}
     ${act ? `<h2 class="sec">${ic('alert')} محتاج تتصرف فيه</h2>${act}` : ''}
@@ -705,7 +705,7 @@ function homeView(){
     ${recent.length ? `<h2 class="sec">آخر دخول <button class="more" id="openLog">سجل النشاط</button></h2>
       <div class="card" style="padding:4px 14px">${recent.map(u => `<div class="mi" style="font-weight:400"><span style="flex:1"><b style="font-weight:600">${esc(dn(u))}</b></span><small class="muted">${ago(u.last)}</small></div>`).join('')}</div>` : ''}`;
   }
-  return news + (typeof setupHome === 'function' ? setupHome() : '') + supplyCards() + quickHome() + savedHome() + `
+  return news + (['owner','manager','accountant'].includes(role()) ? `<button class="card dsHome" id="dsOpen"><span style="font-size:26px">📊</span><span style="flex:1"><b>لوحة المالك</b><small class="muted" style="display:block">الموقع النهارده · المشاريع · الفلوس المطلوبة · المخاطر · التقارير</small></span><span class="muted">‹</span></button>` : '') + (typeof setupHome === 'function' ? setupHome() : '') + supplyCards() + quickHome() + draftsHome() + (['engineer'].includes(role()) ? expHome() : '') + savedHome() + `
     <h2 class="sec">مشاريعي</h2>
     ${S.projects.length ? S.projects.filter(p => p.status !== 'انتهى').map(p => projectCard(p)).join('') : emptyBox('folder','مفيش مشاريع متسجلة عليك لسه')}
     <h2 class="sec">ملاحظة سريعة</h2>
@@ -779,6 +779,7 @@ function projectView(){
   <div class="grid">${SECTIONS.filter(s => !(s.k === 'takeoff' && role() === 'supervisor2') && !(s.k === 'att' && role() === 'contractor')).map(s => `<button class="tile ${s.live?'live':''}" data-sec="${s.k}" data-n="${esc(s.n)}">${badge(s)}<span class="ico">${ic(s.i)}</span>${esc(s.n)}</button>`).join('')}</div>
   ${needLoc ? `<button class="btn ghost" id="hereBtn" style="margin-top:14px">${ic('pin')} أنا في الموقع دلوقتي: سجّل مكان المشروع</button>` : ''}
   ${canManage() ? `<button class="btn ghost" id="editProj" style="margin-top:10px">تعديل بيانات المشروع</button>` : ''}
+  ${!isOwner() && ['manager','engineer'].includes(role()) ? `<button class="btn ghost" data-x16="delReq" style="margin-top:6px;color:var(--bad)">🗑️ اطلب حذف المشروع</button>` : ''}
   <h2 class="sec">ملاحظات سريعة</h2>
   <div class="card"><textarea class="in" data-ak="pnote.${esc(p.code)}" placeholder="ملاحظاتك على المشروع… بتتحفظ على موبايلك"></textarea><div class="saved" data-saved="pnote.${esc(p.code)}"></div></div>
   ${located(p) && isOwner() ? `<button class="row muted" id="hereChange" style="margin:14px auto 0;font-size:12.5px;gap:4px">${ic('pin')} مكان الموقع متسجل · تغيير</button>` : ''}`;
@@ -816,6 +817,11 @@ function moreView(){
     ${isOwner() ? `<button class="mi" data-site="regAll" data-sp="">📋 سجل نماذج الجودة</button>` : ''}
     ${isBoss() || isTech() ? `<button class="mi" data-p12="pkg" data-sp="">🧮 حاسبة الباقة</button>` : ''}
     <button class="mi" id="items">${ic('doc')}بنود الشركة</button>
+    ${['owner','manager','accountant'].includes(role()) ? `<button class="mi" data-x16="dash">📊 لوحة المالك</button><button class="mi" data-x16="acc">📒 تقرير المحاسب الشهري</button>` : ''}
+    ${canMoney() ? `<button class="mi" data-x16="stock">💰 قيمة الخامات في المواقع</button>` : ''}
+    ${isBoss() || role() === 'buyer' ? `<button class="mi" data-x16="units">⚖️ تحويل الوحدات</button>` : ''}
+    <button class="mi" data-x16="search">🔍 دوّر على أي حاجة</button>
+    <button class="mi" data-x16="guide">📘 الدليل</button>
     ${MORE.map(m => `<button class="mi" data-soon="${esc(m.n)}">${ic(m.i)}${esc(m.n)}<span class="soon">قريبًا</span></button>`).join('')}
   </div>
   <h2 class="sec">النظام</h2>
@@ -909,7 +915,7 @@ async function projectForm(code){
 function openSheet(html){
   $('#sheetBody').innerHTML = `<button class="sheetX" id="sheetX" aria-label="قفل"><svg class="i"><path d="M6 6l12 12M18 6 6 18"/></svg></button>` + html;
   $('#sheet').classList.add('on'); $('#scrim').classList.add('on'); bindAutosave($('#sheetBody'));
-  $('#sheetX').onclick = closeSheet;
+  $('#sheetX').onclick = closeSheet; if (typeof drOffer === 'function') setTimeout(drOffer, 0);
   document.querySelectorAll('[data-kmq]').forEach(b => b.onclick = () => kamSheet({tab: b.dataset.kmq, proj: b.dataset.kmp || S.project || '', sup: '', mat: '', eq: '', trade: '', item: ''}));
 }
 function closeSheet(){ $('#sheet').classList.remove('on'); $('#scrim').classList.remove('on'); if (S.redraw) { S.redraw = false; const y = scrollY; render(); scrollTo(0, y); } }
@@ -918,7 +924,7 @@ $('#scrim').onclick = closeSheet;
 function fabSheet(){
   const acts = [...(canManage() ? [['folder','مشروع جديد','proj']] : []), ['ruler','أوضة في الحصر','takeoff'],['cash','مصروف','exp'],['camera','يومية','daily'],['check','مهمة','task'],['wallet','تحصيل','pay'],['box','استلام خامة','mat']];
   openSheet(`<h3>تضيف إيه؟</h3><div class="qa">${acts.map(([i,n,k]) => `<button data-qa="${k}" data-n="${n}">${ic(i)}${n}</button>`).join('')}</div>`);
-  document.querySelectorAll('[data-qa]').forEach(b => b.onclick = () => { closeSheet(); if (b.dataset.qa === 'takeoff') openTakeoff(); else if (b.dataset.qa === 'proj') setTimeout(() => projectForm(''), 260); else soon(b.dataset.n); });
+  document.querySelectorAll('[data-qa]').forEach(b => b.onclick = () => { closeSheet(); if (b.dataset.qa === 'takeoff') setTimeout(openTakeoff, 260); else if (b.dataset.qa === 'proj') setTimeout(() => projectForm(''), 260); else soon(b.dataset.n); });
 }
 
 /* ---------- الفريق والصلاحيات ---------- */
@@ -2222,11 +2228,11 @@ async function pickProjectAuto(){
 }
 async function quickGo(k){
   if (k === 'exp') { soon('المصروف'); return; }
-  const go = {att: attendanceSheet, sup: supplySheet, eq: eqSheet}[k];
+  const go = {att: attendanceSheet, sup: supplySheet, eq: eqSheet, tk: c => takeoffSheet(c)}[k];
   toast('بيحدد المشروع…');
   const p = await pickProjectAuto();
   if (p) { go(p.code); return; }
-  openSheet(`<h3>${{att:'يوميات', sup:'توريدات', eq:'معدات'}[k]} أنهي مشروع؟</h3>${myActive().map(x => `<button class="li" data-qp="${esc(x.code)}"><span class="ico">${ic('folder')}</span><span class="t"><b>${esc(x.short || x.name)}</b></span></button>`).join('') || emptyBox('folder', 'مفيش مشاريع شغالة عليك')}`);
+  openSheet(`<h3>${{att:'يوميات', sup:'توريدات', eq:'معدات', tk:'الحصر'}[k]} أنهي مشروع؟</h3>${myActive().map(x => `<button class="li" data-qp="${esc(x.code)}"><span class="ico">${ic('folder')}</span><span class="t"><b>${esc(x.short || x.name)}</b></span></button>`).join('') || emptyBox('folder', 'مفيش مشاريع شغالة عليك')}`);
   document.querySelectorAll('[data-qp]').forEach(b => b.onclick = () => go(b.dataset.qp));
 }
 async function quickStatus(){
@@ -2772,7 +2778,7 @@ function itemForm(it){
   };
 }
 
-function openTakeoff(){ logAct('فتح الحصر', S.project || ''); window.open(execUrl(), '_blank'); }
+function openTakeoff(){ logAct('فتح الحصر', S.project || ''); if (S.project) takeoffSheet(S.project); else quickGo('tk'); }
 
 /* ================= الربط ================= */
 function wireShell(){
@@ -2780,7 +2786,7 @@ function wireShell(){
   bindAutosave(v);
   document.querySelectorAll('nav.bn [data-t]').forEach(b => b.onclick = () => { S.tab = b.dataset.t; S.project = null; render(); scrollTo(0,0); });
   $('#fab').onclick = fabSheet;
-  $('#searchBtn').onclick = () => { S.tab = 'projects'; S.project = null; render(); setTimeout(() => { const s = $('#pSearch'); if (s) s.focus(); }, 50); };
+  $('#searchBtn').onclick = () => gSearchSheet();
   $('#bellBtn').onclick = notesSheet;
   if ($('#qBtn')) $('#qBtn').onclick = queueSheet;
   offBar();
@@ -2790,11 +2796,12 @@ function wireShell(){
   v.querySelectorAll('[data-open]').forEach(openP);
   v.querySelectorAll('[data-t2]').forEach(b => b.onclick = () => { S.tab = b.dataset.t2; render(); });
   v.querySelectorAll('[data-soon]').forEach(b => b.onclick = () => soon(b.dataset.soon));
-  v.querySelectorAll('[data-sec]').forEach(b => b.onclick = () => { if (b.dataset.sec === 'takeoff') openTakeoff(); else if (b.dataset.sec === 'att') attendanceSheet(S.project); else if (b.dataset.sec === 'mat') supplySheet(S.project); else if (b.dataset.sec === 'eq') eqSheet(S.project); else soon(b.dataset.n); });
+  v.querySelectorAll('[data-sec]').forEach(b => b.onclick = () => { if (b.dataset.sec === 'takeoff') openTakeoff(); else if (b.dataset.sec === 'att') attendanceSheet(S.project); else if (b.dataset.sec === 'mat') supplySheet(S.project); else if (b.dataset.sec === 'eq') eqSheet(S.project); else if (b.dataset.sec === 'boq') boqHub(S.project); else soon(b.dataset.n); });
   v.querySelectorAll('[data-flt]').forEach(b => b.onclick = () => { S.pFilter = b.dataset.flt; S.tab = 'projects'; render(); });
   v.querySelectorAll('[data-team]').forEach(b => b.onclick = teamSheet);
   const back = $('#back'); if (back) back.onclick = () => { S.project = null; S.tab = 'projects'; render(); };
   const ok = $('#newsOk'); if (ok) ok.onclick = () => { store.set('seenVersion', APP_VERSION); render(); };
+  const dso = $('#dsOpen'); if (dso) dso.onclick = () => ownerDash();
   const ps = $('#pSearch');
   if (ps) ps.oninput = () => {
     const q = ps.value.trim();
@@ -2845,6 +2852,7 @@ function wireShell(){
   if (id('reports')) id('reports').onclick = reportsSheet;
   /* تحديث من جوجل في الخلفية */
   loadProjects(); loadNotes().then(() => { bigNote(); if (S.tab === 'home' && !S.project && (S.notes || []).some(n => !n.read && n.type === 'توريدات') && !$('[data-scx],[data-scgo]') && !$('#sheet').classList.contains('on')) render(); }); flushAtt(); flushOut().then(() => syncAll(false)); qCount(); offBar(); setTimeout(sunHint, 1500); resumePay(); resumeTopup(); if (isBoss()) loadDuesHome(); if (S.tab === 'home' && !S.project && ['engineer','supervisor','supervisor2'].includes(role())) quickStatus();
+  if (typeof wxLoad === 'function' && !S.wxTried) { S.wxTried = true; setTimeout(() => { wxLoad(); expLoad(); }, 2500); }
   if (isBoss() && S.tab === 'home' && !S.project && !S.teamLoaded) { S.teamLoaded = true; loadTeam().then(() => { if (S.tab === 'home' && !S.project && !$('#sheet').classList.contains('on')) render(); }); }
 }
 
@@ -3226,8 +3234,10 @@ async function outputForm(code, date, att){
   const items = (S.items && S.items.items || []).filter(x => x.active !== false && x.active !== 'لأ');
   const D = await siteAll(false), recent = D ? [...new Map(D.out.filter(o => o.proj === code).reverse().map(o => [outKey(o), o])).values()].slice(0, 6) : [];
   const present = (att || []).filter(x => x.st && x.st !== 'غياب');
-  const f = {item: '', name: '', unit: 'م2', qty: '', workers: [], wd: '', note: '', done: false};
+  const f = {item: '', name: '', unit: 'م2', qty: '', workers: [], wd: '', note: '', done: false, kc: '', kb: true};
   const UN = ['م2', 'م.ط', 'م3', 'عدد', 'نقطة'];
+  // 0.16: «مين نفّذ؟» عمالتنا ولا مقاول (المسند لهم في المشروع)
+  let KC = (S.kxP || {})[code] || []; if (!KC.length && navigator.onLine) api('kBoard', {project: code}).then(r => { if (r.ok) { S.kxP = S.kxP || {}; S.kxP[code] = KC = r.cards.map(c => ({code: c.code, name: c.name, items: c.asg.map(a => a.item)})); if ($('#ofGo')) { try { f.name = $('#ofN').value; f.qty = $('#ofQ').value; } catch (e) {} draw(); } } });
   const draw = () => { const wdAuto = f.workers.reduce((s, c) => { const a = present.find(x => x.code === c); return s + (a ? (ST_V[a.st] || 0) : 1); }, 0);
     const q = normN(f.name), sug = !f.item && q ? items.filter(x => normN(x.name + ' ' + x.code).includes(q)).slice(0, 6) : [];
     openSheet(`<h3>📐 إنجاز · ${esc(p ? (p.short || p.name) : code)} <small class="muted" style="font-weight:400">${esc(dshort(date))}</small></h3>
@@ -3237,6 +3247,8 @@ async function outputForm(code, date, att){
       <div id="ofSug">${sug.map(x => `<button class="li" data-it="${esc(x.code)}" style="padding:8px 12px"><span class="t"><b>${esc(x.name)}</b><small>${esc(x.code)} · ${esc(x.unit)}</small></span></button>`).join('')}</div>
       <div class="row" style="gap:8px"><div style="flex:1"><label class="f">الكمية *</label><input class="in" id="ofQ" inputmode="decimal" dir="ltr" value="${esc(f.qty)}"></div>
         <div style="flex:1.4"><label class="f">الوحدة</label><div class="chips">${UN.map(u => `<button class="chip ${f.unit === u ? 'on' : ''}" data-ou="${u}">${u}</button>`).join('')}</div></div></div>
+      ${KC.length ? `<label class="f">مين نفّذ؟</label><div class="chips" style="flex-wrap:wrap"><button class="chip ${!f.kc ? 'on' : ''}" data-okc="">عمالتنا</button>${KC.map(c => `<button class="chip ${f.kc === c.code ? 'on' : ''}" data-okc="${esc(c.code)}">${esc(c.name)}</button>`).join('')}</div>
+        ${f.kc ? `<label class="row" style="gap:8px;margin-top:6px"><input type="checkbox" id="ofKb" ${f.kb ? 'checked' : ''}> <span>بيتحاسب عليها (شيلها لو تربيات)</span></label>` : ''}` : ''}
       <label class="f">مين اشتغل فيه؟ ${present.length ? `<button class="more" id="ofAll" style="color:var(--pri);font-size:12.5px">الكل</button>` : ''}</label>
       ${present.length ? `<div class="chips" style="flex-wrap:wrap">${present.map(w => `<button class="chip ${f.workers.includes(w.code) ? 'on' : ''}" data-ow="${esc(w.code)}">${esc(w.name)} <small class="muted">${esc(w.trade || '')}${w.st === 'نص' ? ' · نص' : ''}</small></button>`).join('')}</div>`
         : '<small class="muted">مفيش يوميات متسجلة لليوم ده. اكتب عدد العمال تحت.</small>'}
@@ -3254,17 +3266,19 @@ async function outputForm(code, date, att){
     wireIt();
     document.querySelectorAll('[data-or]').forEach(b => b.onclick = () => { sync(); const o = recent.find(z => outKey(z) === b.dataset.or); if (o) { f.item = o.item || ''; f.name = o.name; f.unit = o.unit; if (!f.workers.length && o.workers) f.workers = o.workers.filter(c => present.some(x => x.code === c)); } draw(); });
     if ($('#ofFree')) $('#ofFree').onclick = () => { sync(); f.item = ''; draw(); };
+    document.querySelectorAll('[data-okc]').forEach(b => b.onclick = () => { sync(); f.kc = b.dataset.okc; draw(); });
+    if ($('#ofKb')) $('#ofKb').onchange = e => { f.kb = e.target.checked; };
     document.querySelectorAll('[data-ou]').forEach(b => b.onclick = () => { sync(); f.unit = b.dataset.ou; draw(); });
     document.querySelectorAll('[data-ow]').forEach(b => b.onclick = () => { sync(); const c = b.dataset.ow; f.workers = f.workers.includes(c) ? f.workers.filter(x => x !== c) : f.workers.concat(c); f.wd = ''; draw(); });
     if ($('#ofAll')) $('#ofAll').onclick = () => { sync(); f.workers = f.workers.length === present.length ? [] : present.map(x => x.code); f.wd = ''; draw(); };
     $('#ofGo').onclick = async () => { sync(); const qty = numIn(f.qty), wd = numIn($('#ofW').value);
       if (!f.name.trim()) { $('#ofE').textContent = 'اكتب البند'; return; } if (!(Number(qty) > 0)) { $('#ofE').textContent = 'اكتب الكمية'; return; }
       const trades = [...new Set(f.workers.map(c => (present.find(x => x.code === c) || {}).trade).filter(Boolean))];
-      const out = {item: f.item, name: f.name.trim(), unit: f.unit, qty, workers: f.workers, wd: wd === '' ? '' : Number(wd), trade: trades.length === 1 ? trades[0] : '', note: f.note, done: !!f.done};
+      const out = {item: f.item, name: f.name.trim(), unit: f.unit, qty, workers: f.workers, wd: wd === '' ? '' : Number(wd), trade: trades.length === 1 ? trades[0] : '', note: f.note, done: !!f.done, kc: f.kc, kb: f.kb};
       busy($('#ofGo'), true); const r = await qSave('saveOutput', {project: code, date, out}, 'إنجاز ' + out.name + ' ' + qty + ' ' + f.unit); busy($('#ofGo'), false);
       if (!r.ok) { $('#ofE').textContent = errMsg(r); return; }
       if (r.out && S.siteLog) S.siteLog.out.push(r.out);
-      toast(r.queued ? QMSG : 'اتسجل الإنجاز ✓'); attendanceSheet(code, date); };
+      toast(r.queued ? QMSG : 'اتسجل الإنجاز ✓'); (r.warn || []).forEach(w => toast(w)); attendanceSheet(code, date); };
   };
   draw();
 }
@@ -4820,11 +4834,11 @@ function siteCard(p){
   return `<div class="card" style="margin-top:10px"><div class="row" style="gap:8px;align-items:center"><b style="flex:1">🗓️ الجدول والمتابعة</b>
     ${its.length ? `<small class="muted">${its.length} بند${ev && ev.spi != null ? ` · SPI ${ev.spi}` : ''}${late ? ` · <span class="redd">${late} متأخر</span>` : ''}</small>` : `<small class="muted">لسه مفيش مقايسة</small>`}</div>
     <div class="chips" style="flex-wrap:wrap;margin-top:8px">${b('sch', '🗓️ الجدول الزمني', p.type !== 'صيانة وترميم')}${b('boq', '📝 المقايسة', true)}${b('rdy', `✅ جاهز يبدأ؟${nBlk ? ` <small class="redd">${nBlk}</small>` : ''}`, o)}
-      ${b('zon', `🏁 الاستلام بالمناطق${nNcr ? ` <small class="redd">${nNcr}</small>` : ''}`, o)}${b('co', '🔁 أوامر التغيير', role() !== 'supervisor2')}${b('reg', '📋 نماذج الجودة', o)}${b('night', '🌙 خطة بكرة', o)}</div>${typeof p12Card === 'function' ? p12Card(p) : ''}</div>`;
+      ${b('zon', `🏁 الاستلام بالمناطق${nNcr ? ` <small class="redd">${nNcr}</small>` : ''}`, o)}${b('co', '🔁 أوامر التغيير', role() !== 'supervisor2')}${b('kx', '👷 المقاولين والمستخلصات', !['supervisor2', 'contractor'].includes(role()))}${b('reg', '📋 نماذج الجودة', o)}${b('night', '🌙 خطة بكرة', o)}</div>${typeof p12Card === 'function' ? p12Card(p) : ''}</div>`;
 }
 function wireSite(v){
   (v || document).querySelectorAll('[data-site]').forEach(b => b.onclick = () => { const c = b.dataset.sp, k = b.dataset.site;
-    ({sch: () => schedSheet(c), boq: () => boqSheet(c), rdy: () => readySheet(c), zon: () => zonesSheet(c), co: () => coSheet(c), reg: () => regSheet(c), night: () => nightSheet(c), lib: () => libSheet(), regAll: () => regSheet('')})[k](); });
+    ({kx: () => kxSheet(c), sch: () => schedSheet(c), boq: () => boqSheet(c), rdy: () => readySheet(c), zon: () => zonesSheet(c), co: () => coSheet(c), reg: () => regSheet(c), night: () => nightSheet(c), lib: () => libSheet(), regAll: () => regSheet('')})[k](); });
   if (typeof wireP12 === 'function') wireP12(v);
   if (siteOK() && !S.boardTried && navigator.onLine) { S.boardTried = true; board(false).then(() => { if (!$('#sheet').classList.contains('on') && !$('#wkOv') && (S.project || isOwner())) render(); }); }
 }
@@ -5278,7 +5292,7 @@ async function libSheet(tab, q){
   await board(false); const T = tab || store.get('lbT', 'فهرس'); store.set('lbT', T); q = q || '';
   const L = B().lib.filter(x => x.type === T && (!q || nrm(x.text + ' ' + x.key + ' ' + JSON.stringify(x.x || {})).includes(nrm(q))));
   const can = isOwner() || (role() === 'manager' && T === 'فهرس');
-  openSheet(`<h3>📖 المكتبة الفنية</h3>
+  openSheet(`<h3>📖 المكتبة الفنية</h3>${isBoss() ? `<div class="row" style="gap:6px;margin-bottom:6px"><button class="chip" data-x16="libDirs">📂 الفولدرات</button><button class="chip" data-x16="libIdx">📚 فهرس الملفات الجديدة</button></div>` : ''}
     <div class="row" style="gap:6px"><input class="in" id="lbAsk" placeholder="اسأل المكتبة: سمك العزل على حيطة الدش كام؟" style="flex:1">${micBtn('lbAsk')}<button class="mic" id="lbAskGo" aria-label="اسأل">${ic('search')}</button></div><div id="lbAns"></div>
     <div class="tabs" style="margin-top:8px">${LT.filter(t => t[0] !== 'اقتراح معدل' || isOwner()).map(([k, n]) => `<button class="tab ${T === k ? 'on' : ''}" data-lt="${k}">${n}</button>`).join('')}</div>
     <input class="in" id="lbQ" value="${esc(q)}" placeholder="دوّر في ${esc(T)}">
@@ -5927,6 +5941,7 @@ const _rawToast = toast; toast = function(m){ _rawToast(m); const s = String(m |
 .bub{background:#EEF1F4;border-radius:14px 14px 14px 3px;padding:8px 11px;margin:6px 0;max-width:90%;font-size:13.5px;text-align:start;display:block;width:fit-content}
 .bub.me{background:#E8F0FB;margin-inline-start:auto;border-radius:14px 14px 3px 14px}.bub.fl{background:#FFF6F5}.bub.cx{opacity:.55;text-decoration:line-through}
 .bub small{display:block;color:var(--muted);font-size:11.5px}.daysep{text-align:center;font-size:11.5px;color:var(--muted);margin:10px 0 2px}
+.dsc{padding:10px 12px;margin-top:8px}.dsbig{font-size:22px;font-weight:800;color:var(--navy,#1D2E4F);line-height:1.3}.dsbig small{font-size:12.5px;font-weight:500;color:var(--muted)}.dsl{font-size:13px;margin-top:3px;line-height:1.6}.dsd{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 2px;vertical-align:middle}.dsHome{display:flex;align-items:center;gap:10px;width:100%;text-align:right;font:inherit;margin-bottom:10px;border:1px solid var(--line)}.wx{display:flex;flex-wrap:wrap;gap:4px 14px;background:#16233D;color:#DCE3EE;font-size:11.5px;padding:3px 14px 4px;position:relative;z-index:1}.wx:empty{display:none}.gnum{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#E8F0FB;color:var(--pri);font-weight:800;font-size:12.5px;margin-inline-end:8px}.tkbt{position:sticky;bottom:0;display:flex;gap:4px;background:var(--card,#fff);border-top:1px solid var(--line);padding:6px 0;margin-top:12px}.tkbt button{flex:1;border:0;background:none;padding:8px 2px;font:inherit;font-size:13px;color:var(--muted);border-radius:10px}.tkbt button.on{background:#E8F0FB;color:var(--pri);font-weight:700}.tqr{border-bottom:1px solid var(--line);padding:8px 2px}.kpill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:11.5px;font-weight:600}.tgrow{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-top:8px}.sec-t{font-weight:700;font-size:13.5px;margin:6px 0 2px}table.kt{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}table.kt td,table.kt th{border-bottom:1px solid var(--line);padding:5px 3px;text-align:center}table.kt th{color:var(--muted);font-weight:600}
 .kps{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:6px}.kp{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 6px;text-align:center}.kp small{display:block;color:var(--muted);font-size:11.5px}.kp b{font-size:15px}
 .seg{display:flex;background:#EEF1F4;border-radius:10px;padding:3px;margin-top:8px}.seg button{flex:1;border:0;background:none;padding:7px;border-radius:8px;font-weight:600;font-size:13px}.seg button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .fpan{margin-top:8px;background:#F8FAFD}
@@ -7278,6 +7293,1018 @@ function noteGo(n){
 })();
 
 
+/* ================= 0.16: 👷 المقاولين والمستخلصات + مستخلص العميل + اللينكات + كارت البند ================= */
+const KST = {'مسودة': ['#F1EFE8', '#444441'], 'اتقدّم': ['#E6F1FB', '#0C447C'], 'اتعتمد': ['#EEEDFE', '#3C3489'], 'اتدفع جزئي': ['#FAEEDA', '#633806'], 'اتدفع': ['#EAF3DE', '#27500A'], 'اتصرف': ['#EAF3DE', '#27500A'], 'اتصرف جزئي': ['#FAEEDA', '#633806']};
+const kPill = st => { const c = KST[st] || ['#F1EFE8', '#444441']; return `<span class="kpill" style="background:${c[0]};color:${c[1]}">${esc(st)}</span>`; };
+const kBar = (p, warn) => { const v = p == null ? 0 : p, col = p == null ? '#B4B2A9' : v > 100 ? '#E24B4A' : v >= (warn || 80) ? '#EF9F27' : '#1D9E75'; return `<div class="xbar"><i style="width:${Math.min(100, v)}%;background:${col}"></i></div>`; };
+const KERR = {empty: 'مفيش كمية جديدة مقبولة لسه. الكميات اللي مستنية استلام قرّر فيها من كارت المقاول', locked: 'المستخلص اتقدّم. رجّعه مسودة الأول', closed: 'اللينك مقفول دلوقتي'};
+const kErr = r => KERR[r.error] || errMsg(r);
+
+// المربع في صفحة المشروع
+async function kxSheet(code, tab){
+  S.kxTab = tab || S.kxTab || 'c';
+  openSheet(`<h3>👷 المقاولين والمستخلصات · ${esc(pName(code))}</h3><div id="kxB" class="muted">بيحمّل…</div>`);
+  const r = await api('kBoard', {project: code}); if (!$('#kxB')) return;
+  if (!r.ok) { $('#kxB').innerHTML = esc(kErr(r)); return; }
+  S.kx = r; kxDraw(code);
+}
+function kxDraw(code){
+  const r = S.kx, t = S.kxTab, M = r.money;
+  const tabs = [['c', 'المقاولين'], ['x', 'المستخلصات'], ...(M ? [['ce', 'مستخلص العميل'], ['ret', 'المحتجز والضمان']] : [])];
+  let body = '';
+  if (t === 'c') body = (r.cards.length ? r.cards.map(c => `<button class="irow" data-kc="${esc(c.code)}"><div class="row"><b style="flex:1">${esc(c.name)}</b><small class="muted">${esc(c.trade)}</small></div>
+      <small class="muted">${c.asg.map(a => esc(a.item + (a.sub ? ' · ' + a.sub : ''))).join(' · ')}</small>
+      <div class="row" style="margin-top:4px"><small style="flex:1">المنفذ من المسند</small><b>${c.donePct == null ? '—' : c.donePct + '%'}</b></div>${kBar(c.donePct)}
+      ${M ? `<div class="row"><small style="flex:1">المدفوع من المنفذ</small><b>${c.paidPct == null ? '—' : c.paidPct + '%'}</b></div>${kBar(c.paidPct)}` : ''}
+      <small class="muted">منفذ الأسبوع ده: <b>${nf(c.week.qty)}</b> ${esc(c.week.unit)} ${c.week.avg ? `(متوسطه ${nf(c.week.avg)}) ${c.week.qty >= c.week.avg ? '<span style="color:var(--ok)">▲</span>' : '<span class="redd">▼</span>'}` : ''}${c.pending.filter(p => p.state !== 'مقبول').length ? ` · ⏳ ${c.pending.filter(p => p.state !== 'مقبول').length} مستني` : ''}</small></button>`).join('') : emptyBox('users', 'لسه مفيش مقاولين في المشروع ده'))
+      + (r.canPrep ? `<button class="btn gold" id="kxAdd" style="margin-top:8px">➕ إسناد لمقاول</button>` : '')
+      + (r.items.length ? `<div class="sec-t" style="margin-top:12px">البنود والمسند منها</div>` + r.items.filter(i => i.asg).map(i => `<button class="irow" data-ic="${esc(i.id)}"><div class="row"><b style="flex:1">${esc(i.name)}</b><small class="muted">${nf(i.assigned)} من ${nf(i.qty)} ${esc(i.unit)}</small></div>${kBar(i.qty ? Math.round(i.assigned / i.qty * 100) : null)}</button>`).join('') : '');
+  else if (t === 'x') body = r.exts.length ? r.exts.map(e => `<button class="irow" data-kx="${esc(e.id)}"><div class="row"><b style="flex:1">مستخلص ${e.no} · ${esc((r.cards.find(c => c.code === e.code) || {}).name || e.code)}</b>${kPill(e.st)}</div><small class="muted">لحد ${esc(e.to)}${M ? ' · الصافي ' + nf(Math.round(e.net)) + ' ج' : ''}</small></button>`).join('') : emptyBox('doc', 'لسه مفيش مستخلصات. اعمل واحد من كارت المقاول');
+  else if (t === 'ret') body = `${isBoss() ? `<div class="row"><b style="flex:1">شروط العقد</b><button class="chip" id="kxTerms">⚙️</button></div><small class="muted">الصرف بعد ${r.terms.payDays} يوم · ضمان الأعمال ${r.terms.warPct}% لمدة ${r.terms.warMonths} شهر</small>` : ''}
+      <div class="sec-t" style="margin-top:10px">المحتجز عندنا للمقاولين</div>${r.retDue.length ? r.retDue.map(x => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)"><b style="flex:1">${esc(x.name)}</b><span>${money(x.amount)}</span><small class="muted" style="margin-inline-start:8px">${x.due ? 'يستحق ' + esc(x.due) : ''}</small></div>`).join('') : '<small class="muted">مفيش محتجز</small>'}
+      <div id="ceRet"></div>`;
+  $('#kxB').innerHTML = `<div class="seg">${tabs.map(([k, n]) => `<button class="${t === k ? 'on' : ''}" data-kt="${k}">${n}</button>`).join('')}</div><div style="margin-top:8px" id="kxIn">${t === 'ce' ? '<div class="muted">بيحمّل…</div>' : body}</div>`;
+  document.querySelectorAll('[data-kt]').forEach(b => b.onclick = () => { S.kxTab = b.dataset.kt; kxDraw(code); });
+  document.querySelectorAll('[data-kc]').forEach(b => b.onclick = () => kCardSheet(code, b.dataset.kc));
+  document.querySelectorAll('[data-kx]').forEach(b => b.onclick = () => kExtSheet(b.dataset.kx, code));
+  document.querySelectorAll('[data-ic]').forEach(b => b.onclick = () => itemCardSheet(code, b.dataset.ic));
+  if ($('#kxAdd')) $('#kxAdd').onclick = () => kAssignForm(code);
+  if ($('#kxTerms')) $('#kxTerms').onclick = () => kTermsForm(code);
+  if (t === 'ce') ceDraw(code, '#kxIn');
+  if (t === 'ret') ceDraw(code, '#ceRet', true);
+}
+
+// الإسناد: تابات بتتفتح وتتقفل (محتجز / ضمان / سلفة)
+function kAssignForm(code, pre){
+  const r = S.kx, x = Object.assign({code: '', bq: '', sub: '', qty: '', rate: '', retOn: false, ret: 5, retM: 3, warOn: false, war: 12, advOn: false, adv: '', from: tdy(), to: ''}, pre || {});
+  const tg = (k, n, inner) => `<div class="tgrow"><label class="row" style="gap:8px"><b style="flex:1">${n}</b><input type="checkbox" data-tg="${k}" ${x[k + 'On'] ? 'checked' : ''}></label>${x[k + 'On'] ? `<div style="margin-top:6px">${inner}</div>` : ''}</div>`;
+  const draw = () => { const it = r.items.find(i => i.id === x.bq);
+    openSheet(`<h3>${pre && pre.id ? 'تعديل إسناد' : 'إسناد لمقاول'}</h3>
+      <label class="f">المقاول</label><div class="row" style="gap:6px"><select class="in" id="kaC" style="flex:1"><option value="">— اختار —</option>${r.contractors.map(c => `<option value="${esc(c.code)}" ${x.code === c.code ? 'selected' : ''}>${esc(c.name)}${c.trade ? ' · ' + esc(c.trade) : ''}</option>`).join('')}</select><button class="btn ghost" id="kaNew" style="width:auto;padding:8px 12px">➕ جديد</button></div>
+      <label class="f">بند المقايسة</label><select class="in" id="kaB"><option value="">— اختار —</option>${r.items.map(i => `<option value="${esc(i.id)}" ${x.bq === i.id ? 'selected' : ''}>${esc(i.name)} · ${nf(i.qty)} ${esc(i.unit)}</option>`).join('')}</select>
+      ${it ? `<small class="muted">مسند ${nf(it.assigned)} من ${nf(it.qty)} · فاضل ${nf(Math.max(0, it.qty - it.assigned))}</small>` : ''}
+      <label class="f">الجزء أو البند الفرعي (اختياري)</label><input class="in" id="kaS" value="${esc(x.sub)}" placeholder="الأدوار 1 و2 · أو: بؤج وأوتار">
+      <div class="row" style="gap:6px"><div style="flex:1"><label class="f">الكمية</label><input class="in" id="kaQ" inputmode="decimal" value="${esc(x.qty)}"></div>${r.money ? `<div style="flex:1"><label class="f">المصنعية للوحدة</label><input class="in" id="kaR" inputmode="decimal" value="${esc(x.rate)}"></div>` : ''}</div>
+      ${tg('ret', '🔒 محتجز', `<div class="row" style="gap:6px"><input class="in" id="kaRet" inputmode="decimal" value="${esc(x.ret)}" style="flex:1" placeholder="النسبة %"><input class="in" id="kaRetM" inputmode="numeric" value="${esc(x.retM)}" style="flex:1" placeholder="يتصرف بعد (شهر)"></div><small class="muted">النسبة % · يتصرف بعد ما يخلص بكام شهر</small>`)}
+      ${tg('war', '🛡️ ضمان أعمال', `<input class="in" id="kaWar" inputmode="numeric" value="${esc(x.war)}" placeholder="المدة بالشهور">`)}
+      ${tg('adv', '💵 سلفة مقدمة', `<input class="in" id="kaAdv" inputmode="decimal" value="${esc(x.adv)}" placeholder="المبلغ">`)}
+      <div class="row" style="gap:6px"><div style="flex:1"><label class="f">من</label><input class="in" type="date" id="kaF" value="${esc(x.from)}"></div><div style="flex:1"><label class="f">لحد</label><input class="in" type="date" id="kaT" value="${esc(x.to)}"></div></div>
+      <div class="err" id="kaE"></div><div id="kaW"></div><button class="btn gold" id="kaGo">${pre && pre.id ? 'احفظ' : 'إسناد'}</button>`);
+    const sync = () => { x.code = $('#kaC').value; x.bq = $('#kaB').value; x.sub = $('#kaS').value; x.qty = $('#kaQ').value; if ($('#kaR')) x.rate = $('#kaR').value;
+      if ($('#kaRet')) { x.ret = $('#kaRet').value; x.retM = $('#kaRetM').value; } if ($('#kaWar')) x.war = $('#kaWar').value; if ($('#kaAdv')) x.adv = $('#kaAdv').value; x.from = $('#kaF').value; x.to = $('#kaT').value; };
+    document.querySelectorAll('[data-tg]').forEach(c => c.onchange = () => { sync(); x[c.dataset.tg + 'On'] = c.checked; draw(); });
+    $('#kaB').onchange = () => { sync(); draw(); };
+    $('#kaNew').onclick = async () => { const n = prompt('اسم المقاول'); if (!n || !n.trim()) return; const t = prompt('الصنعة (محارة، سباكة…)') || '';
+      const s = await api('savePerson', {type: 'C', person: {name: n.trim(), trade: t.trim()}}); if (!s.ok) { toast(errMsg(s)); return; }
+      const c = s.person || {code: s.code, name: n.trim(), trade: t}; r.contractors.push({code: c.code, name: c.name, trade: c.trade || t}); sync(); x.code = c.code; draw(); };
+    $('#kaGo').onclick = async () => { sync();
+      if (!x.code || !x.bq || !(Number(digits(x.qty)) > 0)) { $('#kaE').textContent = 'اختار المقاول والبند واكتب الكمية'; return; }
+      busy($('#kaGo'), true); const s = await qSave('kAssign', {project: code, asg: Object.assign({}, x, {qty: digits(x.qty), rate: digits(x.rate), id: pre && pre.id})}, 'إسناد ' + ((r.items.find(i => i.id === x.bq) || {}).name || ''));
+      busy($('#kaGo'), false); if (!s.ok) { $('#kaE').textContent = kErr(s); return; }
+      buzz(15); toast(s.queued ? QMSG : 'اتسند ✓'); (s.warn || []).forEach(w => toast(w)); kxSheet(code, 'c'); };
+  };
+  draw();
+}
+function kTermsForm(code){
+  const t = S.kx.terms;
+  openSheet(`<h3>⚙️ شروط العقد</h3><label class="f">صرف المستخلص بعد كام يوم من التقديم</label><input class="in" id="ktP" inputmode="numeric" value="${t.payDays}">
+    <label class="f">ضمان الأعمال عند العميل %</label><input class="in" id="ktW" inputmode="decimal" value="${t.warPct}"><label class="f">مدة الضمان من المستخلص الختامي (شهر)</label><input class="in" id="ktM" inputmode="numeric" value="${t.warMonths}">
+    <label class="f">استرداد الدفعة المقدمة %</label><input class="in" id="ktA" inputmode="decimal" value="${t.advPct}"><button class="btn gold" id="ktGo" style="margin-top:10px">احفظ</button>`);
+  $('#ktGo').onclick = async () => { const s = await qSave('kTerms', {project: code, payDays: digits($('#ktP').value), warPct: digits($('#ktW').value), warMonths: digits($('#ktM').value), advPct: digits($('#ktA').value)}, 'شروط العقد');
+    toast(s.ok ? (s.queued ? QMSG : 'اتحفظ ✓') : errMsg(s)); kxSheet(code, 'ret'); };
+}
+
+// كارت المقاول في المشروع
+async function kCardSheet(code, kc, tab){
+  openSheet(`<h3>👷 بيحمّل…</h3><div id="kcB" class="muted"></div>`);
+  const r = await api('kCard', {project: code, code: kc}); if (!$('#kcB')) return;
+  if (!r.ok) { $('#kcB').innerHTML = esc(kErr(r)); return; }
+  const c = r.card, M = !!c.money, t = tab || 'b', canAp = S.kx && S.kx.canApprove;
+  $('#sheetBody').querySelector('h3').innerHTML = `👷 ${esc(c.name)} · ${esc(pName(code))} <button class="chip" id="kcLink" style="float:left">🔗</button>`;
+  const wait = c.pending.filter(p => p.state !== 'مقبول');
+  const tabs = [['b', 'البنود'], ['x', 'المستخلصات'], ...(M ? [['p', 'الدفعات']] : []), ['w', `⏳ مستني${wait.length ? ' ' + wait.length : ''}`]];
+  let body = '';
+  if (t === 'b') body = c.asg.map(a => `<div class="irow"><div class="row"><b style="flex:1">${esc(a.item)}${a.sub ? ' · ' + esc(a.sub) : ''}</b><small class="muted">${nf(a.done)} من ${nf(a.qty)} ${esc(a.unit)}</small></div>${kBar(a.qty ? Math.round(a.done / a.qty * 100) : null)}
+      <small class="muted">${M ? 'المصنعية ' + nf(a.rate) + ' ج · ' : ''}${a.ret ? 'محتجز ' + a.ret + '% · ' : ''}${a.war ? 'ضمان ' + a.war + ' شهر · ' : ''}${a.st === 'اتقفل' ? 'اتقفل' : ''}</small>
+      ${S.kx && S.kx.canPrep ? `<div class="row" style="gap:6px;margin-top:6px"><button class="chip" data-kq="${esc(a.id)}">➕ سجّل كمية</button>${canAp ? `<button class="chip" data-ka="${esc(a.id)}">✏️</button>` : ''}</div>` : ''}</div>`).join('');
+  else if (t === 'x') body = r.exts.length ? r.exts.map(e => `<button class="irow" data-kx="${esc(e.id)}"><div class="row"><b style="flex:1">مستخلص ${e.no}</b>${kPill(e.st)}</div><small class="muted">لحد ${esc(e.to)}${M ? ' · الصافي ' + nf(Math.round(e.net)) + ' ج' : ''}</small></button>`).join('') : '<small class="muted">لسه مفيش</small>';
+  else if (t === 'p') body = c.pays.length ? c.pays.map(p => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)"><span style="flex:1">${esc(p.date)} · ${esc(p.type)} · ${esc(p.method || '')}${p.note ? ' · ' + esc(p.note) : ''}</span><b>${money(p.amount)}</b></div>`).join('') : '<small class="muted">لسه مفيش دفعات</small>';
+  else body = wait.length ? wait.map(p => `<div class="irow"><div class="row"><b style="flex:1">${esc(p.name)}</b><span>${nf(p.qty)}</span></div><small class="muted">${esc(p.date)} · ${esc(p.state)}${p.bill ? '' : ' · مش بيتحاسب'}</small>
+      ${canAp && p.state === 'مستني استلام' ? `<div class="row" style="gap:6px;margin-top:6px"><button class="chip" data-qa="all" data-qi="${esc(p.id)}">حاسبه عليها كلها</button><button class="chip" data-qa="pct" data-qi="${esc(p.id)}">نسبة</button><small class="muted">أو سيبها لحد الاستلام</small></div>` : ''}</div>`).join('') : '<small class="muted">مفيش حاجة مستنية</small>';
+  $('#kcB').innerHTML = `${c.donePct != null ? `<div class="row"><small style="flex:1">المنفذ من المسند</small><b>${c.donePct}%</b></div>${kBar(c.donePct)}` : ''}
+    ${M ? `<div class="row"><small style="flex:1">المدفوع من المنفذ</small><b>${c.paidPct == null ? '—' : c.paidPct + '%'}</b></div>${kBar(c.paidPct)}<div class="row"><small style="flex:1">المحتجز عندنا</small><b>${money(c.money.ret)}</b></div>` : ''}
+    <div class="card" style="margin:8px 0;padding:8px 10px"><b>📈 منفذ الأسبوع ده</b><div class="row"><span style="flex:1">لحد النهارده</span><b>${nf(c.week.qty)} ${esc(c.week.unit)} ${c.week.avg ? `<small class="muted">(متوسطه ${nf(c.week.avg)})</small> ${c.week.qty >= c.week.avg ? '<span style="color:var(--ok)">▲</span>' : '<span class="redd">▼</span>'}` : ''}</b></div><small class="muted">المتوقع لآخر الأسبوع: ${nf(c.week.expect)}</small></div>
+    <div class="seg">${tabs.map(([k, n]) => `<button class="${t === k ? 'on' : ''}" data-kct="${k}">${n}</button>`).join('')}</div><div style="margin-top:8px">${body}</div>
+    <div class="row" style="gap:6px;margin-top:10px">${S.kx && S.kx.canPrep ? `<button class="btn gold" id="kcExt" style="flex:1">📄 مستخلص جديد</button>` : ''}${M && canPay() ? `<button class="btn ghost" id="kcPay" style="flex:1">💵 ادفع</button><button class="btn ghost" id="kcAdv" style="flex:1">سلفة</button>` : ''}</div>`;
+  document.querySelectorAll('[data-kct]').forEach(b => b.onclick = () => kCardSheet(code, kc, b.dataset.kct));
+  document.querySelectorAll('[data-kx]').forEach(b => b.onclick = () => kExtSheet(b.dataset.kx, code));
+  document.querySelectorAll('[data-kq]').forEach(b => b.onclick = () => kQtyForm(code, kc, b.dataset.kq));
+  document.querySelectorAll('[data-ka]').forEach(b => b.onclick = () => { const a = c.asg.find(y => y.id === b.dataset.ka); kAssignForm(code, Object.assign({}, a, {code: kc, retOn: !!a.ret, warOn: !!a.war, advOn: !!a.adv})); });
+  document.querySelectorAll('[data-qa]').forEach(b => b.onclick = async () => { let pct = 100; if (b.dataset.qa === 'pct') { pct = Number(digits(prompt('يتحاسب على كام %؟', '50') || '')); if (!(pct > 0)) return; }
+    const s = await qSave('kQtyAcc', {id: b.dataset.qi, mode: b.dataset.qa, pct}, 'قرار كمية'); toast(s.ok ? (s.queued ? QMSG : 'اتسجل ✓') : kErr(s)); kCardSheet(code, kc, 'w'); });
+  $('#kcLink').onclick = () => linkSheet(kc);
+  if ($('#kcExt')) $('#kcExt').onclick = async () => { busy($('#kcExt'), true); const s = await api('kExtNew', {project: code, code: kc}); busy($('#kcExt'), false);
+    if (!s.ok) { toast(kErr(s) + (s.wait ? ` (${nf(s.wait)} مستنية استلام)` : '')); return; } kExtSheet(s.id, code, s.ext); };
+  if ($('#kcPay')) $('#kcPay').onclick = () => kPayForm(code, kc, c.name, 'دفع', '');
+  if ($('#kcAdv')) $('#kcAdv').onclick = () => kPayForm(code, kc, c.name, 'سلفة', '');
+}
+function kQtyForm(code, kc, asg){
+  openSheet(`<h3>➕ سجّل كمية</h3><label class="f">الكمية</label><input class="in" id="kqQ" inputmode="decimal"><label class="f">التاريخ</label><input class="in" type="date" id="kqD" value="${tdy()}" max="${tdy()}">
+    <label class="row" style="gap:8px;margin-top:10px"><input type="checkbox" id="kqB" checked> <span>بيتحاسب عليها (شيلها لو تربيات أو شغل إضافي مش متحاسب)</span></label><input class="in" id="kqN" placeholder="ملاحظة" style="margin-top:8px">
+    <div class="err" id="kqE"></div><button class="btn gold" id="kqGo">سجّل</button>`);
+  $('#kqGo').onclick = async () => { const q = digits($('#kqQ').value); if (!(Number(q) > 0)) { $('#kqE').textContent = 'اكتب الكمية'; return; }
+    const s = await qSave('kQty', {asg, qty: q, date: $('#kqD').value, bill: $('#kqB').checked, note: $('#kqN').value}, 'كمية مقاول ' + q);
+    if (!s.ok) { $('#kqE').textContent = kErr(s); return; } toast(s.queued ? QMSG : 'اتسجلت ✓'); (s.warn || []).forEach(w => toast(w)); kCardSheet(code, kc); };
+}
+// الدفع للمقاول: نفس «ادفع» (كاش / إنستاباي / محفظة / تحويل)، والكاش «استلمها مين»
+function kPayForm(code, kc, name, type, amount){
+  let m = store.get('kPayM', 'كاش');
+  const draw = () => { openSheet(`<h3>${type === 'سلفة' ? 'سلفة' : 'ادفع'} لـ ${esc(name)}</h3><label class="f">المبلغ</label><input class="in" id="kpA" inputmode="decimal" value="${esc(amount || '')}">
+    <label class="f">الطريقة</label><div class="chips">${['كاش', 'إنستاباي', 'محفظة', 'تحويل بنكي'].map(x => `<button class="chip ${m === x ? 'on' : ''}" data-km="${x}">${x}</button>`).join('')}</div>
+    ${m === 'كاش' ? `<label class="f">استلمها</label><input class="in" id="kpR" value="${esc(name)}">` : ''}${sourcePick()}<input class="in" id="kpN" placeholder="ملاحظة" style="margin-top:8px">
+    <div class="err" id="kpE"></div><button class="btn gold" id="kpGo">سجّل</button>`);
+    document.querySelectorAll('[data-km]').forEach(b => b.onclick = () => { amount = $('#kpA').value; m = b.dataset.km; store.set('kPayM', m); draw(); });
+    $('#kpGo').onclick = async () => { const a = digits($('#kpA').value); if (!(Number(a) > 0)) { $('#kpE').textContent = 'اكتب المبلغ'; return; }
+      if (!confirmBox(`هتسجل ${type} ${nf(a)} ج لـ ${name} (${m}). تأكيد؟`)) return;
+      const note = [m === 'كاش' && $('#kpR').value.trim() && $('#kpR').value.trim() !== name ? 'استلمها: ' + $('#kpR').value.trim() : '', $('#kpN').value.trim()].filter(Boolean).join(' · ');
+      busy($('#kpGo'), true); const s = await qSave('saveMove', {move: {code: kc, type, amount: a, method: m, source: srcVal(), note, project: code, date: tdy()}}, type + ' ' + nf(a) + ' ج لـ ' + name); busy($('#kpGo'), false);
+      if (!s.ok) { $('#kpE').textContent = errMsg(s); return; } buzz(15); toast(s.queued ? QMSG : 'اتسجل ✓' + (s.receipt ? ' · ' + s.receipt : '')); kCardSheet(code, kc, 'p'); };
+  };
+  draw();
+}
+
+// المستخلص: السطور، والخصومات (بتظهر لو فيه)، والسلف، والدفعات بتاريخها، والحالة
+async function kExtSheet(id, code, pre){
+  let e = pre;
+  if (!e) { openSheet(`<h3>📄 المستخلص</h3><div class="muted">بيحمّل…</div>`); const r = await api('kExtGet', {id}); if (!r.ok) { toast(kErr(r)); return; } e = r.ext; }
+  const M = e.gross !== '', canP = S.kx && S.kx.canPrep, canA = S.kx && S.kx.canApprove, draft = e.st === 'مسودة';
+  const dsum = (e.ded || []).reduce((s, x) => s + x.amount, 0);
+  openSheet(`<h3>📄 مستخلص ${e.no} · ${esc(e.contractor.name)} ${kPill(e.st)}</h3><small class="muted">${esc(e.project.name)} · لحد ${esc(e.to)}</small>
+    <table class="kt"><tr><th style="width:36%">البند</th><th>السابق</th><th>الحالي</th><th>الإجمالي</th>${M ? '<th>القيمة</th>' : ''}</tr>
+      ${e.lines.map(l => `<tr><td>${esc(l.name)}${l.pre ? `<br><small class="muted">منها ${nf(l.pre)} قبل الاستلام</small>` : ''}${l.wait ? `<br><small class="muted">⏳ ${nf(l.wait)} مستنية</small>` : ''}</td><td>${nf(l.prev)}</td><td><b>${nf(l.cur)}</b></td><td>${nf(l.tot)}</td>${M ? `<td>${nf(l.amount)}</td>` : ''}</tr>`).join('')}</table>
+    ${M ? `<div class="card" style="margin-top:8px;padding:8px 10px">
+      <div class="row"><span style="flex:1">الإجمالي لحد دلوقتي</span><b>${nf(e.gross)}</b></div>
+      ${e.ret ? `<div class="row"><span style="flex:1">المحتجز</span><b>−${nf(e.ret)}</b></div>` : ''}
+      ${e.adv ? `<div class="row"><span style="flex:1">السلف${draft && canP ? ' <button class="more" id="keAdv" style="color:var(--pri)">✏️ قلّلها</button>' : ''}</span><b>−${nf(e.adv)}</b></div>` : ''}
+      ${e.prevDed ? `<div class="row"><span style="flex:1">خصومات المستخلصات اللي فاتت</span><b>−${nf(e.prevDed)}</b></div>` : ''}
+      ${(e.ded || []).map(x => `<div class="row"><span style="flex:1">خصم: ${esc(x.type)}</span><b>−${nf(x.amount)}</b></div>`).join('')}
+      ${draft && canP ? `<button class="chip" id="keDed" style="margin:4px 0">➕ خصم</button>` : ''}
+      <div style="background:#F6F8FB;border-radius:8px;padding:6px 8px;margin:6px 0"><b>المدفوع قبل كده</b>${e.pays.filter(p => p.type === 'دفع').map(p => `<div class="row"><small style="flex:1">${esc(p.date)} · ${esc(p.method || '')}${p.note ? ' · ' + esc(p.note) : ''}</small><span>${nf(p.amount)}</span></div>`).join('') || '<div><small class="muted">مفيش</small></div>'}
+        ${e.pays.filter(p => p.type === 'سلفة').map(p => `<div class="row"><small style="flex:1">سلفة ${esc(p.date)} · ${esc(p.method || '')}</small><span>${nf(p.amount)}</span></div>`).join('')}</div>
+      <div class="row" style="font-size:16px"><b style="flex:1">الصافي</b><b class="${e.net < 0 ? 'redd' : ''}">${e.net < 0 ? 'عليه ' + nf(-Math.round(e.net)) : nf(Math.round(e.net))} ج</b></div></div>` : ''}
+    <div class="row" style="gap:6px;margin-top:10px;flex-wrap:wrap">
+      ${draft && canP ? `<button class="btn gold" id="keSub" style="flex:1">قدّمه للاعتماد</button>` : ''}
+      ${['مسودة', 'اتقدّم'].includes(e.st) && canA ? `<button class="btn gold" id="keApp" style="flex:1">اعتمد</button>` : ''}
+      ${e.st === 'اتقدّم' && canA ? `<button class="btn ghost" id="keBack" style="flex:1">رجّعه مسودة</button>` : ''}
+      ${M && ['اتعتمد', 'اتدفع جزئي'].includes(e.st) && canPay() ? `<button class="btn gold" id="kePay" style="flex:1">💵 ادفع الصافي</button>` : ''}
+      <button class="btn ghost" id="kePdf" style="flex:1">📄 PDF</button><button class="btn ghost" id="keWa" style="flex:1">📲 واتساب</button></div>`);
+  const st = async to => { const s = await qSave('kExtSt', {id: e.id, st: to}, 'مستخلص ' + e.no + ' ← ' + to); if (!s.ok) { toast(kErr(s)); return; } toast(s.queued ? QMSG : to + ' ✓'); kExtSheet(e.id, code); };
+  const save = async body => { const s = await api('kExtSave', Object.assign({id: e.id}, body)); if (!s.ok) { toast(kErr(s)); return; } kExtSheet(e.id, code, s.ext); };
+  if ($('#keSub')) $('#keSub').onclick = () => st('اتقدّم');
+  if ($('#keApp')) $('#keApp').onclick = () => { if (confirmBox('تعتمد مستخلص ' + e.no + '؟')) st('اتعتمد'); };
+  if ($('#keBack')) $('#keBack').onclick = () => st('مسودة');
+  if ($('#keAdv')) $('#keAdv').onclick = () => { const v = prompt('السلف اللي تتخصم في المستخلص ده', e.adv); if (v != null) save({adv: digits(v)}); };
+  if ($('#keDed')) $('#keDed').onclick = () => { const t = prompt('نوع الخصم:\n' + e.dedTypes.map((x, i) => (i + 1) + ' ' + x).join('\n'), '1'); const ty = e.dedTypes[Number(digits(t || '')) - 1]; if (!ty) return;
+    const a = prompt('المبلغ'); if (!(Number(digits(a || '')) > 0)) return; save({ded: (e.ded || []).concat([{type: ty, amount: digits(a)}])}); };
+  if ($('#kePay')) $('#kePay').onclick = () => kPayForm(code, e.code, e.contractor.name, 'دفع', Math.max(0, Math.round(e.net)));
+  $('#kePdf').onclick = () => kExtPdf(e);
+  $('#keWa').onclick = async () => { const l = await api('kLinkGet', {code: e.code}); const url = l.ok ? location.origin + location.pathname + '?' + l.q : '';
+    const txt = `مستخلص ${e.no} · ${e.project.name}\n${M ? 'الصافي: ' + nf(Math.round(e.net)) + ' ج\n' : ''}${url ? 'التفاصيل: ' + url : ''}`;
+    open('https://wa.me/' + waNum(e.contractor.wa) + '?text=' + encodeURIComponent(txt), '_blank'); };
+}
+const waNum = n => { const d = digits(n || '').replace(/\D/g, ''); return d ? (d.startsWith('0') ? '2' + d : d) : ''; };
+function kExtPdf(e){
+  const w = open('', '_blank'); if (!w) return; const M = e.gross !== '';
+  w.document.write(`<html dir="rtl"><head><meta charset="utf-8"><title>مستخلص ${e.no} ${esc(e.contractor.name)}</title><style>@page{size:A4 portrait;margin:14mm}body{font-family:Cairo,Tahoma;font-size:12px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #999;padding:4px;text-align:center}th{background:#E8F0FB}.t{display:flex;gap:10px;align-items:center;border-bottom:2px solid #1D2E4F;margin-bottom:8px}.sg{display:flex;justify-content:space-between;margin-top:40px}</style></head><body>
+    <div class="t"><img src="${location.origin + location.pathname.replace(/[^/]*$/, '')}icon-192.png" style="width:46px"><div><b>MEC · الشرق الأوسط للإنشاءات</b><br>مستخلص رقم ${e.no} · ${esc(e.contractor.name)} · ${esc(e.project.name)} · لحد ${esc(e.to)}</div></div>
+    <table><tr><th>البند</th><th>الوحدة</th><th>السابق</th><th>الحالي</th><th>الإجمالي</th>${M ? '<th>السعر</th><th>القيمة</th>' : ''}</tr>${e.lines.map(l => `<tr><td>${esc(l.name)}</td><td>${esc(l.unit)}</td><td>${l.prev}</td><td>${l.cur}</td><td>${l.tot}</td>${M ? `<td>${l.rate}</td><td>${nf(l.amount)}</td>` : ''}</tr>`).join('')}</table>
+    ${M ? `<table style="margin-top:8px;width:60%"><tr><td>الإجمالي</td><td>${nf(e.gross)}</td></tr>${e.ret ? `<tr><td>المحتجز</td><td>−${nf(e.ret)}</td></tr>` : ''}${e.adv ? `<tr><td>السلف</td><td>−${nf(e.adv)}</td></tr>` : ''}${(e.ded || []).map(x => `<tr><td>خصم: ${esc(x.type)}</td><td>−${nf(x.amount)}</td></tr>`).join('')}
+      ${e.pays.filter(p => p.type === 'دفع').map(p => `<tr><td>دفعة ${esc(p.date)} · ${esc(p.method || '')}${p.note ? ' · ' + esc(p.note) : ''}</td><td>−${nf(p.amount)}</td></tr>`).join('')}<tr><th>الصافي</th><th>${nf(Math.round(e.net))}</th></tr></table>` : ''}
+    <div class="sg"><span>المهندس: ............</span><span>المقاول: ............</span><span>الاعتماد: ............</span></div><script>setTimeout(()=>print(),400)<\/script></body></html>`); w.document.close();
+}
+
+// 🔗 اللينك: واتساب أو نسخ، و⚙️ المواعيد
+async function linkSheet(codeP, showCfg){
+  openSheet(`<h3>🔗 اللينك</h3><div id="lkB" class="muted">بيحمّل…</div>`);
+  const r = await api('kLinkGet', {code: codeP}); if (!$('#lkB')) return;
+  if (!r.ok) { $('#lkB').innerHTML = esc(errMsg(r)); return; }
+  const url = location.origin + location.pathname + '?' + r.q, c = r.cfg;
+  const stTxt = c.mode === 'always' ? 'مفتوح دايما' : c.mode === 'off' ? 'مقفول' : c.mode === 'temp' ? 'مفتوح لمدة' : `بيتفتح ${r.days[c.day]} من ${c.from} لحد ${c.to}`;
+  $('#sheetBody').querySelector('h3').innerHTML = `🔗 لينك ${esc(r.name)} <button class="chip" id="lkCfg" style="float:left">⚙️</button>`;
+  $('#lkB').innerHTML = `<div class="row"><span class="kpill" style="background:${r.open ? '#EAF3DE' : '#F1EFE8'};color:${r.open ? '#27500A' : '#444441'}">${r.open ? 'مفتوح دلوقتي' : 'مقفول دلوقتي'}</span><small class="muted" style="margin-inline-start:8px">${esc(stTxt)}</small></div>
+    <div class="row" style="gap:6px;margin-top:10px"><button class="btn gold" id="lkWa" style="flex:1">📲 ابعت واتساب</button><button class="btn ghost" id="lkCp" style="flex:1">📋 انسخ</button></div>
+    <div id="lkS" style="${showCfg ? '' : 'display:none'};margin-top:12px">
+      <div class="chips" style="flex-wrap:wrap">${[['sched', 'مواعيد'], ['always', 'مفتوح دايما'], ['off', 'مقفول']].map(([k, n]) => `<button class="chip ${c.mode === k ? 'on' : ''}" data-lm="${k}">${n}</button>`).join('')}</div>
+      ${c.mode === 'sched' ? `<select class="in" id="lkD" style="margin-top:8px">${r.days.map((d, i) => `<option value="${i}" ${Number(c.day) === i ? 'selected' : ''}>${d}</option>`).join('')}</select><div class="row" style="gap:6px;margin-top:6px"><small>من</small><input class="in" type="time" id="lkF" value="${esc(c.from)}" style="flex:1"><small>لحد</small><input class="in" type="time" id="lkT" value="${esc(c.to)}" style="flex:1"></div>` : ''}
+      <div class="row" style="gap:6px;margin-top:8px"><button class="chip" data-lh="2">افتح ساعتين</button><button class="chip" data-lh="24">افتح يوم</button><button class="chip" id="lkR">لينك جديد (القديم يقف)</button></div>
+      <button class="btn ghost" id="lkSave" style="margin-top:8px">احفظ</button></div>`;
+  const set = async cfg => { const s = await api('kLinkSet', {code: codeP, cfg}); toast(s.ok ? 'اتحفظ ✓' : errMsg(s)); linkSheet(codeP, true); };
+  $('#lkCfg').onclick = () => { const s = $('#lkS'); s.style.display = s.style.display === 'none' ? '' : 'none'; };
+  $('#lkWa').onclick = () => open('https://wa.me/' + waNum(r.wa) + '?text=' + encodeURIComponent('حسابك عند MEC: ' + url + (r.open ? '' : '\n(' + stTxt + ')')), '_blank');
+  $('#lkCp').onclick = async () => { try { await navigator.clipboard.writeText(url); toast('اتنسخ ✓'); } catch (e) { prompt('انسخ اللينك', url); } };
+  document.querySelectorAll('[data-lm]').forEach(b => b.onclick = () => set({mode: b.dataset.lm}));
+  document.querySelectorAll('[data-lh]').forEach(b => b.onclick = () => set({hours: Number(b.dataset.lh)}));
+  if ($('#lkR')) $('#lkR').onclick = () => { if (confirmBox('تعمل لينك جديد؟ القديم هيبطّل يشتغل')) set({renew: true}); };
+  $('#lkSave').onclick = () => set({mode: c.mode, day: $('#lkD') ? $('#lkD').value : c.day, from: $('#lkF') ? $('#lkF').value : c.from, to: $('#lkT') ? $('#lkT').value : c.to});
+}
+
+// مستخلص العميل: المسودة الجاهزة، والحالات، والنسخة المرفوعة، والختامي والضمان
+async function ceDraw(code, sel, retOnly){
+  const r = await api('ceList', {project: code}); const box = $(sel); if (!box) return;
+  if (!r.ok) { box.innerHTML = esc(errMsg(r)); return; }
+  const fin = r.items.filter(x => x.fin && x.war > x.warPaid);
+  if (retOnly) { box.innerHTML = `<div class="sec-t" style="margin-top:12px">ضمان الأعمال عند العميل</div>${fin.length ? fin.map(x => `<div class="row" style="padding:6px 0"><b style="flex:1">مستخلص ختامي ${x.no}</b><span>${money(x.war - x.warPaid)}</span><small class="muted" style="margin-inline-start:8px">يستحق ${esc(x.warDue)}</small></div>`).join('') : '<small class="muted">مفيش</small>'}`; return; }
+  const d = r.draft;
+  box.innerHTML = `${d ? `<div class="card" style="padding:8px 10px"><b>المسودة الجاهزة (المنفذ × سعر العقد)</b><div class="row"><span style="flex:1">إجمالي المنفذ</span><b>${money(d.total)}</b></div><div class="row"><span style="flex:1">أعمال منفذة لم تُسجّل بمستخلص</span><b>${money(d.unbilled)}</b></div><button class="chip" id="ceDr" style="margin-top:6px">تفاصيل البنود ▾</button><div id="ceDrL" style="display:none">${d.lines.map(l => `<div class="row"><small style="flex:1">${esc(l.name)} · ${nf(l.done)} ${esc(l.unit)}</small><small>${nf(l.amount)}</small></div>`).join('')}</div></div>` : ''}
+    <button class="btn gold" id="ceNew" style="margin-top:8px">➕ مستخلص اتقدّم للعميل</button>
+    ${r.items.map(x => `<div class="irow"><div class="row"><b style="flex:1">مستخلص ${x.no}${x.fin ? ' (ختامي)' : ''}</b>${kPill(x.st)}</div><small class="muted">اتقدّم ${esc(x.sub)} · ${nf(x.amt)}${x.appr != null ? ' · اتعتمد ' + nf(x.appr) : ''}${x.paid ? ' · اتصرف ' + nf(x.paid) : ''}</small>
+      <div class="row" style="gap:6px;margin-top:6px"><button class="chip" data-ce="${esc(x.id)}">✏️ تحديث</button>${x.file ? `<a class="chip" href="${esc(x.file)}" target="_blank" rel="noopener">📎 النسخة</a>` : `<label class="chip" style="color:var(--bad)">📎 ارفع النسخة<input type="file" accept="application/pdf,image/*" data-cu="${esc(x.id)}" hidden></label>`}</div></div>`).join('')}`;
+  if ($('#ceDr')) $('#ceDr').onclick = () => { const l = $('#ceDrL'); l.style.display = l.style.display === 'none' ? '' : 'none'; };
+  $('#ceNew').onclick = () => ceForm(code, null, d);
+  box.querySelectorAll('[data-ce]').forEach(b => b.onclick = () => ceForm(code, r.items.find(x => x.id === b.dataset.ce)));
+  box.querySelectorAll('[data-cu]').forEach(inp => inp.onchange = async () => { const f = inp.files[0]; if (!f) return; if (f.size > 6e6) { toast('الملف كبير'); return; }
+    const data = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(f); }); toast('بيترفع…');
+    const s = await api('ceUpload', {id: inp.dataset.cu, file: data}); toast(s.ok ? 'اترفعت ✓' : errMsg(s)); ceDraw(code, sel); });
+}
+function ceForm(code, x, d){
+  x = x || {amt: d ? d.unbilled : '', sub: tdy()};
+  openSheet(`<h3>مستخلص العميل${x.no ? ' ' + x.no : ''}</h3><label class="f">تاريخ التقديم</label><input class="in" type="date" id="ceS" value="${esc(x.sub)}"><label class="f">المبلغ المقدّم</label><input class="in" id="ceA" inputmode="decimal" value="${esc(x.amt)}">
+    <label class="f">المعتمد (لما يتعتمد)</label><input class="in" id="ceP" inputmode="decimal" value="${x.appr != null ? esc(x.appr) : ''}"><label class="f">اللي اتصرف</label><input class="in" id="ceD" inputmode="decimal" value="${x.paid ? esc(x.paid) : ''}">
+    <label class="row" style="gap:8px;margin-top:10px"><input type="checkbox" id="ceF" ${x.fin ? 'checked' : ''}> <span>ده المستخلص الختامي (يتحجز ضمان الأعمال)</span></label>
+    ${x.fin ? `<label class="f">اتصرف من الضمان</label><input class="in" id="ceW" inputmode="decimal" value="${esc(x.warPaid || '')}">` : ''}
+    <button class="btn gold" id="ceGo" style="margin-top:10px">احفظ</button>`);
+  $('#ceGo').onclick = async () => { const s = await qSave('ceSave', {project: code, ce: {id: x.id, sub: $('#ceS').value, amt: digits($('#ceA').value), appr: $('#ceP').value === '' ? '' : digits($('#ceP').value), paid: digits($('#ceD').value) || 0, fin: $('#ceF').checked, warPaid: $('#ceW') ? digits($('#ceW').value) : undefined}}, 'مستخلص العميل');
+    toast(s.ok ? (s.queued ? QMSG : 'اتحفظ ✓' + (x.id ? '' : ' · ارفع النسخة')) : errMsg(s)); S.kxTab = 'ce'; kxSheet(code, 'ce'); };
+}
+
+// كارت البند: 4 مؤشرات
+async function itemCardSheet(code, id){
+  openSheet(`<h3>كارت البند</h3><div id="icB" class="muted">بيحمّل…</div>`);
+  const r = await api('itemCard', {project: code, id}); if (!$('#icB')) return;
+  if (!r.ok) { $('#icB').innerHTML = esc(errMsg(r)); return; }
+  const w = r.warn || 80, row = (t, p, v) => `<div class="row" style="margin-top:6px"><span style="flex:1">${t}</span><b>${p == null ? '—' : p + '%'}</b></div>${kBar(p, w)}${v ? `<small class="muted">${v}</small>` : ''}`;
+  $('#sheetBody').querySelector('h3').textContent = 'كارت البند · ' + r.item.name;
+  $('#icB').innerHTML = row('الكمية: المنفذ من المقايسة', r.qtyPct, `${nf(r.done)} من ${nf(r.item.qty)} ${esc(r.item.unit)}${r.extra ? ` · +${nf(r.extra)} تربيات / مش متحاسب` : ''}`)
+    + (r.labor ? row('المصنعية من التحليل', r.labor.pct, `${nf(r.labor.due)} من ${nf(r.labor.budget)} ج`) + row('الخامات من المتوقع', r.material.pct, `${nf(r.material.spent)} من ${nf(r.material.expected)} ج`) + row('البند كله من المتسعّر', r.total.pct, `${nf(r.total.spent)} من ${nf(r.total.budget)} ج`) : '')
+    + (r.contractors.length ? `<div class="sec-t" style="margin-top:10px">المقاولين</div>` + r.contractors.map(c => `<div class="row"><span style="flex:1">${esc(c.name)}${c.sub ? ' · ' + esc(c.sub) : ''}</span><small>${nf(c.done)} من ${nf(c.qty)}</small></div>`).join('') : '');
+}
+
+// صفحات من غير دخول: لينك المقاول ?k= ولينك العامل ?w=
+async function kPubPage(kind, tok){
+  S.publicMode = true;
+  document.body.innerHTML = `<div id="kpg" style="max-width:560px;margin:0 auto;font-family:Cairo,Tahoma,sans-serif;direction:rtl;background:#fff;min-height:100vh"><div style="padding:20px;color:#777">بيحمّل…</div></div>`;
+  const call = async (a, d) => { try { const r = await fetch(execUrl(), {method: 'POST', body: JSON.stringify(Object.assign({action: a, t: tok}, d || {}))}); return await r.json(); } catch (e) { return {ok: false, error: 'net'}; } };
+  const r = await call(kind === 'k' ? 'kLink' : 'wLink'), box = document.getElementById('kpg');
+  const hd = t => `<div style="background:#1D2E4F;color:#fff;padding:16px"><div style="width:38px;height:38px;border-radius:50%;background:#E8AA2E;color:#1D2E4F;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:6px">MEC</div><b style="font-size:17px">${esc(t)}</b></div>`;
+  if (!r.ok) { box.innerHTML = hd('MEC · الشرق الأوسط للإنشاءات') + `<div style="padding:16px">${r.error === 'closed' ? 'اللينك مقفول دلوقتي' + (r.when ? '، بيتفتح ' + esc(r.when) : '') : r.error === 'net' ? 'مفيش نت' : 'اللينك ده مش شغال'}</div>`; return; }
+  const row = (a, b) => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee"><span>${a}</span><b>${b}</b></div>`;
+  if (r.kind === 'worker') { const t = r.total;
+    box.innerHTML = hd('حساب ' + r.name) + `<div style="padding:14px">${row('اشتغلت', r.days.length + ' يوم')}${row('ليك', nf(t.earned + (t.opening || 0)) + ' ج')}${row('السلف', nf(t.advance) + ' ج')}${row('الخصم', nf(t.deduct) + ' ج')}${row('اتقبض', nf(t.paid) + ' ج')}${row('<b>الباقي ليك</b>', nf(t.balance) + ' ج')}
+      <h4>القبض</h4>${r.moves.filter(m => m.type !== 'خصم').map(m => row(esc(m.date) + ' · ' + esc(m.type) + ' · ' + esc(m.method || ''), nf(m.amount))).join('') || 'مفيش'}
+      <h4>آخر الأيام</h4>${r.days.slice(-21).reverse().map(d => row(esc(d.date) + ' · ' + esc(d.proj), esc(d.st) + (d.hours ? ' + ' + d.hours + ' س' : '') + ' · ' + nf(d.amount))).join('')}</div>`; return; }
+  box.innerHTML = hd('حساب ' + r.name) + `<div style="padding:14px">${r.projects.map(p => `<h4 style="margin:10px 0 4px">${esc(p.name)}</h4>
+    ${p.card.money ? row('قيمة اللي اتعمل', nf(p.card.money.done) + ' ج') + row('اتقبض', nf(p.card.money.paid) + ' ج') + row('سلف', nf(p.card.money.adv) + ' ج') + row('محتجز', nf(p.card.money.ret) + ' ج') : ''}
+    ${row('منفذ الأسبوع ده', nf(p.card.week.qty) + ' ' + esc(p.card.week.unit))}
+    ${p.card.pending.length ? '<div style="margin-top:6px"><b>مستني استلام</b>' + p.card.pending.map(x => row(esc(x.name), nf(x.qty))).join('') + '</div>' : ''}
+    ${p.exts.map(e => `<div style="border:1px solid #ddd;border-radius:10px;padding:8px;margin:6px 0"><b>مستخلص ${e.no}</b> · ${esc(e.st)} · لحد ${esc(e.to)}${e.lines.map(l => row(esc(l.name), nf(l.cur) + ' (الإجمالي ' + nf(l.tot) + ')')).join('')}
+      ${e.pays.filter(x => x.type === 'دفع').map(x => row(esc(x.date) + ' · ' + esc(x.method || '') + (x.note ? ' · ' + esc(x.note) : ''), nf(x.amount))).join('')}${row('<b>الصافي</b>', nf(Math.round(e.net)) + ' ج')}</div>`).join('')}
+    <button data-rq="${esc(p.code)}" style="width:100%;padding:10px;border-radius:10px;border:1px solid #1D2E4F;background:#fff;margin-top:6px">🔔 اطلب استلام</button>`).join('')}</div>`;
+  box.querySelectorAll('[data-rq]').forEach(b => b.onclick = async () => { const t = prompt('خلّصت إيه؟ (مثلا: محارة الدور 2)'); if (!t) return; const s = await call('kReq', {project: b.dataset.rq, text: t}); alert(s.ok ? 'وصل للمهندس ✓' : 'ما وصلش، جرّب تاني'); });
+}
+
+function boqHub(code){
+  openSheet(`<h3>📝 المقايسة والمستخلصات · ${esc(pName(code))}</h3><div class="chips" style="flex-wrap:wrap">
+    <button class="chip" id="bhB">📝 المقايسة</button>${!['supervisor2', 'contractor'].includes(role()) ? `<button class="chip" id="bhK">👷 المقاولين والمستخلصات</button>` : ''}${canPay() ? `<button class="chip" id="bhC">🧾 مستخلص العميل</button>` : ''}</div>`);
+  $('#bhB').onclick = () => boqSheet(code); if ($('#bhK')) $('#bhK').onclick = () => kxSheet(code, 'c'); if ($('#bhC')) $('#bhC').onclick = () => kxSheet(code, 'ce');
+}
+
+/* ================= 0.16: 📐 الحصر جوه التطبيق ================= */
+// محرك الحساب على الموبايل (من غير نت). الحيطان: ح1 فوق، ح2 يمين، ح3 تحت، ح4 شمال (مع عقارب الساعة).
+const TKT = ['نوم', 'صالة', 'حمام', 'مطبخ', 'طرقة', 'بلكونة', 'أوضة'];
+const TK_FLOOR = ['بورسلين 60×120', 'بورسلين 60×60', 'سيراميك 30×60', 'سيراميك 40×40', 'باركيه', 'رخام', 'HDF / SPC'];
+const TK_PAINT = ['بلاستيك', 'زيتي', 'ورق حائط', 'بدون'];
+const TK_ELEC = {'نوم': 8, 'صالة': 12, 'حمام': 4, 'مطبخ': 10, 'طرقة': 3, 'بلكونة': 2, 'أوضة': 6}, TK_PLUMB = {'حمام': 6, 'مطبخ': 3};
+const tkWet = r => r.type === 'حمام' || r.type === 'مطبخ';
+const tkN = v => { const n = Number(digits(String(v == null ? '' : v)).replace(/[٫,]/g, '.')); return isFinite(n) ? n : 0; };
+const tkId = p => p + Math.random().toString(36).slice(2, 9);
+function tkCfg(){ return Object.assign({minDed: 0.5, sillOver: 0.05, wallIn: 0.12, wallOut: 0.25}, store.get('tkCfg', {})); }
+function tkGeom(r){
+  const parts = (r.parts || []).filter(p => p.l > 0 && p.w > 0);
+  let area, perim, walls, bw, bh;
+  if (parts.length) { area = parts.reduce((s, p) => s + p.l * p.w, 0); perim = (r.walls || []).reduce((s, w) => s + (Number(w) || 0), 0); bw = parts.reduce((s, p) => s + p.l, 0); bh = Math.max(...parts.map(p => p.w)); walls = (r.walls || []).map(Number); }
+  else { area = (r.L || 0) * (r.W || 0); perim = 2 * ((r.L || 0) + (r.W || 0)); walls = [r.L || 0, r.W || 0, r.L || 0, r.W || 0]; bw = r.L || 0; bh = r.W || 0; }
+  if (r.area > 0) area = r.area; if (r.perim > 0) perim = r.perim;
+  return {area, perim, walls, bw, bh, irregular: parts.length > 0};
+}
+// التحقق: 🔴 غلط (مش داخلة في الكميات) · 🟠 تنبيه (تجاهل بسبب)
+function tkCheck(r, apt){
+  const g = tkGeom(r), err = [], warn = [], H = r.h || 0, parts = r.parts || [];
+  if (!(H > 0)) err.push('الارتفاع ناقص'); else if (H < 2.2 || H > 6) err.push('الارتفاع ' + H + ' برا 2.20–6 م');
+  if (parts.length) { if (r.L || r.W) err.push('طول وعرض في سطر الأوضة ومعاهم أجزاء (هتتحسب مرتين)'); if (r.area > 0) err.push('مساحة يدوي مع أجزاء'); if (r.perim > 0 && (r.walls || []).length) err.push('محيط يدوي مع حيطان');
+    const ws = (r.walls || []).filter(w => Number(w) > 0); if (!r.perim && ws.length < 4) err.push('أقل من 4 حيطان'); if (ws.length % 2) warn.push('عدد الحيطان فردي (' + ws.length + ')');
+    if (g.perim > 0 && g.perim < 4 * Math.sqrt(g.area) - 0.01) err.push('المحيط ' + n1(g.perim, 2) + ' أصغر من الممكن للمساحة دي: غالبا حيطة متنسية'); }
+  else { if (!(r.L > 0) || !(r.W > 0)) { if (!(r.area > 0)) err.push('الطول أو العرض ناقص'); } if (r.L > 20 || r.W > 20) err.push('ضلع أكبر من 20 م'); }
+  (r.openings || []).forEach((o, i) => { const nm = (o.kind === 'door' ? 'باب ' : 'شباك ') + (o.code || i + 1);
+    if (!(o.w > 0) || !(o.h > 0)) err.push(nm + ': المقاس ناقص');
+    if (o.wall != null && g.walls[o.wall] > 0) { const wl = g.walls[o.wall]; if (o.w > wl) err.push(nm + ' (' + o.w + ') أعرض من ح' + (o.wall + 1) + ' (' + wl + ')');
+      if (o.off != null && o.off + o.w > wl + 0.001) err.push(nm + ' طالع برا ح' + (o.wall + 1)); if (o.off != null && o.off < 0.1) warn.push(nm + ' لازق في الركن');
+      (r.openings || []).forEach((p, j) => { if (j <= i || p.wall !== o.wall || o.off == null || p.off == null) return; if (o.off < p.off + p.w && p.off < o.off + o.w) err.push(nm + ' فوق ' + (p.kind === 'door' ? 'باب ' : 'شباك ') + (p.code || j + 1)); }); }
+    if (o.kind === 'door' && (o.w > 1.8 || o.h > 2.7 || o.h < 1.9)) warn.push(nm + ' مقاسه غريب (' + o.w + '×' + o.h + ')'); });
+  const ign = r.ign || []; return {err, warn: warn.filter(w => !ign.includes(w)), g};
+}
+// كميات الأوضة: كل سطر {key, name, unit, qty, place, calc}
+function tkRoomQty(r, apt, cfg){
+  const c = tkCheck(r, apt); if (c.err.length) return {lines: [], bad: true};
+  const g = c.g, H = r.h, L = [], add = (key, name, unit, qty, calc) => { if (qty > 0.0001) L.push({key, name, unit, qty: Math.round(qty * 100) / 100, place: r.name, calc}); };
+  const ex = r.ex || {}, beams = (ex.beams || []).reduce((s, b) => s + 2 * (b.l || 0) * (b.d || 0), 0), cols = (ex.cols || []).reduce((s, b) => s + 2 * (b.d || 0) * H, 0);
+  const ops = (r.openings || []).map(o => ({o, a: o.w * o.h * (o.n || 1), dep: o.dep || (cfg.wallIn), sh: o.shared ? 0.5 : 1}));
+  const ded = ops.reduce((s, x) => s + (x.o.w * x.o.h >= cfg.minDed ? x.a : 0), 0);
+  const rev = ops.reduce((s, x) => s + (x.o.kind === 'door' ? 0 : (2 * x.o.h + x.o.w) * x.dep / 2 * (x.o.n || 1)), 0);   // تلابيس الشباك نص سمك الحيطة جوه، والباب الحلق بيغطيه
+  const gross = g.perim * H + cols, net = Math.max(0, gross - ded + rev);
+  if (r.floor) add('floor:' + r.floor, 'أرضيات ' + r.floor, 'م²', g.area, `${n1(g.bw, 2)} × ${n1(g.bh, 2)}`);
+  const th = tkWet(r) && r.tile !== 'none' ? (r.tile === 'full' || !r.tile ? H : Math.min(H, tkN(r.tile))) : 0;
+  if (th > 0) { const below = ops.reduce((s, x) => s + x.o.w * Math.max(0, Math.min(th, (x.o.sill || 0) + x.o.h) - (x.o.sill || 0)) * (x.o.n || 1), 0);
+    add('walltile:' + (r.wallTile || 'سيراميك حوائط'), (r.wallTile || 'سيراميك حوائط') + ' (' + r.type + ')', 'م²', g.perim * th - below + rev * th / H, `محيط ${n1(g.perim, 2)} × ${th}`);
+    if (H - th > 0.05 && r.wallPaint && r.wallPaint !== 'بدون') add('wall:' + r.wallPaint, 'دهان حوائط ' + r.wallPaint, 'م²', Math.max(0, g.perim * (H - th) - (ded - below)), `محيط ${n1(g.perim, 2)} × ${n1(H - th, 2)}`); }
+  else if (r.wallPaint && r.wallPaint !== 'بدون') add('wall:' + r.wallPaint, 'دهان حوائط ' + r.wallPaint, 'م²', net, `محيط ${n1(g.perim, 2)} × ${H} − ${n1(ded, 2)} فتحات + ${n1(rev, 2)} تلابيس`);
+  if (r.ceilPaint && r.ceilPaint !== 'بدون') add('ceil:' + r.ceilPaint, 'دهان أسقف ' + r.ceilPaint, 'م²', g.area + beams, `${n1(g.area, 2)} + كمرات ${n1(beams, 2)}`);
+  add('plaster', 'محارة حوائط وأسقف', 'م²', net + g.area + beams, `حوائط ${n1(net, 2)} + سقف ${n1(g.area + beams, 2)}`);
+  const doorsW = ops.filter(x => x.o.kind === 'door').reduce((s, x) => s + x.o.w * x.sh * (x.o.n || 1), 0);
+  if (!th && r.floor) add('skirt', 'وزرة', 'م.ط', g.perim - doorsW, `محيط ${n1(g.perim, 2)} − أبواب ${n1(doorsW, 2)}`);
+  ops.forEach(x => { const o = x.o, n = (o.n || 1);
+    if (o.kind === 'door') { if (!o.shared || o.own) { add('door:' + (o.code || o.w + '×' + o.h), 'باب ' + (o.code || '') + ' ' + o.w + '×' + o.h, 'عدد', n, ''); add('thr', 'عتب رخام', 'م.ط', o.w * n, `عرض ${o.w} × عمق ${x.dep}`); } }
+    else { add('win:' + (o.code || o.w + '×' + o.h), 'شباك ' + (o.code || '') + ' ' + o.w + '×' + o.h, 'عدد', n, ''); add('sill', 'جلسات رخام', 'م.ط', (o.w + 2 * cfg.sillOver) * n, `${o.w} + ${cfg.sillOver * 2} زيادة · عمق ${x.dep}`); } });
+  add('elec', 'نقط كهرباء', 'نقطة', ex.elec != null && ex.elec !== '' ? tkN(ex.elec) : (TK_ELEC[r.type] || 0), ex.elec != null && ex.elec !== '' ? 'معدودة' : 'من القالب');
+  if (TK_PLUMB[r.type] || ex.plumb) add('plumb', 'نقط سباكة', 'نقطة', ex.plumb != null && ex.plumb !== '' ? tkN(ex.plumb) : TK_PLUMB[r.type], '');
+  if (r.slope ?? (r.type === 'حمام' || r.type === 'بلكونة')) add('slope', 'ميول أرضيات', 'م²', g.area, '');
+  if (ex.ceil && ex.ceil.on) { add('gyps', 'سقف جبس معلق', 'م²', g.area, ''); if (ex.ceil.nur) add('nur', 'بيت نور', 'م.ط', tkN(ex.ceil.nur), ''); if (ex.ceil.cur) add('cur', 'بيت ستارة', 'م.ط', tkN(ex.ceil.cur), ''); }
+  return {lines: L, bad: false};
+}
+// تجميع: كل الشقق (أو نطاق) + البنود العامة
+function tkAll(T, scopeIds){
+  const cfg = tkCfg(), items = {}, bad = [];
+  T.apts.forEach(a => a.rooms.forEach(r => { if (scopeIds && !scopeIds.includes(r.id)) return; const q = tkRoomQty(r, a, cfg); if (q.bad) { bad.push(a.floor + ' · ' + r.name); return; }
+    q.lines.forEach(l => { const it = items[l.key] = items[l.key] || {key: l.key, name: l.name, unit: l.unit, qty: 0, lines: []}; it.qty += l.qty; it.lines.push(Object.assign({apt: a.floor + (a.name ? ' ' + a.name : '')}, l)); }); }));
+  if (!scopeIds) T.gens.forEach(gn => { const tot = (gn.sessions || []).reduce((s, se) => s + se.lines.reduce((t, l) => t + tkGenLine(gn, l), 0), 0);
+    if (tot > 0) items['gen:' + gn.id] = {key: 'gen:' + gn.id, name: gn.name, unit: gn.unit, qty: tot, gen: true, lines: (gn.sessions || []).flatMap(se => se.lines.map(l => ({place: (l.desc || '') + ' · ' + se.date, calc: [l.l, l.w, l.h, l.n].filter(Boolean).join(' × '), qty: tkGenLine(gn, l)})))}; });
+  Object.values(items).forEach(i => i.qty = Math.round(i.qty * 100) / 100);
+  return {items: Object.values(items).sort((a, b) => tkOrd(a.key) - tkOrd(b.key)), bad};
+}
+const tkOrd = k => ['floor', 'walltile', 'wall', 'ceil', 'plaster', 'skirt', 'thr', 'sill', 'door', 'win', 'elec', 'plumb', 'slope', 'gyps', 'nur', 'cur', 'gen'].indexOf(k.split(':')[0]);
+const tkGenLine = (gn, l) => { const v = [l.l, l.w, l.h].map(tkN), n = tkN(l.n) || 1; return gn.shape === 'count' ? n : gn.shape === 'len' ? v[0] * n : gn.shape === 'vol' ? v[0] * v[1] * v[2] * n : v[0] * (v[1] || 1) * n; };
+// الخامات من معدلات (⚙️)
+function tkMatsFor(items){
+  const M = S.tk.mats || {}, out = {};
+  items.forEach(i => { const k = i.key.split(':')[0], grp = k === 'floor' || k === 'walltile' ? 'tile' : k === 'wall' || k === 'ceil' ? 'paint' : k === 'plaster' ? 'plaster' : k === 'skirt' ? 'skirt' : k === 'sill' || k === 'thr' ? 'sill' : k === 'slope' ? 'slope' : '';
+    (M[grp] || []).forEach(([nm, un, rate], ix) => { const name = grp === 'tile' && ix === 0 ? i.name.replace(/^أرضيات /, '') : nm, key = name + '|' + un;
+      const o = out[key] = out[key] || {name, unit: un, qty: 0, from: new Set()}; o.qty += i.qty * rate; o.from.add(i.name); }); });
+  return Object.values(out).map(o => ({name: o.name, unit: o.unit, qty: Math.ceil(Math.round(o.qty * 1000) / 100) / 10, from: o.from.size}));
+}
+
+// ================= الشاشات =================
+async function takeoffSheet(code, page){
+  S.tkCode = code; S.tkPage = page || S.tkPage || 'in';
+  if (!S.tk || S.tk.code !== code) { openSheet(`<h3>📐 الحصر · ${esc(pName(code))}</h3><div class="muted">بيحمّل…</div>`);
+    const r = await api('tkGet', {project: code}); const loc = store.get('tk_' + code, null);
+    if (!r.ok && !loc) { $('#sheetBody').innerHTML = `<h3>📐 الحصر</h3>${esc(errMsg(r))}`; return; }
+    const rows = r.ok ? r.rows : loc.rows;
+    S.tk = {code, can: r.ok ? r.can : true, boq: r.ok ? r.boq : loc.boq, mats: r.ok ? r.mats : loc.mats, vers: r.ok ? r.vers : [], apts: [], gens: [], scopes: [], map: {}, aIdx: 0, sub: 'apt'};
+    rows.forEach(x => { if (x.kind === 'apt') S.tk.apts.push(Object.assign({rid: x.id}, x.data)); else if (x.kind === 'gen') S.tk.gens.push(Object.assign({rid: x.id}, x.data)); else if (x.kind === 'scope') S.tk.scopes = (x.data && x.data.list) || [], S.tk.scopeRid = x.id; else if (x.kind === 'map') S.tk.map = x.data || {}, S.tk.mapRid = x.id; });
+    store.set('tk_' + code, {rows, boq: S.tk.boq, mats: S.tk.mats}); }
+  tkDraw();
+}
+function tkStoreLocal(){ const T = S.tk, rows = [...T.apts.map(a => ({id: a.rid, kind: 'apt', name: a.floor, data: a})), ...T.gens.map(g => ({id: g.rid, kind: 'gen', name: g.name, data: g})), {id: T.scopeRid, kind: 'scope', data: {list: T.scopes}}, {id: T.mapRid, kind: 'map', data: T.map}]; store.set('tk_' + T.code, {rows, boq: T.boq, mats: T.mats}); }
+async function tkSaveRow(kind, obj, name){
+  const T = S.tk; if (!obj.rid) obj.rid = tkId('TK'); const data = Object.assign({}, obj); delete data.rid;
+  tkStoreLocal(); const r = await qSave('tkSave', {project: T.code, kind, id: obj.rid, name, data}, 'حصر: ' + name); if (!r.ok) toast(errMsg(r)); return r;
+}
+function tkDraw(){
+  const T = S.tk, pg = S.tkPage;
+  const tabs = `<div class="tkbt">${[['in', 'بيانات الموقع'], ['qty', 'جدول الكميات'], ['plan', 'المسقط الأفقي']].map(([k, n]) => `<button class="${pg === k ? 'on' : ''}" data-tkp="${k}">${n}</button>`).join('')}</div>`;
+  openSheet(`<h3>📐 الحصر · ${esc(pName(T.code))} <button class="chip" id="tkSet" style="float:left">⚙️</button></h3><div id="tkB"></div>${tabs}`);
+  ({in: tkIn, qty: tkQtyPage, plan: tkPlan})[pg]();
+  document.querySelectorAll('[data-tkp]').forEach(b => b.onclick = () => { S.tkPage = b.dataset.tkp; tkDraw(); });
+  $('#tkSet').onclick = tkSettings;
+}
+// صفحة 1: بيانات الموقع (الشقق / بنود عامة)
+function tkIn(){
+  const T = S.tk, a = T.apts[T.aIdx];
+  let h = `<div class="seg"><button class="${T.sub === 'apt' ? 'on' : ''}" data-tks="apt">الشقق</button><button class="${T.sub === 'gen' ? 'on' : ''}" data-tks="gen">بنود عامة</button></div>`;
+  if (T.sub === 'gen') h += tkGenList();
+  else { h += `<div class="chips" style="flex-wrap:wrap;margin-top:8px">${T.apts.map((x, i) => `<button class="chip ${i === T.aIdx ? 'on' : ''}" data-ta="${i}">${esc(x.floor)}${x.name ? ' · ' + esc(x.name) : ''}</button>`).join('')}${T.can ? `<button class="chip" id="tkNA">➕ دور / شقة</button>` : ''}</div>`;
+    if (!a) h += emptyBox('ruler', T.apts.length ? '' : 'ابدأ بدور أو شقة، أو استورد حصر قديم') + (T.can ? `<button class="btn ghost" id="tkImp" style="margin-top:8px">⬇️ استيراد حصر قديم</button>` : '');
+    else { const sum = a.rooms.reduce((s, r) => s + tkGeom(r).area, 0), low = a.area > 0 && sum < a.area * 0.85;
+      h += `<div class="row" style="margin-top:6px"><small style="flex:1" class="muted">${a.rooms.length} أوضة · ${n1(sum, 2)} م²${a.area ? ' من ' + n1(a.area, 2) : ''}</small>${T.can ? `<button class="more" id="tkCopy" style="color:var(--pri)">انسخ الدور</button> · <button class="more" id="tkEA" style="color:var(--pri)">✏️</button>` : ''}</div>
+        ${low ? `<div class="sline" style="color:var(--warn)">🟠 الأوض ${Math.round(sum / a.area * 100)}% بس من مساحة الدور. فيه أوضة ناقصة؟</div>` : ''}
+        ${a.rooms.map((r, i) => { const c = tkCheck(r, a); const st = c.err.length ? ['غلط', 'var(--bad)'] : c.warn.length ? ['تنبيه', 'var(--warn)'] : ['سليمة', 'var(--ok)'];
+          return `<button class="irow" data-tr="${i}" style="${c.err.length ? 'border-color:#F2C2BB' : ''}"><div class="row"><b style="flex:1">${esc(r.name)}</b><small style="color:${st[1]};font-weight:700">${st[0]}</small></div>
+            <div class="row" style="gap:8px;align-items:center">${tkSvg(r, 96, 64)}<small class="muted" style="flex:1">${c.g.irregular ? 'أجزاء ' + (r.parts || []).length : n1(r.L, 2) + ' × ' + n1(r.W, 2)} × ${n1(r.h, 2)}<br>${n1(c.g.area, 2)} م² · محيط ${n1(c.g.perim, 2)}<br>${esc(r.floor || '')}${(r.openings || []).length ? ' · ' + r.openings.length + ' فتحة' : ''}</small></div>
+            ${c.err.length ? `<small style="color:var(--bad)">${esc(c.err[0])}</small>` : c.warn.length ? `<small style="color:var(--warn)">${esc(c.warn[0])}</small>` : ''}</button>`; }).join('')}
+        ${T.can ? `<div class="row" style="gap:6px;margin-top:8px"><button class="btn gold" id="tkNR" style="flex:1">➕ أوضة</button><button class="btn ghost" id="tkTpl" style="flex:1">قالب</button><button class="btn ghost" id="tkImp" style="flex:1">⬇️ استيراد</button></div>` : ''}`; } }
+  $('#tkB').innerHTML = h;
+  document.querySelectorAll('[data-tks]').forEach(b => b.onclick = () => { T.sub = b.dataset.tks; tkDraw(); });
+  document.querySelectorAll('[data-ta]').forEach(b => b.onclick = () => { T.aIdx = Number(b.dataset.ta); tkDraw(); });
+  document.querySelectorAll('[data-tr]').forEach(b => b.onclick = () => tkRoomForm(Number(b.dataset.tr)));
+  if ($('#tkNA')) $('#tkNA').onclick = () => tkAptForm();
+  if ($('#tkEA')) $('#tkEA').onclick = () => tkAptForm(a);
+  if ($('#tkNR')) $('#tkNR').onclick = () => tkRoomForm(-1);
+  if ($('#tkTpl')) $('#tkTpl').onclick = () => { const t = prompt('القالب:\n1 حمام قياسي 2.2×1.8\n2 مطبخ قياسي 3×2.5\n3 نوم 4×3.5', '1'); const P = {1: ['حمام', 2.2, 1.8], 2: ['مطبخ', 3, 2.5], 3: ['نوم', 4, 3.5]}[digits(t || '')]; if (!P) return;
+    const prev = a.rooms[a.rooms.length - 1] || {}; tkRoomForm(-1, {type: P[0], L: P[1], W: P[2], h: prev.h || 3, floor: P[0] === 'نوم' ? (prev.floor || 'بورسلين 60×60') : 'سيراميك 30×60', wallPaint: 'بلاستيك', ceilPaint: 'بلاستيك', tile: tkWet({type: P[0]}) ? 'full' : undefined}); };
+  if ($('#tkCopy')) $('#tkCopy').onclick = async () => { const n = Number(digits(prompt('تنسخ الدور ده كام مرة؟ (الأدوار المتكررة)', '1') || '')); if (!(n > 0 && n < 30)) return;
+    for (let k = 1; k <= n; k++) { const c = JSON.parse(JSON.stringify(a)); delete c.rid; c.id = tkId('A'); c.floor = a.floor + ' (نسخة ' + k + ')'; c.rooms.forEach(r => { r.id = tkId('R'); (r.openings || []).forEach(o => o.id = tkId('O')); }); T.apts.push(c); await tkSaveRow('apt', c, c.floor); }
+    toast('اتنسخ ✓'); tkDraw(); };
+  if ($('#tkImp')) $('#tkImp').onclick = async () => { const old = prompt('كود المشروع في الحصر القديم (6 حروف وأرقام زي K7Q2MZ)'); if (!old) return; toast('بيستورد…');
+    const r = await api('tkImport', {project: T.code, old: old.trim()}); if (!r.ok) { toast(r.error === 'notfound' ? 'مش لاقي شيت المشروع ده في الحصر القديم' : errMsg(r)); return; }
+    toast(`اتستورد ${r.rooms} أوضة في ${r.apts} دور ✓ · راجعهم`); S.tk = null; takeoffSheet(T.code, 'in'); };
+  if (T.sub === 'gen') tkGenWire();
+}
+function tkAptForm(a){
+  const T = S.tk, x = a || {id: tkId('A'), floor: 'الدور ' + (T.apts.length + 1), name: '', area: '', wallIn: tkCfg().wallIn, rooms: []};
+  openSheet(`<h3>${a ? 'تعديل' : 'دور / شقة جديدة'}</h3><label class="f">الدور</label><input class="in" id="taF" value="${esc(x.floor)}"><label class="f">الشقة (اختياري)</label><input class="in" id="taN" value="${esc(x.name)}" placeholder="شقة 3">
+    <label class="f">مساحة الدور أو الشقة (اختياري، للمقارنة)</label><input class="in" id="taA" inputmode="decimal" value="${esc(x.area || '')}">
+    <label class="f">سمك الحيطة</label><div class="chips">${[0.12, 0.25].map(v => `<button class="chip ${Number(x.wallIn) === v ? 'on' : ''}" data-tw="${v}">${v === 0.12 ? 'داخلي 12' : 'خارجي 25'} سم</button>`).join('')}</div>
+    <button class="btn gold" id="taGo" style="margin-top:10px">احفظ</button>`);
+  document.querySelectorAll('[data-tw]').forEach(b => b.onclick = () => { x.wallIn = Number(b.dataset.tw); document.querySelectorAll('[data-tw]').forEach(c => c.classList.toggle('on', c === b)); });
+  $('#taGo').onclick = async () => { x.floor = $('#taF').value.trim() || x.floor; x.name = $('#taN').value.trim(); x.area = tkN($('#taA').value);
+    if (!a) { T.apts.push(x); T.aIdx = T.apts.length - 1; } await tkSaveRow('apt', x, x.floor); tkDraw(); };
+}
+// «350» ← «تقصد 3.50 م؟»
+const tkAsk = v => { let n = tkN(v); if (n >= 100 && n <= 2500 && Number.isInteger(n) && confirmBox(`تقصد ${n / 100} متر؟`)) n = n / 100; return n; };
+function tkRoomForm(idx, preset){
+  const T = S.tk, a = T.apts[T.aIdx], isNew = idx < 0, prev = a.rooms[a.rooms.length - 1] || {};
+  const r = isNew ? Object.assign({id: tkId('R'), type: 'نوم', name: '', h: prev.h || 3, L: '', W: '', parts: [], walls: [], floor: prev.floor || '', wallPaint: prev.wallPaint || 'بلاستيك', ceilPaint: prev.ceilPaint || 'بلاستيك', openings: [], ex: {}, place: null}, preset || {}) : JSON.parse(JSON.stringify(a.rooms[idx]));
+  let showEx = false;
+  const draw = () => { const c = tkCheck(r, a), wet = tkWet(r);
+    if (!r.name) r.name = r.type + ' ' + (a.rooms.filter(x => x.type === r.type).length + (isNew ? 1 : 0));
+    openSheet(`<h3>${isNew ? 'أوضة جديدة' : esc(r.name)}</h3>
+      <div class="chips" style="flex-wrap:wrap">${TKT.map(t => `<button class="chip ${r.type === t ? 'on' : ''}" data-rt="${t}">${t}</button>`).join('')}</div>
+      <div class="row" style="gap:6px"><div style="flex:2"><label class="f">الاسم</label><input class="in" id="rmN" value="${esc(r.name)}"></div><div style="flex:1"><label class="f">الارتفاع</label><input class="in" id="rmH" inputmode="decimal" value="${esc(r.h)}"></div></div>
+      <div class="chips" style="margin-top:8px"><button class="chip ${!(r.parts || []).length ? 'on' : ''}" data-rs="rect">مستطيلة</button><button class="chip ${(r.parts || []).length ? 'on' : ''}" data-rs="parts">غير منتظمة (أجزاء)</button></div>
+      ${(r.parts || []).length ? `<label class="f">الأجزاء (طول × عرض)</label>${r.parts.map((p, i) => `<div class="row" style="gap:6px;margin-top:4px"><input class="in" data-pl="${i}" inputmode="decimal" value="${esc(p.l)}" style="flex:1"><span>×</span><input class="in" data-pw="${i}" inputmode="decimal" value="${esc(p.w)}" style="flex:1"><button class="chip" data-pd="${i}">✕</button></div>`).join('')}<button class="chip" id="rmAP" style="margin-top:4px">➕ جزء</button>
+        <label class="f">الحيطان (كل حيطة طولها)</label><div class="chips" style="flex-wrap:wrap">${(r.walls || []).map((w, i) => `<input class="in" data-wl="${i}" inputmode="decimal" value="${esc(w)}" style="width:64px">`).join('')}<button class="chip" id="rmAW">➕ حيطة</button></div>`
+        : `<div class="row" style="gap:6px"><div style="flex:1"><label class="f">الطول (ح1 وح3)</label><input class="in" id="rmL" inputmode="decimal" value="${esc(r.L)}"></div><div style="flex:1"><label class="f">العرض (ح2 وح4)</label><input class="in" id="rmW" inputmode="decimal" value="${esc(r.W)}"></div></div>`}
+      <div style="margin:8px 0;text-align:center" id="rmSvg">${tkSvg(r, 300, 170, true)}</div>
+      <small class="muted">دوس على أي باب في الرسمة عشان تقلب اتجاهه</small>
+      <label class="f">الأرضية</label><div class="chips" style="flex-wrap:wrap">${TK_FLOOR.map(f => `<button class="chip ${r.floor === f ? 'on' : ''}" data-rf="${esc(f)}">${esc(f)}</button>`).join('')}</div>
+      <label class="f">دهان الحوائط / السقف</label><div class="row" style="gap:6px"><select class="in" id="rmWP" style="flex:1">${TK_PAINT.map(p => `<option ${r.wallPaint === p ? 'selected' : ''}>${p}</option>`).join('')}</select><select class="in" id="rmCP" style="flex:1">${TK_PAINT.map(p => `<option ${r.ceilPaint === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
+      ${wet ? `<label class="f">ارتفاع سيراميك الحوائط</label><div class="chips">${[['full', 'لحد السقف'], ['2.4', '2.40'], ['1.5', '1.50'], ['none', 'من غير']].map(([k, n]) => `<button class="chip ${String(r.tile || 'full') === k ? 'on' : ''}" data-tl="${k}">${n}</button>`).join('')}</div>` : ''}
+      <div class="sec-t" style="margin-top:10px">الأبواب والشبابيك</div>
+      ${(r.openings || []).map((o, i) => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)"><span style="flex:1">${o.kind === 'door' ? '🚪' : '🪟'} ${esc(o.code || '')} ${o.w}×${o.h} · ${o.wall != null ? 'ح' + (o.wall + 1) : 'من غير حيطة'}${o.off != null ? ' · بعد ' + o.off : o.wall != null ? ' · في النص (تقريبي)' : ''}${o.shared ? ' · مشترك مع ' + esc((a.rooms.find(x => x.id === o.shared) || {}).name || '') : ''}</span><button class="chip" data-oe="${i}">✏️</button></div>`).join('')}
+      <div class="row" style="gap:6px;margin-top:6px"><button class="chip" id="rmAD">➕ باب</button><button class="chip" id="rmAWn">➕ شباك</button></div>
+      <button class="irow" id="rmEx" style="margin-top:8px"><div class="row"><b style="flex:1">➕ إضافات الأوضة</b><small class="muted">كمرات · سقف · نقط · ميول</small><span>${showEx ? '▴' : '▾'}</span></div></button>
+      ${showEx ? `<div class="card" style="padding:8px 10px">
+        <label class="f">كمرة ساقطة (طول × سقوط)</label><div class="row" style="gap:6px"><input class="in" id="exBL" inputmode="decimal" placeholder="الطول" value="${esc(((r.ex || {}).beams || [])[0] ? r.ex.beams[0].l : '')}" style="flex:1"><input class="in" id="exBD" inputmode="decimal" placeholder="السقوط" value="${esc(((r.ex || {}).beams || [])[0] ? r.ex.beams[0].d : '')}" style="flex:1"></div>
+        <label class="f">عمود بارز (عرض × بروز)</label><div class="row" style="gap:6px"><input class="in" id="exCW" inputmode="decimal" value="${esc(((r.ex || {}).cols || [])[0] ? r.ex.cols[0].w : '')}" style="flex:1"><input class="in" id="exCD" inputmode="decimal" value="${esc(((r.ex || {}).cols || [])[0] ? r.ex.cols[0].d : '')}" style="flex:1"></div>
+        <label class="row" style="gap:8px;margin-top:8px"><input type="checkbox" id="exGy" ${(r.ex || {}).ceil && r.ex.ceil.on ? 'checked' : ''}> سقف جبس معلق</label>
+        <div class="row" style="gap:6px"><input class="in" id="exNur" inputmode="decimal" placeholder="بيت نور م.ط" value="${esc(((r.ex || {}).ceil || {}).nur || '')}" style="flex:1"><input class="in" id="exCur" inputmode="decimal" placeholder="بيت ستارة م.ط" value="${esc(((r.ex || {}).ceil || {}).cur || '')}" style="flex:1"></div>
+        <label class="f">نقط الكهرباء (عدّها، ولو فاضية تتوزع من القالب: ${TK_ELEC[r.type] || 0})</label><input class="in" id="exEl" inputmode="numeric" value="${esc((r.ex || {}).elec ?? '')}">
+        ${TK_PLUMB[r.type] ? `<label class="f">نقط السباكة (القالب: ${TK_PLUMB[r.type]})</label><input class="in" id="exPl" inputmode="numeric" value="${esc((r.ex || {}).plumb ?? '')}">` : ''}
+        <label class="row" style="gap:8px;margin-top:8px"><input type="checkbox" id="exSl" ${(r.slope ?? (r.type === 'حمام' || r.type === 'بلكونة')) ? 'checked' : ''}> ميول أرضية${r.type === 'مطبخ' ? ' (المطبخ في الغالب من غير ميول)' : ''}</label></div>` : ''}
+      ${a.rooms.length && (isNew || r.place || a.rooms.length > 1) ? `<div class="sec-t" style="margin-top:10px">مكانها في الدور</div><div class="row" style="gap:6px"><select class="in" id="plR" style="flex:2"><option value="">لازقة في…</option>${a.rooms.filter(x => x.id !== r.id).map(x => `<option value="${esc(x.id)}" ${r.place && r.place.ref === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
+        <select class="in" id="plW" style="flex:1">${[0, 1, 2, 3].map(k => `<option value="${k}" ${r.place && r.place.wall === k ? 'selected' : ''}>ح${k + 1}</option>`).join('')}</select><input class="in" id="plO" inputmode="decimal" placeholder="بعد" value="${esc(r.place ? r.place.off : '')}" style="flex:1"></div>` : ''}
+      ${c.err.length ? `<div class="sline" style="color:var(--bad)">🔴 ${c.err.map(esc).join('<br>🔴 ')}</div>` : ''}${c.warn.length ? `<div class="sline" style="color:var(--warn)">🟠 ${c.warn.map(w => esc(w) + ` <button class="more" data-ign="${esc(w)}" style="color:var(--pri)">تجاهل</button>`).join('<br>🟠 ')}</div>` : ''}
+      <div class="row" style="gap:6px;margin-top:10px"><button class="btn gold" id="rmGo" style="flex:2">احفظ</button>${!isNew ? `<button class="btn ghost" id="rmCp" style="flex:1">انسخ</button><button class="btn ghost" id="rmDel" style="flex:1;color:var(--bad)">امسح</button>` : ''}</div>`);
+    wire(); };
+  const sync = () => { r.name = $('#rmN').value.trim(); r.h = tkN($('#rmH').value);
+    if ($('#rmL')) { r.L = tkN($('#rmL').value); r.W = tkN($('#rmW').value); }
+    document.querySelectorAll('[data-pl]').forEach(e => r.parts[e.dataset.pl].l = tkN(e.value)); document.querySelectorAll('[data-pw]').forEach(e => r.parts[e.dataset.pw].w = tkN(e.value)); document.querySelectorAll('[data-wl]').forEach(e => r.walls[e.dataset.wl] = tkN(e.value));
+    r.wallPaint = $('#rmWP').value; r.ceilPaint = $('#rmCP').value;
+    if ($('#exBL')) { r.ex = r.ex || {}; const bl = tkN($('#exBL').value), bd = tkN($('#exBD').value), cw = tkN($('#exCW').value), cd = tkN($('#exCD').value);
+      r.ex.beams = bl && bd ? [{l: bl, d: bd}] : []; r.ex.cols = cw && cd ? [{w: cw, d: cd}] : []; r.ex.ceil = {on: $('#exGy').checked, nur: tkN($('#exNur').value), cur: tkN($('#exCur').value)};
+      r.ex.elec = $('#exEl').value === '' ? '' : tkN($('#exEl').value); if ($('#exPl')) r.ex.plumb = $('#exPl').value === '' ? '' : tkN($('#exPl').value); r.slope = $('#exSl').checked; }
+    if ($('#plR')) r.place = $('#plR').value ? {ref: $('#plR').value, wall: Number($('#plW').value), off: tkN($('#plO').value)} : null; };
+  const wire = () => {
+    ['rmL', 'rmW', 'rmH'].forEach(id => { const e = $('#' + id); if (e) e.onchange = () => { e.value = tkAsk(e.value) || e.value; sync(); $('#rmSvg').innerHTML = tkSvg(r, 300, 170, true); wireSvg(); }; });
+    document.querySelectorAll('[data-rt]').forEach(b => b.onclick = () => { sync(); const auto = !r.name || TKT.some(t => r.name.startsWith(t + ' ')); r.type = b.dataset.rt; if (auto) r.name = ''; if (tkWet(r) && !r.tile) r.tile = 'full'; draw(); });
+    document.querySelectorAll('[data-rs]').forEach(b => b.onclick = () => { sync(); if (b.dataset.rs === 'parts' && !(r.parts || []).length) { r.parts = [{l: r.L || '', w: r.W || ''}]; r.walls = []; r.L = ''; r.W = ''; } else if (b.dataset.rs === 'rect') { r.parts = []; r.walls = []; } draw(); });
+    if ($('#rmAP')) $('#rmAP').onclick = () => { sync(); r.parts.push({l: '', w: ''}); draw(); };
+    if ($('#rmAW')) $('#rmAW').onclick = () => { sync(); r.walls.push(''); draw(); };
+    document.querySelectorAll('[data-pd]').forEach(b => b.onclick = () => { sync(); r.parts.splice(Number(b.dataset.pd), 1); draw(); });
+    document.querySelectorAll('[data-rf]').forEach(b => b.onclick = () => { sync(); r.floor = b.dataset.rf; draw(); });
+    document.querySelectorAll('[data-tl]').forEach(b => b.onclick = () => { sync(); r.tile = b.dataset.tl; draw(); });
+    $('#rmAD').onclick = () => { sync(); tkOpenForm(r, a, null, 'door', draw); };
+    $('#rmAWn').onclick = () => { sync(); tkOpenForm(r, a, null, 'win', draw); };
+    document.querySelectorAll('[data-oe]').forEach(b => b.onclick = () => { sync(); tkOpenForm(r, a, Number(b.dataset.oe), null, draw); });
+    $('#rmEx').onclick = () => { sync(); showEx = !showEx; draw(); };
+    document.querySelectorAll('[data-ign]').forEach(b => b.onclick = () => { sync(); const why = prompt('سبب التجاهل'); if (!why) return; r.ign = (r.ign || []).concat(b.dataset.ign); r.ignWhy = (r.ignWhy || []).concat(why); draw(); });
+    wireSvg();
+    $('#rmGo').onclick = async () => { sync(); if (isNew) a.rooms.push(r); else a.rooms[idx] = r; await tkSaveRow('apt', a, a.floor); const c = tkCheck(r, a);
+      toast(c.err.length ? '🔴 اتحفظت مسودة: مش هتدخل في الكميات لحد ما تتصلّح' : 'اتحفظت ✓'); if (isNew && !c.err.length) { tkRoomForm(-1, {h: r.h, floor: r.floor, wallPaint: r.wallPaint, ceilPaint: r.ceilPaint, place: {ref: r.id, wall: 1, off: 0}}); return; } tkDraw(); };
+    if ($('#rmCp')) $('#rmCp').onclick = () => { sync(); const c = JSON.parse(JSON.stringify(r)); c.id = tkId('R'); c.name = ''; (c.openings || []).forEach(o => { o.id = tkId('O'); o.shared = ''; }); c.place = null; a.rooms.push(c); tkSaveRow('apt', a, a.floor).then(() => tkRoomForm(a.rooms.length - 1)); };
+    if ($('#rmDel')) $('#rmDel').onclick = async () => { if (!confirmBox('تمسح ' + r.name + '؟')) return; a.rooms.splice(idx, 1); a.rooms.forEach(x => (x.openings || []).forEach(o => { if (o.shared === r.id) o.shared = ''; })); await tkSaveRow('apt', a, a.floor); tkDraw(); };
+  };
+  const wireSvg = () => document.querySelectorAll('#rmSvg [data-sw]').forEach(el => el.onclick = () => { sync(); const o = r.openings[Number(el.dataset.sw)]; o.swing = ((o.swing || 0) + 1) % 4; $('#rmSvg').innerHTML = tkSvg(r, 300, 170, true); wireSvg(); });
+  draw();
+}
+// باب أو شباك: الكود، والحيطة، والمكان، والاتجاه، والجلسة، وسمك الحيطة
+function tkOpenForm(r, a, i, kind, back){
+  const o = i != null ? r.openings[i] : {id: tkId('O'), kind, code: '', w: kind === 'door' ? 0.9 : 1.2, h: kind === 'door' ? 2.2 : 1.2, wall: 0, off: null, swing: 0, sill: kind === 'win' ? 1 : 0, dep: tkCfg().wallIn, shared: '', n: 1};
+  const codes = [...new Map(a.rooms.flatMap(x => x.openings || []).filter(x => x.kind === o.kind && x.code).map(x => [x.code, x])).values()];
+  const g = tkGeom(r);
+  openSheet(`<h3>${o.kind === 'door' ? '🚪 باب' : '🪟 شباك'} · ${esc(r.name)}</h3>
+    ${codes.length ? `<div class="chips" style="flex-wrap:wrap">${codes.map(x => `<button class="chip ${o.code === x.code ? 'on' : ''}" data-oc="${esc(x.code)}">${esc(x.code)} ${x.w}×${x.h}</button>`).join('')}</div>` : ''}
+    <div class="row" style="gap:6px"><div style="flex:1"><label class="f">الكود</label><input class="in" id="opC" value="${esc(o.code)}" placeholder="${o.kind === 'door' ? 'ب1' : 'ش1'}"></div><div style="flex:1"><label class="f">العرض</label><input class="in" id="opW" inputmode="decimal" value="${esc(o.w)}"></div><div style="flex:1"><label class="f">الارتفاع</label><input class="in" id="opH" inputmode="decimal" value="${esc(o.h)}"></div></div>
+    <label class="f">على أنهي حيطة؟</label><div class="chips">${g.walls.map((w, k) => `<button class="chip ${o.wall === k ? 'on' : ''}" data-ow="${k}">ح${k + 1} · ${n1(w, 2)}</button>`).join('')}</div>
+    <label class="f">بعد كام من الركن اللي على يمينك (وانت جوه الأوضة باصص للحيطة)</label><div class="row" style="gap:6px"><input class="in" id="opO" inputmode="decimal" value="${o.off == null ? '' : esc(o.off)}" style="flex:1"><button class="chip ${o.off == null ? 'on' : ''}" id="opMid">في النص (تقريبي)</button></div>
+    <label class="f">سمك الحيطة عند ${o.kind === 'door' ? 'الباب (للعتب والحلق)' : 'الشباك (للجلسة)'}</label><input class="in" id="opD" inputmode="decimal" value="${esc(o.dep)}">
+    ${o.kind === 'win' ? `<label class="f">الجلسة (ارتفاعها من الأرض)</label><input class="in" id="opS" inputmode="decimal" value="${esc(o.sill)}">` : `<label class="f">مشترك مع</label><select class="in" id="opSh"><option value="">مش مشترك</option>${a.rooms.filter(x => x.id !== r.id).map(x => `<option value="${esc(x.id)}" ${o.shared === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>`}
+    <label class="f">العدد</label><input class="in" id="opN" inputmode="numeric" value="${esc(o.n || 1)}">
+    <div class="row" style="gap:6px;margin-top:10px"><button class="btn gold" id="opGo" style="flex:2">تمام</button>${i != null ? `<button class="btn ghost" id="opDel" style="flex:1;color:var(--bad)">امسح</button>` : ''}</div>`);
+  document.querySelectorAll('[data-oc]').forEach(b => b.onclick = () => { const x = codes.find(c => c.code === b.dataset.oc); $('#opC').value = x.code; $('#opW').value = x.w; $('#opH').value = x.h; });
+  document.querySelectorAll('[data-ow]').forEach(b => b.onclick = () => { o.wall = Number(b.dataset.ow); document.querySelectorAll('[data-ow]').forEach(c => c.classList.toggle('on', c === b)); });
+  $('#opMid').onclick = () => { $('#opO').value = ''; $('#opMid').classList.add('on'); };
+  $('#opGo').onclick = () => { o.code = $('#opC').value.trim(); o.w = tkAsk($('#opW').value); o.h = tkAsk($('#opH').value); o.off = $('#opO').value === '' ? null : tkN($('#opO').value); o.dep = tkN($('#opD').value) || tkCfg().wallIn; o.n = Math.max(1, tkN($('#opN').value) || 1);
+    if (o.kind === 'win') o.sill = tkN($('#opS').value); else { const sh = $('#opSh').value;
+      if (sh !== o.shared) { if (o.shared) { const old = a.rooms.find(x => x.id === o.shared); if (old) old.openings = (old.openings || []).filter(p => p.id !== o.id + '-s'); }
+        if (sh) { const t = a.rooms.find(x => x.id === sh); t.openings = (t.openings || []).filter(p => p.id !== o.id + '-s').concat([Object.assign({}, o, {id: o.id + '-s', shared: r.id, wall: null, own: false})]); } }
+      o.shared = sh; o.own = true; }
+    if (i == null) r.openings.push(o); back(); };
+  if ($('#opDel')) $('#opDel').onclick = () => { r.openings.splice(i, 1); back(); };
+}
+// رسمة الأوضة: الحيطان متنمّرة، والأبواب بقوس، والشبابيك خطين
+function tkSvg(r, W, H, big){
+  const g = tkGeom(r); if (!(g.bw > 0 && g.bh > 0)) return `<svg width="${W}" height="${H}"><rect x="4" y="4" width="${W - 8}" height="${H - 8}" fill="none" stroke="#B4B2A9" stroke-dasharray="4"/></svg>`;
+  const pad = big ? 26 : 6, s = Math.min((W - 2 * pad) / g.bw, (H - 2 * pad) / g.bh), x0 = (W - g.bw * s) / 2, y0 = (H - g.bh * s) / 2, sw = big ? 4 : 2.5;
+  let out = '';
+  if (g.irregular) { let x = x0; (r.parts || []).forEach(p => { out += `<rect x="${x}" y="${y0}" width="${p.l * s}" height="${p.w * s}" fill="none" stroke="#1D2E4F" stroke-width="${sw}"/>`; x += p.l * s; }); if (big) out += `<text x="${W / 2}" y="${H - 4}" font-size="10" text-anchor="middle" fill="#888">رسمة تقريبية للأجزاء</text>`; }
+  else { const w = g.bw * s, h = g.bh * s; out += `<rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="none" stroke="#1D2E4F" stroke-width="${sw}"/>`;
+    if (big) out += `<text x="${x0 + w / 2}" y="${y0 - 8}" font-size="11" text-anchor="middle" fill="#185FA5">ح1 · ${n1(r.L, 2)}</text><text x="${x0 + w + 6}" y="${y0 + h / 2}" font-size="11" text-anchor="start" fill="#185FA5">ح2</text><text x="${x0 + w / 2}" y="${y0 + h + 16}" font-size="11" text-anchor="middle" fill="#185FA5">ح3</text><text x="${x0 - 6}" y="${y0 + h / 2}" font-size="11" text-anchor="end" fill="#185FA5">${n1(r.W, 2)} · ح4</text><text x="${x0 + w / 2}" y="${y0 + h / 2 + 4}" font-size="12" text-anchor="middle" fill="#444">${n1(g.area, 2)} م²</text>`;
+    (r.openings || []).forEach((o, i) => { if (o.wall == null) return; const wl = g.walls[o.wall] || 0, off = o.off != null ? o.off : Math.max(0, (wl - o.w) / 2), ow = o.w * s, d = off * s;
+      let p1, p2, inward; // من اليمين على كل حيطة (مع عقارب الساعة)
+      if (o.wall === 0) { p1 = [x0 + w - d - ow, y0]; p2 = [x0 + w - d, y0]; inward = [0, 1]; } else if (o.wall === 1) { p1 = [x0 + w, y0 + h - d - ow]; p2 = [x0 + w, y0 + h - d]; inward = [-1, 0]; }
+      else if (o.wall === 2) { p1 = [x0 + d, y0 + h]; p2 = [x0 + d + ow, y0 + h]; inward = [0, -1]; } else { p1 = [x0, y0 + d]; p2 = [x0, y0 + d + ow]; inward = [1, 0]; }
+      out += `<line x1="${p1[0]}" y1="${p1[1]}" x2="${p2[0]}" y2="${p2[1]}" stroke="#fff" stroke-width="${sw + 2}"/>`;
+      if (o.kind === 'win') out += `<line x1="${p1[0]}" y1="${p1[1]}" x2="${p2[0]}" y2="${p2[1]}" stroke="#378ADD" stroke-width="${sw + 2}"/><line x1="${p1[0]}" y1="${p1[1]}" x2="${p2[0]}" y2="${p2[1]}" stroke="#fff" stroke-width="1"/>`;
+      else { const sv = o.swing || 0, hinge = sv % 2 ? p2 : p1, other = sv % 2 ? p1 : p2, dir = sv >= 2 ? -1 : 1, tip = [hinge[0] + inward[0] * ow * dir, hinge[1] + inward[1] * ow * dir];
+        out += `<g ${big ? `data-sw="${i}" style="cursor:pointer"` : ''}><line x1="${hinge[0]}" y1="${hinge[1]}" x2="${tip[0]}" y2="${tip[1]}" stroke="#C9A24A" stroke-width="1.6"/><path d="M${tip[0]} ${tip[1]} A${ow} ${ow} 0 0 ${(sv === 0 || sv === 3) ? 1 : 0} ${other[0]} ${other[1]}" fill="none" stroke="#C9A24A" stroke-width="1.2"/><rect x="${Math.min(hinge[0], tip[0], other[0]) - 4}" y="${Math.min(hinge[1], tip[1], other[1]) - 4}" width="${Math.abs(tip[0] - other[0]) + ow + 8}" height="${Math.abs(tip[1] - other[1]) + ow + 8}" fill="transparent"/></g>`; }
+      if (big && o.code) out += `<text x="${(p1[0] + p2[0]) / 2 + inward[0] * 14}" y="${(p1[1] + p2[1]) / 2 + inward[1] * 14 + 4}" font-size="10" text-anchor="middle" fill="#854F0B">${esc(o.code)}</text>`; }); }
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="max-width:100%;direction:ltr">${out}</svg>`;
+}
+// صفحة 2: جدول الكميات (سطر لكل بند: ▾ كشف الحصر · 📦 الخامات · ⬇️)
+function tkQtyPage(){
+  const T = S.tk, sc = T.scopes.find(x => x.id === T.scope), res = tkAll(T, sc ? sc.rooms : null);
+  S.tkRes = res;
+  $('#tkB').innerHTML = `<div class="row" style="gap:6px"><select class="in" id="tqS" style="flex:1"><option value="">كل الحصر</option>${T.scopes.map(x => `<option value="${esc(x.id)}" ${T.scope === x.id ? 'selected' : ''}>نطاق: ${esc(x.name)}</option>`).join('')}</select><button class="btn ghost" id="tqM" style="width:auto;padding:8px 12px">📦 الخامات</button></div>
+    ${res.bad.length ? `<div class="sline" style="color:var(--bad)">🔴 ${res.bad.length} أوضة فيها غلط ومش داخلة: ${esc(res.bad.slice(0, 4).join('، '))}</div>` : ''}
+    ${res.items.map((i, k) => `<div class="tqr"><div class="row" style="gap:8px"><button class="more" data-tqx="${k}" style="font-size:16px">${T.open === k ? '▴' : '▾'}</button><b style="flex:1">${esc(i.name)}</b><span>${n1(i.qty, 2)} ${esc(i.unit)}</span><button class="more" data-tqm="${k}">📦</button><button class="more" data-tqp="${k}">⬇️</button></div>
+      ${T.open === k ? `<table class="kt"><tr><th style="width:40%">المكان</th><th>الحساب</th><th>الكمية</th></tr>${i.lines.map(l => `<tr><td>${esc((l.apt ? l.apt + ' · ' : '') + (l.place || ''))}</td><td><small>${esc(l.calc || '')}</small></td><td>${n1(l.qty, 2)}</td></tr>`).join('')}</table>` : ''}</div>`).join('') || emptyBox('ruler', 'لسه مفيش كميات')}
+    <div class="row" style="gap:6px;margin-top:10px"><button class="btn gold" id="tqPush" style="flex:1">رحّل للمقايسة</button><button class="btn ghost" id="tqPr" style="flex:1">🖨️ طباعة A4</button></div>
+    ${isBoss() ? `<button class="btn ghost" id="tqVer" style="margin-top:6px">🔒 اقفل نسخة (بعد اعتماد العميل)${T.vers.length ? ' · آخر نسخة: ' + esc(T.vers[T.vers.length - 1].name) : ''}</button>` : ''}`;
+  $('#tqS').onchange = e => { T.scope = e.target.value; tkDraw(); };
+  document.querySelectorAll('[data-tqx]').forEach(b => b.onclick = () => { const k = Number(b.dataset.tqx); T.open = T.open === k ? null : k; tkDraw(); });
+  document.querySelectorAll('[data-tqm]').forEach(b => b.onclick = () => tkMatsSheet([res.items[Number(b.dataset.tqm)].key]));
+  document.querySelectorAll('[data-tqp]').forEach(b => b.onclick = () => tkPrint([res.items[Number(b.dataset.tqp)]]));
+  $('#tqM').onclick = () => tkMatsSheet(null);
+  $('#tqPr').onclick = () => tkPrint(res.items);
+  $('#tqPush').onclick = () => tkPushSheet(res.items);
+  if ($('#tqVer')) $('#tqVer').onclick = async () => { const n = prompt('ملاحظة للنسخة (مثلا: اعتماد العميل)'); if (n == null) return; const r = await api('tkVer', {project: T.code, note: n}); toast(r.ok ? 'اتقفلت نسخة ' + r.no + ' ✓' : errMsg(r)); S.tk = null; takeoffSheet(T.code, 'qty'); };
+}
+// 📦 الخامات المجمّعة: النطاق + بند أو كذا بند
+function tkMatsSheet(keys){
+  const T = S.tk, res = S.tkRes, sel = new Set(keys || res.items.map(i => i.key));
+  const draw = () => { const its = res.items.filter(i => sel.has(i.key)), M = tkMatsFor(its);
+    openSheet(`<h3>📦 الخامات المطلوبة</h3><small class="muted">${T.scope ? 'نطاق: ' + esc((T.scopes.find(x => x.id === T.scope) || {}).name || '') : 'كل الحصر'} · المعدلات من ⚙️</small>
+      <div class="chips" style="flex-wrap:wrap;margin-top:6px">${res.items.map(i => `<button class="chip ${sel.has(i.key) ? 'on' : ''}" data-mk="${esc(i.key)}">${esc(i.name)}</button>`).join('')}</div>
+      ${M.map(m => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)"><b style="flex:1">${esc(m.name)}</b><span>${n1(m.qty, 1)} ${esc(m.unit)}</span><small class="muted" style="margin-inline-start:6px">${m.from > 1 ? 'من ' + m.from + ' بنود' : ''}</small></div>`).join('') || '<small class="muted">اختار بنود</small>'}
+      <button class="btn gold" id="mkReq" style="margin-top:10px">🛒 اطلبهم مرة واحدة في المشتريات</button><button class="btn ghost" id="mkBk" style="margin-top:6px">رجوع</button>`);
+    document.querySelectorAll('[data-mk]').forEach(b => b.onclick = () => { const k = b.dataset.mk; sel.has(k) ? sel.delete(k) : sel.add(k); draw(); });
+    $('#mkBk').onclick = tkDraw;
+    $('#mkReq').onclick = async () => { if (!M.length) return; const r = await qSave('purRequest', {project: T.code, lines: M.map(m => ({mat: m.name, qty: m.qty, unit: m.unit})), note: 'من الحصر' + (T.scope ? ' · ' + ((T.scopes.find(x => x.id === T.scope) || {}).name || '') : '')}, 'طلب خامات من الحصر');
+      toast(r.ok ? (r.queued ? QMSG : 'اتعمل طلب الشراء ✓') : errMsg(r)); }; };
+  draw();
+}
+// رحّل للمقايسة: ربط كل تشطيب ببند (مرة واحدة) + الفرق قبل التطبيق
+function tkPushSheet(items){
+  const T = S.tk, guess = it => { const n = normN(it.name.replace(/^(أرضيات|دهان حوائط|دهان أسقف) /, '')); const b = T.boq.find(x => normN(x.name).includes(n) || n.includes(normN(x.name))); return b ? b.id : ''; };
+  items.forEach(i => { if (T.map[i.key] === undefined) T.map[i.key] = guess(i); });
+  openSheet(`<h3>رحّل للمقايسة</h3><small class="muted">اربط كل كمية ببند المقايسة (مرة واحدة للمشروع)</small>
+    ${items.map((i, k) => `<div style="margin-top:8px"><b>${esc(i.name)}</b> <small class="muted">${n1(i.qty, 2)} ${esc(i.unit)}</small><select class="in" data-mp="${esc(i.key)}"><option value="">— ما يترحّلش —</option>${T.boq.map(b => `<option value="${esc(b.id)}" ${T.map[i.key] === b.id ? 'selected' : ''}>${esc(b.name)} (${esc(b.unit)})</option>`).join('')}</select></div>`).join('')}
+    <button class="btn gold" id="tpDiff" style="margin-top:10px">شوف الفرق</button><div id="tpOut"></div>`);
+  const collect = () => { document.querySelectorAll('[data-mp]').forEach(s => T.map[s.dataset.mp] = s.value); const q = {}; items.forEach(i => { const b = T.map[i.key]; if (b) q[b] = (q[b] || 0) + i.qty; }); return Object.entries(q).map(([bq, qty]) => ({bq, qty})); };
+  $('#tpDiff').onclick = async () => { const q = collect(); await tkSaveRow('map', Object.assign({rid: T.mapRid}, T.map), 'الربط'); T.mapRid = T.mapRid || (S.tk && S.tk.mapRid);
+    const r = await api('tkPush', {project: T.code, q}); if (!r.ok) { $('#tpOut').innerHTML = esc(errMsg(r)); return; }
+    $('#tpOut').innerHTML = r.diff.length ? `<table class="kt"><tr><th>البند</th><th>القديم</th><th>الجديد</th></tr>${r.diff.map(x => `<tr><td>${esc(x.name)}</td><td>${n1(x.old, 2)}</td><td><b>${n1(x.qty, 2)}</b></td></tr>`).join('')}</table><button class="btn gold" id="tpGo" style="margin-top:8px">طبّق على المقايسة</button>` : '<div class="sline">مفيش فرق ✓</div>';
+    if ($('#tpGo')) $('#tpGo').onclick = async () => { const s = await api('tkPush', {project: T.code, q, apply: true}); toast(s.ok ? 'اتحدّث ' + s.n + ' بند ✓' : errMsg(s)); if (typeof board === 'function') board(true); tkDraw(); }; };
+}
+// طباعة A4 بورتريه بنفس جداول الإكسيل القديم
+function tkPrint(items){
+  const w = open('', '_blank'); if (!w) return; const T = S.tk;
+  w.document.write(`<html dir="rtl"><head><meta charset="utf-8"><title>حصر ${esc(pName(T.code))}</title><style>@page{size:A4 portrait;margin:12mm}body{font-family:Cairo,Tahoma;font-size:11.5px}h2{background:#1D2E4F;color:#fff;padding:6px 10px;font-size:14px;margin:14px 0 4px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #999;padding:3px 5px;text-align:center}th{background:#E8F0FB}tr:nth-child(even) td{background:#F7F9FC}.t{display:flex;gap:10px;align-items:center;border-bottom:2px solid #1D2E4F}.tot td{font-weight:700;border-top:2px solid #1D2E4F}.sg{display:flex;justify-content:space-between;margin-top:30px}</style></head><body>
+    <div class="t"><img src="${location.origin + location.pathname.replace(/[^/]*$/, '')}icon-192.png" style="width:44px"><div><b>MEC · الشرق الأوسط للإنشاءات</b><br>حصر التشطيبات · ${esc(pName(T.code))} · ${tdy()}</div></div>
+    ${items.map(i => `<h2>${esc(i.name)} · ${n1(i.qty, 2)} ${esc(i.unit)}</h2><table><tr><th>المكان</th><th>الحساب</th><th>الكمية</th></tr>${i.lines.map(l => `<tr><td>${esc((l.apt ? l.apt + ' · ' : '') + (l.place || ''))}</td><td>${esc(l.calc || '')}</td><td>${n1(l.qty, 2)}</td></tr>`).join('')}<tr class="tot"><td colspan="2">الإجمالي</td><td>${n1(i.qty, 2)}</td></tr></table>`).join('')}
+    ${typeof prSig === 'function' ? prSig() : ''}<script>setTimeout(()=>print(),400)<\/script></body></html>`); w.document.close();
+}
+// صفحة 3: المسقط الأفقي ونطاق العمل
+function tkLayout(a){
+  const pos = {}, t = a.wallIn || 0.12, todo = a.rooms.slice(); let guard = 0;
+  while (todo.length && guard++ < 200) { const r = todo.shift(), g = tkGeom(r);
+    if (!r.place || !r.place.ref) { if (!Object.keys(pos).length) pos[r.id] = {x: 0, y: 0, w: g.bw, h: g.bh}; else { const mx = Math.max(...Object.values(pos).map(p => p.x + p.w)); pos[r.id] = {x: mx + 1, y: 0, w: g.bw, h: g.bh, loose: true}; } continue; }
+    const ref = pos[r.place.ref]; if (!ref) { if (a.rooms.some(x => x.id === r.place.ref)) { todo.push(r); continue; } pos[r.id] = {x: 0, y: 0, w: g.bw, h: g.bh, loose: true}; continue; }
+    const o = r.place.off || 0, k = r.place.wall;
+    pos[r.id] = k === 0 ? {x: ref.x + o, y: ref.y - g.bh - t, w: g.bw, h: g.bh} : k === 1 ? {x: ref.x + ref.w + t, y: ref.y + o, w: g.bw, h: g.bh} : k === 2 ? {x: ref.x + o, y: ref.y + ref.h + t, w: g.bw, h: g.bh} : {x: ref.x - g.bw - t, y: ref.y + o, w: g.bw, h: g.bh}; }
+  const L = Object.values(pos), ov = [];
+  a.rooms.forEach((r, i) => a.rooms.slice(i + 1).forEach(q => { const p = pos[r.id], s = pos[q.id]; if (p && s && p.x < s.x + s.w - 0.01 && s.x < p.x + p.w - 0.01 && p.y < s.y + s.h - 0.01 && s.y < p.y + p.h - 0.01) ov.push(r.name + ' و' + q.name); }));
+  return {pos, ov, minX: Math.min(...L.map(p => p.x), 0), minY: Math.min(...L.map(p => p.y), 0), maxX: Math.max(...L.map(p => p.x + p.w), 1), maxY: Math.max(...L.map(p => p.y + p.h), 1)};
+}
+function tkPlanSvg(a, sel, W){
+  const Lo = tkLayout(a), bw = Lo.maxX - Lo.minX, bh = Lo.maxY - Lo.minY, s = Math.min((W - 20) / bw, 360 / bh), H = bh * s + 20;
+  return {svg: `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="max-width:100%;direction:ltr">${a.rooms.map(r => { const p = Lo.pos[r.id]; if (!p) return ''; const x = 10 + (p.x - Lo.minX) * s, y = 10 + (p.y - Lo.minY) * s, on = sel && sel.has(r.id);
+    return `<g data-pr="${esc(r.id)}" style="cursor:pointer"><rect x="${x}" y="${y}" width="${p.w * s}" height="${p.h * s}" fill="${on ? '#E1F5EE' : '#fff'}" stroke="#1D2E4F" stroke-width="3" ${p.loose ? 'stroke-dasharray="6 3"' : ''}/><text x="${x + p.w * s / 2}" y="${y + p.h * s / 2}" font-size="11" text-anchor="middle" fill="${on ? '#085041' : '#444'}">${esc(r.name)}${on ? ' ✓' : ''}</text><text x="${x + p.w * s / 2}" y="${y + p.h * s / 2 + 13}" font-size="10" text-anchor="middle" fill="#888">${n1(tkGeom(r).area, 1)}</text></g>`; }).join('')}</svg>`, Lo};
+}
+function tkPlan(){
+  const T = S.tk, a = T.apts[T.aIdx]; if (!a) { $('#tkB').innerHTML = emptyBox('ruler', 'لسه مفيش أوض'); return; }
+  T.sel = T.sel || new Set(); const P = tkPlanSvg(a, T.sel, Math.min(innerWidth - 40, 560));
+  $('#tkB').innerHTML = `<div class="chips" style="flex-wrap:wrap">${T.apts.map((x, i) => `<button class="chip ${i === T.aIdx ? 'on' : ''}" data-ta="${i}">${esc(x.floor)}</button>`).join('')}</div>
+    <div style="overflow:auto;margin-top:6px">${P.svg}</div>
+    ${P.Lo.ov.length ? `<div class="sline" style="color:var(--bad)">🔴 أوض متداخلة: ${esc(P.Lo.ov.join('، '))}</div>` : ''}${Object.values(P.Lo.pos).some(p => p.loose) ? `<div class="sline" style="color:var(--warn)">🟠 أوض بخط متقطع لسه مالهاش مكان («لازقة في…» في الأوضة)</div>` : ''}
+    <small class="muted">دوس على الأوض عشان تختار نطاق عمل</small>
+    ${T.sel.size ? `<div class="card" style="padding:8px 10px;margin-top:6px"><b>${T.sel.size} أوض مختارة</b> · ${n1(a.rooms.filter(r => T.sel.has(r.id)).reduce((s, r) => s + tkGeom(r).area, 0), 2)} م² <button class="btn gold" id="tpSc" style="margin-top:6px">احفظ النطاق</button></div>` : ''}
+    ${T.scopes.length ? `<div class="chips" style="flex-wrap:wrap;margin-top:6px">${T.scopes.map(x => `<button class="chip" data-scv="${esc(x.id)}">${esc(x.name)} <span data-scd="${esc(x.id)}">✕</span></button>`).join('')}</div>` : ''}
+    <div class="row" style="gap:6px;margin-top:10px"><button class="btn ghost" id="tpPdf" style="flex:1">🖨️ PDF لوحة</button><button class="btn ghost" id="tpImg" style="flex:1">📲 صورة واتساب</button><button class="btn ghost" id="tpCad" style="flex:1">أوتوكاد</button></div>`;
+  document.querySelectorAll('[data-ta]').forEach(b => b.onclick = () => { T.aIdx = Number(b.dataset.ta); T.sel = new Set(); tkDraw(); });
+  document.querySelectorAll('[data-pr]').forEach(g => g.onclick = () => { const id = g.dataset.pr; T.sel.has(id) ? T.sel.delete(id) : T.sel.add(id); tkDraw(); });
+  if ($('#tpSc')) $('#tpSc').onclick = async () => { const n = prompt('اسم النطاق (مثلا: الجناح الشرقي)'); if (!n) return; T.scopes.push({id: tkId('S'), name: n.trim(), rooms: [...T.sel]}); T.sel = new Set();
+    const o = {rid: T.scopeRid, list: T.scopes}; await tkSaveRow('scope', o, 'النطاقات'); T.scopeRid = o.rid; toast('اتحفظ ✓ · تلاقيه في جدول الكميات'); tkDraw(); };
+  document.querySelectorAll('[data-scv]').forEach(b => b.onclick = e => { if (e.target.dataset.scd) return; const x = T.scopes.find(s => s.id === b.dataset.scv); T.sel = new Set(x.rooms); tkDraw(); });
+  document.querySelectorAll('[data-scd]').forEach(b => b.onclick = async () => { if (!confirmBox('تمسح النطاق؟')) return; T.scopes = T.scopes.filter(s => s.id !== b.dataset.scd); const o = {rid: T.scopeRid, list: T.scopes}; await tkSaveRow('scope', o, 'النطاقات'); tkDraw(); });
+  $('#tpPdf').onclick = () => { const w = open('', '_blank'); if (!w) return; const big = tkPlanSvg(a, null, 680);
+    w.document.write(`<html dir="rtl"><head><meta charset="utf-8"><style>@page{size:A4 portrait;margin:12mm}body{font-family:Cairo,Tahoma}.fr{border:2px solid #1D2E4F;padding:10px}.tb{display:flex;justify-content:space-between;border-top:2px solid #1D2E4F;margin-top:10px;padding-top:6px;font-size:12px}</style></head><body><div class="fr">${big.svg}<div class="tb"><b>MEC · الشرق الأوسط للإنشاءات</b><span>${esc(pName(T.code))} · ${esc(a.floor)}</span><span>${tdy()}</span></div></div><script>setTimeout(()=>print(),400)<\/script></body></html>`); w.document.close(); };
+  $('#tpImg').onclick = () => { const big = tkPlanSvg(a, null, 900), img = new Image(), cv = document.createElement('canvas'); img.onload = async () => { cv.width = img.width; cv.height = img.height; const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height); c.drawImage(img, 0, 0);
+      cv.toBlob(async b => { const f = new File([b], 'مسقط ' + a.floor + '.png', {type: 'image/png'}); try { if (navigator.canShare && navigator.canShare({files: [f]})) { await navigator.share({files: [f], title: a.floor}); return; } } catch (e) {} const l = document.createElement('a'); l.href = URL.createObjectURL(b); l.download = f.name; l.click(); }); };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(big.svg.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" font-family="Tahoma" ')); };
+  $('#tpCad').onclick = () => tkCad(a);
+}
+// تصدير أوتوكاد: ملف أرقام (MEC) + أمر MECDRAW
+function tkCad(a){
+  const Lo = tkLayout(a), lines = ['MEC,1,' + a.floor];
+  a.rooms.forEach(r => { const p = Lo.pos[r.id]; if (!p) return; const g = tkGeom(r); lines.push(['ROOM', r.name, n2(p.x), n2(-p.y - p.h), n2(p.w), n2(p.h), n2(g.area)].join(','));
+    (r.openings || []).forEach(o => { if (o.wall == null || o.own === false) return; const wl = g.walls[o.wall] || 0, off = o.off != null ? o.off : (wl - o.w) / 2; lines.push([o.kind === 'door' ? 'DOOR' : 'WIN', o.code || '', n2(p.x), n2(-p.y - p.h), n2(p.w), n2(p.h), o.wall + 1, n2(off), n2(o.w), o.swing || 0].join(',')); }); });
+  const blob = new Blob([lines.join('\r\n')], {type: 'text/plain'}), l = document.createElement('a'); l.href = URL.createObjectURL(blob); l.download = (pName(S.tk.code) + ' ' + a.floor).replace(/[\\/:*?"<>|]/g, '-') + '.mec'; l.click();
+  toast('اتنزل ملف الأرقام ✓ · افتحه في الأوتوكاد بأمر MECDRAW');
+}
+const n2 = v => (Math.round(v * 1000) / 1000).toFixed(3);
+// البنود العامة: بند من المقايسة (أو مؤقت) وحصر بتاريخه ومفتوح / مقفول / ملحق
+function tkGenList(){
+  const T = S.tk;
+  return (T.gens.map((g, i) => { const tot = (g.sessions || []).reduce((s, se) => s + se.lines.reduce((t, l) => t + tkGenLine(g, l), 0), 0);
+    return `<button class="irow" data-tg="${i}"><div class="row"><b style="flex:1">${esc(g.name)}</b><small class="muted">${g.status === 'closed' ? '🔒 مقفول' : g.noTotal ? 'من غير كمية إجمالية' : 'مفتوح'}</small></div><small class="muted">${n1(tot, 2)} ${esc(g.unit)} · ${(g.sessions || []).length} حصر${g.temp ? ' · بند مؤقت' : ''}</small></button>`; }).join('') || emptyBox('ruler', 'لسه مفيش بنود عامة'))
+    + (T.can ? `<button class="btn gold" id="tgN" style="margin-top:8px">➕ بند عام</button>` : '');
+}
+function tkGenWire(){
+  const T = S.tk;
+  document.querySelectorAll('[data-tg]').forEach(b => b.onclick = () => tkGenForm(T.gens[Number(b.dataset.tg)]));
+  if ($('#tgN')) $('#tgN').onclick = () => {
+    openSheet(`<h3>➕ بند عام</h3><label class="f">بند المقايسة</label><select class="in" id="gnB"><option value="">— بند مؤقت (أمر تغيير مالوش بند) —</option>${T.boq.map(b => `<option value="${esc(b.id)}">${esc(b.name)} (${esc(b.unit)})</option>`).join('')}</select>
+      <label class="f">الاسم (للبند المؤقت)</label><input class="in" id="gnN"><label class="f">الشكل</label><div class="chips">${[['area', 'مسطح'], ['len', 'طولي'], ['vol', 'حجم'], ['count', 'عدد']].map(([k, n], i) => `<button class="chip ${i === 0 ? 'on' : ''}" data-gs="${k}">${n}</button>`).join('')}</div>
+      <label class="row" style="gap:8px;margin-top:8px"><input type="checkbox" id="gnNT"> البند ده من غير كمية إجمالية (عقد صيانة)</label><button class="btn gold" id="gnGo" style="margin-top:10px">ابدأ الحصر</button>`);
+    let shape = 'area'; document.querySelectorAll('[data-gs]').forEach(b => b.onclick = () => { shape = b.dataset.gs; document.querySelectorAll('[data-gs]').forEach(c => c.classList.toggle('on', c === b)); });
+    $('#gnGo').onclick = () => { const b = T.boq.find(x => x.id === $('#gnB').value), name = b ? b.name : $('#gnN').value.trim(); if (!name) { toast('اختار بند أو اكتب اسم'); return; }
+      const g = {id: tkId('G'), bq: b ? b.id : '', temp: !b, name, unit: b ? b.unit : {area: 'م²', len: 'م.ط', vol: 'م³', count: 'عدد'}[shape], shape, status: 'open', noTotal: $('#gnNT').checked, sessions: []};
+      T.gens.push(g); tkGenForm(g, true); };
+  };
+}
+function tkGenForm(g, first){
+  const T = S.tk, cur = (g.sessions || []).find(s => s.date === tdy() && !s.locked) || null;
+  const se = cur || {date: tdy(), lines: [{desc: '', l: '', w: '', h: '', n: 1}], kind: g.status === 'closed' ? 'ملحق' : ''};
+  const cols = g.shape === 'count' ? ['n'] : g.shape === 'len' ? ['l', 'n'] : g.shape === 'vol' ? ['l', 'w', 'h', 'n'] : ['l', 'w', 'n'];
+  const draw = () => { const tot = (g.sessions || []).filter(s => s !== se).reduce((s, x) => s + x.lines.reduce((t, l) => t + tkGenLine(g, l), 0), 0), now = se.lines.reduce((t, l) => t + tkGenLine(g, l), 0);
+    openSheet(`<h3>${esc(g.name)} ${g.status === 'closed' ? '🔒' : ''}</h3><small class="muted">${(g.sessions || []).filter(s => s !== se).map(s => esc(s.date) + (s.kind ? ' (' + esc(s.kind) + ')' : '')).join(' · ') || 'أول حصر'}${tot ? ' · السابق ' + n1(tot, 2) : ''}</small>
+      ${se.kind === 'ملحق' ? '<div class="sline">ملحق بتاريخ جديد على حصر مقفول</div>' : ''}
+      <table class="kt"><tr><th style="width:34%">الوصف</th>${cols.map(c => `<th>${{l: 'طول', w: 'عرض', h: 'ارتفاع', n: 'عدد'}[c]}</th>`).join('')}<th>الكمية</th></tr>
+      ${se.lines.map((l, i) => `<tr><td><input class="in" data-gd="${i}" value="${esc(l.desc)}" style="padding:4px"></td>${cols.map(c => `<td><input class="in" data-gv="${i}:${c}" inputmode="decimal" value="${esc(l[c])}" style="padding:4px;width:52px"></td>`).join('')}<td id="gq${i}">${n1(tkGenLine(g, l), 2)}</td></tr>`).join('')}</table>
+      <button class="chip" id="gfAdd" style="margin-top:6px">➕ سطر</button>
+      <div class="row" style="margin-top:8px"><b style="flex:1">الحصر ده</b><b id="gfNow">${n1(now, 2)} ${esc(g.unit)}</b></div><div class="row"><span style="flex:1">الإجمالي</span><b id="gfTot">${n1(tot + now, 2)} ${esc(g.unit)}</b></div>
+      <div class="row" style="gap:6px;margin-top:10px"><button class="btn gold" id="gfGo" style="flex:2">احفظ</button>${g.status === 'closed' ? `<button class="btn ghost" id="gfOpen" style="flex:1">افتحه</button>` : `<button class="btn ghost" id="gfClose" style="flex:1">🔒 اقفل</button>`}</div>`);
+    const sync = () => { document.querySelectorAll('[data-gd]').forEach(e => se.lines[e.dataset.gd].desc = e.value); document.querySelectorAll('[data-gv]').forEach(e => { const [i, c] = e.dataset.gv.split(':'); se.lines[i][c] = e.value; }); };
+    const upd = () => { let nw = 0; se.lines.forEach((l, i) => { const q = tkGenLine(g, l); nw += q; const c = $('#gq' + i); if (c) c.textContent = n1(q, 2); }); $('#gfNow').textContent = n1(nw, 2) + ' ' + g.unit; $('#gfTot').textContent = n1(tot + nw, 2) + ' ' + g.unit; };
+    document.querySelectorAll('[data-gv]').forEach(e => e.onchange = () => { e.value = tkAsk(e.value) || e.value; sync(); upd(); });
+    $('#gfAdd').onclick = () => { sync(); se.lines.push({desc: '', l: '', w: '', h: '', n: 1}); draw(); };
+    const save = async () => { sync(); se.lines = se.lines.filter(l => tkGenLine(g, l) > 0 || l.desc); if (!cur && se.lines.length) g.sessions = (g.sessions || []).concat([se]);
+      if (first && !g.noTotal && !g.asked) { g.asked = true; g.isTotal = confirmBox('دي الكمية الإجمالية للبند؟ (لأ = لحد النهارده بس)'); if (g.isTotal) g.status = 'closed'; }
+      await tkSaveRow('gen', g, g.name); };
+    $('#gfGo').onclick = async () => { await save(); toast('اتحفظ ✓'); tkDraw(); };
+    if ($('#gfClose')) $('#gfClose').onclick = async () => { g.status = 'closed'; await save(); toast('🔒 اتقفل: دي كل الكمية'); tkDraw(); };
+    if ($('#gfOpen')) $('#gfOpen').onclick = async () => { g.status = 'open'; await save(); tkGenForm(g); };
+  };
+  draw();
+}
+// ⚙️ الإعدادات: خصم الفتحات، وزيادة الجلسة، ومعدلات الخامات (المالك)
+function tkSettings(){
+  const c = tkCfg(), M = S.tk.mats || {};
+  openSheet(`<h3>⚙️ إعدادات الحصر</h3><label class="f">الفتحة الأقل من كام م² ما تتخصمش</label><input class="in" id="tsD" inputmode="decimal" value="${c.minDed}">
+    <label class="f">زيادة الجلسة من كل ناحية (م)</label><input class="in" id="tsS" inputmode="decimal" value="${c.sillOver}">
+    ${isBoss() ? `<div class="sec-t" style="margin-top:10px">معدلات الخامات (لكل وحدة من البند)</div>${Object.keys(M).map(k => (M[k] || []).map((x, i) => `<div class="row" style="gap:6px;margin-top:4px"><small style="flex:2">${esc(x[0])}</small><input class="in" data-tm="${k}:${i}" inputmode="decimal" value="${x[2]}" style="flex:1"><small>${esc(x[1])}</small></div>`).join('')).join('')}` : ''}
+    <button class="btn gold" id="tsGo" style="margin-top:10px">احفظ</button>`);
+  $('#tsGo').onclick = async () => { store.set('tkCfg', Object.assign(c, {minDed: tkN($('#tsD').value), sillOver: tkN($('#tsS').value)}));
+    if (isBoss()) { document.querySelectorAll('[data-tm]').forEach(e => { const [k, i] = e.dataset.tm.split(':'); M[k][i][2] = tkN(e.value); }); const r = await api('tkMats', {set: true, mats: M}); if (r.ok) S.tk.mats = r.mats; }
+    toast('اتحفظ ✓'); tkDraw(); };
+}
+
+/* ================= 0.16: 📊 لوحة المالك + التوقعات + التقارير ================= */
+const DS_TABS = [['site', ''], ['proj', 'المشاريع'], ['money', 'الفلوس'], ['risk', 'الجودة والمخاطر'], ['rep', 'التقارير اليومية']];
+const DS_PER = {d: 'النهارده', w: 'الأسبوع', m: 'الشهر'};
+const DS_CARDS = {labor: 'العمالة والمصنعيات', del: 'التوريدات', pur: 'المشتريات والمصروفات', prog: 'الإنجاز', eq: 'المعدات', qual: 'الاستلامات والجودة', need: 'محتاج قرارك', next: 'الأسبوعين الجايين', guar: 'الضمانات والمحتجزات', unb: 'أعمال منفذة لم تُسجّل بمستخلص', docs: 'المستندات', dec: 'قرارات العميل', co: 'أوامر التغيير', cash: 'فلوس الفترة'};
+const dsDot = c => `<i class="dsd" style="background:${{g: 'var(--ok)', y: 'var(--warn)', r: 'var(--bad)', n: '#C9CDD4'}[c] || '#C9CDD4'}"></i>`;
+const dsM = v => v == null ? '—' : money(v);
+function dsDonut(parts, size, mid){
+  const tot = parts.reduce((s, p) => s + p.v, 0) || 1, r = size / 2 - 7, C = 2 * Math.PI * r; let off = 0;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="#EEF1F5" stroke-width="10"/>${parts.map(p => { const L = p.v / tot * C, s = `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${p.c}" stroke-width="10" stroke-dasharray="${L} ${C - L}" stroke-dashoffset="${-off}" transform="rotate(-90 ${size / 2} ${size / 2})"/>`; off += L; return s; }).join('')}<text x="50%" y="54%" text-anchor="middle" font-size="${size / 6}" font-weight="700" fill="#1D2E4F">${esc(mid || '')}</text></svg>`;
+}
+function dsHist(h, W, H){ if (!h.length) return ''; const mx = Math.max(...h.map(x => x.n), 1), bw = Math.max(3, Math.min(14, (W - 4) / h.length - 2));
+  return `<svg width="${W}" height="${H}" style="direction:ltr">${h.map((x, i) => `<rect x="${2 + i * (bw + 2)}" y="${H - 12 - (H - 16) * x.n / mx}" width="${bw}" height="${(H - 16) * x.n / mx}" rx="2" fill="#378ADD"><title>${x.d}: ${x.n}</title></rect>`).join('')}<text x="${W / 2}" y="${H - 1}" font-size="9" text-anchor="middle" fill="#888">عمال / يوم</text></svg>`; }
+const dsBar = (pct, col) => `<div class="bar" style="margin-top:4px"><i style="width:${Math.min(100, Math.max(0, pct))}%;background:${col || 'var(--pri)'}"></i></div>`;
+
+async function ownerDash(fresh){
+  S.ds = S.ds || Object.assign({period: 'd', tab: 'site', kind: '', project: '', region: '', eng: ''}, store.get('dsF', {}));
+  const F = S.ds, key = 'dash_' + [F.period, F.kind, F.project, F.region, F.eng].join('|');
+  if (!$('#dsB')) openSheet(`<div id="dsB"></div>`);
+  const cached = store.get(key, null); if (cached && !fresh) { S.dsD = cached; dsDraw(); }
+  else $('#dsB').innerHTML = `<h3>📊 لوحة المالك</h3><div class="muted">بيحمّل…</div>`;
+  const r = await api('dash', {period: F.period, kind: F.kind, project: F.project, region: F.region, eng: F.eng});
+  if (!r.ok) { if (!cached) $('#dsB').innerHTML = `<h3>📊 لوحة المالك</h3>${esc(errMsg(r))}`; return; }
+  store.set(key, r); S.dsD = r; if ($('#dsB')) dsDraw();
+}
+function dsDraw(){
+  const F = S.ds, D = S.dsD, one = !!F.project, hide = store.get('dsHide', []);
+  const tabs = one ? [['site', 'المشروع'], ['items', 'البنود'], ['money', 'الفلوس'], ['risk', 'الجودة والمخاطر'], ['rep', 'التقارير اليومية']] : DS_TABS.map(([k, n]) => [k, n || 'الموقع ' + DS_PER[F.period]]);
+  if (!tabs.some(t => t[0] === F.tab)) F.tab = 'site';
+  let h = `<h3>📊 لوحة المالك <button class="chip" id="dsCfg" style="float:left">⚙️</button></h3>
+    <div class="row" style="gap:6px"><div class="seg" style="flex:1">${[['', 'الكل'], ['apt', 'الشقق'], ['con', 'المقاولات']].map(([k, n]) => `<button class="${F.kind === k ? 'on' : ''}" data-dk="${k}">${n}</button>`).join('')}</div></div>
+    <div class="row" style="gap:6px;margin-top:6px"><select class="in" id="dsP" style="flex:1"><option value="">كل المشاريع</option>${(S.projects || []).filter(p => p.status !== 'انتهى').map(p => `<option value="${esc(p.code)}" ${F.project === p.code ? 'selected' : ''}>${esc(p.short || p.name)}</option>`).join('')}</select>
+      <div class="seg">${Object.keys(DS_PER).map(k => `<button class="${F.period === k ? 'on' : ''}" data-dp="${k}">${DS_PER[k]}</button>`).join('')}</div></div>
+    <small class="muted">كما في ${new Date(D.at).toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'})} · ${esc(D.from === D.to ? D.from : D.from + ' ← ' + D.to)}${F.region ? ' · ' + esc(F.region) : ''}${F.eng ? ' · مهندس واحد' : ''} <button class="more" id="dsRf" style="color:var(--pri)">↻</button></small>
+    <div class="tabs" style="margin-top:8px;overflow-x:auto;flex-wrap:nowrap">${tabs.map(([k, n]) => `<button class="tab ${F.tab === k ? 'on' : ''}" data-dt="${k}" style="white-space:nowrap">${esc(n)}</button>`).join('')}</div><div id="dsC"></div>`;
+  $('#dsB').innerHTML = h;
+  const c = $('#dsC');
+  c.innerHTML = F.tab === 'site' ? dsSite(D, one, hide) : F.tab === 'proj' ? dsProj(D) : F.tab === 'items' ? dsItems(D) : F.tab === 'money' ? dsMoney(D) : F.tab === 'risk' ? dsRisk(D) : '<div id="dsRep" class="muted">بيحمّل…</div>';
+  document.querySelectorAll('[data-dk]').forEach(b => b.onclick = () => { F.kind = b.dataset.dk; dsSave(); });
+  document.querySelectorAll('[data-dp]').forEach(b => b.onclick = () => { F.period = b.dataset.dp; dsSave(); });
+  document.querySelectorAll('[data-dt]').forEach(b => b.onclick = () => { F.tab = b.dataset.dt; store.set('dsF', F); dsDraw(); });
+  $('#dsP').onchange = e => { F.project = e.target.value; dsSave(); };
+  $('#dsRf').onclick = () => ownerDash(true);
+  $('#dsCfg').onclick = dsSettings;
+  document.querySelectorAll('[data-dproj]').forEach(b => b.onclick = () => { F.project = b.dataset.dproj; F.tab = 'site'; dsSave(); });
+  if ($('#dsFc')) $('#dsFc').onclick = () => dsFcSheet(D);
+  if ($('#dsAcc')) $('#dsAcc').onclick = accMonthSheet;
+  if ($('#dsAi')) $('#dsAi').onclick = dsAi;
+  if ($('#dsSal')) $('#dsSal').onclick = salSheet;
+  if (F.tab === 'rep') dsRep();
+}
+function dsSave(){ store.set('dsF', S.ds); ownerDash(); }
+const dsCard = (k, t, big, body, hide, side) => hide.includes(k) ? '' : `<div class="card dsc"><div class="row" style="align-items:flex-start"><div style="flex:1;min-width:0"><small class="muted">${esc(t)}</small>${big != null ? `<div class="dsbig">${big}</div>` : ''}${body || ''}</div>${side ? `<div style="margin-inline-start:8px">${side}</div>` : ''}</div></div>`;
+// ===== الموقع (النهارده / الأسبوع / الشهر) + مشروع واحد =====
+function dsSite(D, one, hide){
+  const L = D.labor, de = D.del, pu = D.pur, q = D.qual, per = DS_PER[D.period], H = (D.prog.health || [])[0];
+  const mats = Object.keys(de.mats || {}).sort((a, b) => de.mats[b] - de.mats[a]).map(m => de.mats[m] + ' ' + m).join(' · ');
+  let h = '';
+  if (one && H) h += `<div class="card dsc"><div class="row" style="gap:10px">${dsDonut([{v: H.ev || 0, c: 'var(--pri)'}, {v: Math.max(0, 100 - (H.ev || 0)), c: '#EEF1F5'}], 92, Math.round(H.ev || 0) + '%')}
+    <div style="flex:1"><b>الإنجاز بالأوزان</b><div class="muted" style="font-size:12.5px">المخطط ${n1(H.pv)}% · ${dsDot(H.time)} الوقت ${dsDot(H.money)} التكلفة ${dsDot(H.qual)} الجودة</div><small class="muted">أكبر باقي: ${H.big.map(x => esc(x.name) + ' (' + x.rest + '%)').join(' · ')}</small></div></div></div>`;
+  h += dsCard('labor', DS_CARDS.labor, `${L.today} <small>في المواقع النهارده</small>`, `<div class="dsl">${[D.period === 'd' ? '' : L.days + ' يومية في ' + per].concat(Object.keys(L.kinds).map(k => L.kinds[k] + ' ' + esc(k)), L.cost != null && L.days ? [money(L.cost)] : []).filter(Boolean).join(' · ') || 'مفيش يوميات متسجلة'}</div>
+    ${L.sites.length && !one ? `<div class="dsl">${L.sites.map(s => esc(s.name) + ' ' + s.n).join(' · ')}</div>` : ''}${L.kx.length ? `<div class="dsl">👷 ${L.kx.map(x => esc(x.name) + ': ' + n1(x.qty, 2) + ' ' + esc(x.unit) + ' ' + esc(x.item) + (x.due ? ' (' + money(x.due) + ')' : '')).join(' · ')}</div>` : ''}`, hide, D.period !== 'd' ? dsHist(L.hist, 96, 58) : '');
+  h += dsCard('del', DS_CARDS.del, `${de.loads} <small>نقلة · ${de.sites} موقع</small>`, `${mats ? `<div class="dsl">(${esc(mats)})</div>` : ''}${de.amount ? `<div class="dsl">${money(de.amount)}</div>` : ''}${de.waiting.length ? `<div class="dsl">⏳ مستني توصيل: ${de.waiting.slice(0, 5).map(x => `<span style="${x.late ? 'color:var(--bad)' : ''}">${esc(x.mat)} ${n1(x.qty)} ${esc(x.unit)}</span>`).join(' · ')}</div>` : ''}`, hide);
+  if (pu) h += dsCard('pur', DS_CARDS.pur, `${money(pu.total)} <small>صرفنا ${per}</small>`, `<div class="dsl">${pu.n} عملية من ${pu.cust} عهدة${pu.top.length ? ' · ' + pu.top.map(x => esc(x.name) + ' ' + money(x.amount)).join(' · ') : ''}</div>`, hide);
+  h += dsCard('prog', DS_CARDS.prog, null, D.prog.lines.length ? `<div class="dsl">${D.prog.lines.map(x => esc(x.name) + ' ' + n1(x.qty, 2) + ' ' + esc(x.unit)).join(' · ')}</div>` : '<div class="dsl muted">مفيش إنجاز متسجل</div>', hide);
+  h += dsCard('eq', DS_CARDS.eq, D.eq.n ? `${D.eq.n} <small>معدة · ${n1(D.eq.days)} يوم${D.eq.ot ? ' · سهر ' + D.eq.ot + ' س' : ''}</small>` : null, D.eq.n ? `<div class="dsl">${D.eq.list.map(x => esc(x.name) + ' ' + n1(x.qty) + ' ' + esc(x.unit)).join(' · ')}${D.eq.amount ? ' · ' + money(D.eq.amount) : ''}</div>` : '<div class="dsl muted">مفيش معدات</div>', hide);
+  h += dsCard('qual', DS_CARDS.qual, `${q.ir} <small>استلام (${q.irOk} مقبول · ${q.irNo} مرفوض)</small>`, `<div class="dsl">عدم مطابقة: ${q.ncrNew} اتفتح · ${q.ncrClosed} اتقفل · ${q.ncrOpen} مفتوح${q.photos ? ' · 📷 ' + q.photos + ' صورة' : ''}</div>${q.ho.length ? `<div class="dsl">🤝 تسليمات: ${q.ho.map(x => esc(x.title) + ' (' + esc(x.proj) + ')').join(' · ')}</div>` : ''}`, hide);
+  if (D.need.length) h += dsCard('need', DS_CARDS.need, D.need.length, D.need.map(x => `<div class="dsl">• ${esc(x.t)} <small class="muted">${esc(x.proj)}</small></div>`).join(''), hide);
+  if (D.fc && !hide.includes('next')) { const nx = (D.prog.health || []).flatMap(x => x.next.map(n => Object.assign({proj: x.name}, n)));
+    h += dsCard('next', DS_CARDS.next, `${money(D.fc.week.rest)} <small>باقي الأسبوع</small>`, `<div class="dsl">آخر الشهر ${money(D.fc.month.rest)} <button class="more" id="dsFc" style="color:var(--pri)">التفصيل</button></div>${nx.length ? `<div class="dsl">🔜 ${nx.slice(0, 5).map(x => esc(x.name) + ' ' + esc(x.start.slice(5)) + (one ? '' : ' (' + esc(x.proj) + ')')).join(' · ')}</div>` : ''}`, hide); }
+  if (D.guar && (D.guar.client || D.guar.kx.length)) h += dsCard('guar', DS_CARDS.guar, null, `<div class="row dsl"><span style="flex:1">ضمانات عند العملاء ${money(D.guar.client)}</span><b style="color:${D.guar.clientDue ? 'var(--bad)' : 'var(--muted)'}">مستحق ${money(D.guar.clientDue)}</b></div><div class="row dsl"><span style="flex:1">محتجز عندنا للمقاولين ${money(D.guar.kx.reduce((s, x) => s + x.amount, 0))}</span><b style="color:var(--muted)">مستحق ${money(D.guar.kxDue)}</b></div>`, hide);
+  if (D.unbilled && D.unbilled.length) h += dsCard('unb', DS_CARDS.unb, money(D.unbilled.reduce((s, x) => s + x.amt, 0)), `<div class="dsl">${D.unbilled.map(x => esc(x.name) + ' ' + money(x.amt)).join(' · ')}</div>`, hide);
+  if (D.docs.up || D.docs.miss.length) h += dsCard('docs', DS_CARDS.docs, null, `<div class="dsl">📎 اترفع ${D.docs.up}${D.docs.miss.length ? ` · <b style="color:var(--warn)">ناقص ${D.docs.miss.length}</b>` : ''}</div>${D.docs.miss.slice(0, 5).map(x => `<div class="dsl">• ${esc(x.t)} <small class="muted">${esc(x.proj)}</small></div>`).join('')}`, hide);
+  if (q.coNew.length) h += dsCard('co', 'أوامر تغيير جديدة', q.coNew.length, q.coNew.map(x => `<div class="dsl">• ${esc(x.no)} ${esc(x.title)} <small class="muted">${esc(x.st)}</small></div>`).join(''), hide);
+  if (q.decDone.length) h += dsCard('dec', 'قرارات العميل اللي اتاخدت', q.decDone.length, q.decDone.map(x => `<div class="dsl">✓ ${esc(x.title)}: ${esc(x.ans)}</div>`).join(''), hide);
+  if (D.cash && !hide.includes('cash')) h += dsCard('cash', DS_CARDS.cash, null, `<div class="row dsl"><span style="flex:1">⬇️ داخل من العملاء</span><b style="color:var(--ok)">${money(D.cash.recv)}</b></div><div class="row dsl"><span style="flex:1">⬆️ خارج</span><b>${money(D.cash.spent)}</b></div><small class="muted">(عمالة ${money(D.cash.by.labor)} · مقاولين ${money(D.cash.by.kx)} · توريدات ${money(D.cash.by.del)} · مشتريات ${money(D.cash.by.pur)} · معدات ${money(D.cash.by.eq)})</small>`, hide);
+  // آخر كارت: قرارات العميل المتأخرة + الوقفات + جاي ومحتاج انتباه
+  const late = q.decLate.map(x => `• قرار العميل «${esc(x.title)}» متأخر ${x.days} يوم <small class="muted">${esc(x.proj)}</small>`).concat(D.stops.map(x => `• الموقع وقف ${esc(x.date)}: ${esc(x.reason)} <small class="muted">${esc(x.proj)}</small>`)).concat(q.coPend.map(x => `• أمر تغيير ${esc(x.no)} مستني العميل ${x.days} يوم <small class="muted">${esc(x.proj)}</small>`));
+  if (late.length) h += `<div class="card dsc" style="border-color:#F2C2BB"><small style="color:var(--bad);font-weight:700">⚠️ جاي ومحتاج انتباه</small>${late.map(x => `<div class="dsl">${x}</div>`).join('')}</div>`;
+  return h;
+}
+function dsProj(D){
+  return (D.prog.health || []).map(h => `<button class="irow" data-dproj="${esc(h.code)}"><div class="row"><b style="flex:1">${esc(h.name)}</b>${dsDot(h.time)}${dsDot(h.money)}${dsDot(h.qual)}</div>
+    <div class="row" style="gap:8px;font-size:12.5px"><span style="flex:1">منفذ ${n1(h.ev)}% · مخطط ${n1(h.pv)}%${h.cost != null ? ' · صرف ' + h.cost + '%' : ''}</span>${h.late ? `<span style="color:var(--bad)">${h.late} متأخر</span>` : ''}</div>
+    <div style="position:relative">${dsBar(h.ev, 'var(--pri)')}<i style="position:absolute;top:2px;bottom:-2px;width:2px;background:var(--gold,#C9A24A);left:${100 - Math.min(100, h.pv || 0)}%"></i></div>
+    ${h.next.length ? `<small class="muted">🔜 ${h.next.map(x => esc(x.name) + ' ' + esc(x.start.slice(5))).join(' · ')}</small>` : ''}</button>`).join('') + `<small class="muted">${dsDot('g')} تمام ${dsDot('y')} انتبه ${dsDot('r')} مشكلة · النقط: الوقت ثم التكلفة ثم الجودة · الخط الدهبي = المخطط</small>` || emptyBox('chart', 'مفيش مشاريع ليها مقايسة');
+}
+function dsItems(D){
+  const I = D.items || [], st = {done: I.filter(x => x.pct >= 100).length, go: I.filter(x => x.pct > 0 && x.pct < 100).length, no: I.filter(x => !x.pct).length};
+  const W = I.filter(x => x.w).sort((a, b) => b.w - a.w), col = ['#1D2E4F', '#378ADD', '#C9A24A', '#1E8E5A', '#B7791F', '#9AA4B2'];
+  return `<div class="card dsc"><div class="row" style="justify-content:space-around">${dsDonut([{v: st.done, c: 'var(--ok)'}, {v: st.go, c: 'var(--warn)'}, {v: st.no, c: '#C9CDD4'}], 92, I.length + '')}${W.length ? dsDonut(W.slice(0, 5).map((x, i) => ({v: x.w, c: col[i]})).concat([{v: W.slice(5).reduce((s, x) => s + x.w, 0), c: col[5]}]), 92, 'الوزن') : ''}</div>
+    <div class="row" style="justify-content:space-around;font-size:12px"><span>${dsDot('g')} خلص ${st.done} ${dsDot('y')} جاري ${st.go} ${dsDot('n')} لسه ${st.no}</span></div>${W.length ? `<div style="font-size:11.5px;margin-top:4px">${W.slice(0, 5).map((x, i) => `<i class="dsd" style="background:${col[i]}"></i>${esc(x.name)}`).join(' ')}</div>` : ''}</div>
+    <table class="kt"><tr><th style="width:42%">البند</th><th>المنفذ</th><th>%</th></tr>${I.map(x => `<tr><td style="text-align:right">${esc(x.name)}</td><td>${n1(x.done, 2)} / ${n1(x.qty)} ${esc(x.unit)}</td><td>${dsBar(x.pct, x.pct >= 100 ? 'var(--ok)' : 'var(--pri)')}${x.pct}%</td></tr>`).join('')}</table>`;
+}
+function dsMoney(D){
+  if (!D.money || !D.fc) return '<div class="muted">الفلوس للمالك والمدير والمحاسب</div>';
+  const f = D.fc, br = b => `(خامات ${money(b.mat)} · مصنعيات المقاولين ${money(b.kx)} · يوميات العمال ${money(b.labor)} · توريدات ${money(b.del)} · مشتريات ${money(b.pur)} · معدات ${money(b.eq)}${b.sal ? ' · مرتبات ' + money(b.sal) : ''})`;
+  const prof = D.profit || [];
+  return `<div class="card dsc"><small class="muted">💵 الفلوس المطلوبة</small>
+    <div class="row dsl"><span style="flex:1">الأسبوع ده كله</span><b>${money(f.week.all)}</b></div><small class="muted">اتصرف ${money(f.week.spent)} لحد النهارده</small>
+    <div class="row dsl"><span style="flex:1">لحد آخر الأسبوع (${esc(f.wEnd.slice(5))})</span><b>${money(f.week.rest)}</b></div><small class="muted">${br(f.week.by)}</small>
+    <div class="row dsl"><span style="flex:1">لحد آخر الشهر (${esc(f.mEnd.slice(5))})</span><b>${money(f.month.rest)}</b></div><small class="muted">${br(f.month.by)}</small>
+    ${f.prev ? `<div class="dsl" style="color:${Math.abs(f.prev.diff) <= f.prev.fc * 0.1 ? 'var(--ok)' : f.prev.diff > 0 ? 'var(--bad)' : 'var(--warn)'}">الأسبوع اللي فات: المتوقع ${money(f.prev.fc)} والفعلي ${money(f.prev.act)} (${f.prev.diff > 0 ? '+' : ''}${money(f.prev.diff)})</div>` : ''}
+    <small class="muted">على أساس: ${esc(f.basis)}</small><div class="row" style="gap:6px;margin-top:6px"><button class="btn ghost" id="dsSal" style="flex:1">👥 المرتبات (${money(f.sal)} يوم ${esc(f.salDate.slice(5))})</button><button class="btn ghost" id="dsFc" style="flex:1">📅 التقويم</button></div></div>
+    <div class="card dsc"><small class="muted">فلوس ${DS_PER[D.period]}</small><div class="row dsl"><span style="flex:1">⬇️ داخل</span><b style="color:var(--ok)">${money(D.cash.recv)}</b></div><div class="row dsl"><span style="flex:1">⬆️ خارج</span><b>${money(D.cash.spent)}</b></div></div>
+    ${D.ce.length ? `<div class="card dsc"><small class="muted">مستخلصات العميل</small>${D.ce.map(x => `<div class="row dsl"><span style="flex:1">${esc(x.st)} (${x.n})</span><b>${money(x.amt)}</b></div>`).join('')}</div>` : ''}
+    ${prof.length ? `<div class="card dsc"><small class="muted">ربحية البنود (اللي قرّبت تخلص ميزانيتها)</small>${prof.map(x => `<div class="dsl"><div class="row"><span style="flex:1">${esc(x.name)} <small class="muted">${esc(x.proj)}</small></span><b style="color:${x.pct >= 100 ? 'var(--bad)' : 'var(--warn)'}">${x.pct}%</b></div>${dsBar(x.pct, x.pct >= 100 ? 'var(--bad)' : 'var(--warn)')}<small class="muted">اتصرف ${money(x.spent)} من ${money(x.bud)}</small></div>`).join('')}</div>` : ''}
+    ${D.guar ? `<div class="card dsc"><small class="muted">الضمانات</small>${D.guar.list.map(x => `<div class="row dsl"><span style="flex:1">${esc(x.proj)} ${money(x.amt)}</span><small style="color:${x.due <= tdy() ? 'var(--bad)' : 'var(--muted)'}">مستحق ${esc(x.due || '—')}</small></div>`).join('') || '<div class="dsl muted">مفيش ضمانات عند العملاء</div>'}${D.guar.kx.map(x => `<div class="row dsl"><span style="flex:1">محتجز ${esc(x.name)} ${money(x.amount)}</span><small class="muted">مستحق ${esc(x.due || 'بعد آخر بند')}</small></div>`).join('')}</div>` : ''}
+    ${(D.cust || []).length ? `<div class="card dsc"><small class="muted">العهد</small>${D.cust.map(x => `<div class="row dsl"><span style="flex:1">${esc(x.dn)}</span><b>${money(x.bal)}</b></div>`).join('')}</div>` : ''}
+    <div class="row" style="gap:6px"><button class="btn gold" id="dsAcc" style="flex:1">📒 تقرير المحاسب الشهري</button><button class="btn ghost" id="dsAi" style="flex:1">🤖 تقرير ذكي</button></div>`;
+}
+function dsRisk(D){
+  const q = D.qual, col = {3: 'var(--bad)', 2: 'var(--warn)', 1: 'var(--muted)'};
+  return `<div class="card dsc"><small class="muted">سجل المخاطر (أوتوماتيك)</small>${D.risks.map(r => `<div class="row dsl"><i class="dsd" style="background:${col[r.sev]}"></i><span style="flex:1">${esc(r.t)}</span><small class="muted">${esc(r.proj)}</small></div>`).join('') || '<div class="dsl muted">مفيش مخاطر ظاهرة ✓</div>'}</div>
+    <div class="card dsc"><div class="row" style="gap:10px">${dsDonut([{v: q.irOk, c: 'var(--ok)'}, {v: q.irNo, c: 'var(--bad)'}, {v: Math.max(0, q.ir - q.irOk - q.irNo), c: '#C9CDD4'}], 76, q.ir + '')}<div style="flex:1"><b>الاستلامات</b><div class="dsl">${q.irOk} مقبول · ${q.irNo} مرفوض</div><div class="dsl">عدم مطابقة مفتوح ${q.ncrOpen}</div></div></div></div>
+    ${q.coPend.length ? `<div class="card dsc"><small class="muted">أوامر تغيير لم تُعتمد</small>${q.coPend.map(x => `<div class="row dsl"><span style="flex:1">${esc(x.no)} ${esc(x.title)} <small class="muted">${esc(x.proj)}</small></span><small>${x.days} يوم</small></div>`).join('')}</div>` : ''}
+    ${D.lateReq.length ? `<div class="card dsc"><small class="muted">طلبات شراء متأخرة</small>${D.lateReq.map(x => `<div class="row dsl"><span style="flex:1">${esc(x.mat)} <small class="muted">${esc(x.proj)}</small></span><small style="color:var(--bad)">${x.days} يوم</small></div>`).join('')}</div>` : ''}
+    ${D.lab.length ? `<div class="card dsc"><small class="muted">👷 العمالة مقابل المعدلات (فرق أكتر من ${esc(String((store.get('dsCfgL', {}).tol) || 25))}%)</small>${D.lab.map(x => `<div class="dsl">• ${esc(x.t)} <small class="muted">${esc(x.proj)}</small></div>`).join('')}</div>` : ''}
+    ${D.eng.length ? `<div class="card dsc"><small class="muted">🏅 أحسن مهندس (آخر 30 يوم)</small>${D.eng.map((e, i) => `<div class="row dsl"><span style="flex:1">${i === 0 ? '🥇 ' : ''}${esc(e.name || '—')}</span><small class="muted">${e.days} يوم تقارير · ${e.irOk} استلام مقبول · ${e.ncr} عدم مطابقة</small></div>`).join('')}</div>` : ''}`;
+}
+// التقارير اليومية: تقرير كل موقع لكل يوم + فلتر + PDF
+async function dsRep(){
+  const F = S.ds, to = tdy(), from = F.period === 'm' ? to.slice(0, 8) + '01' : addD(to, F.period === 'w' ? -6 : 0);
+  const r = await api('dailyRep', {from, to, kind: F.kind, project: F.project, region: F.region, eng: F.eng}); const el = $('#dsRep'); if (!el) return;
+  if (!r.ok) { el.textContent = errMsg(r); return; }
+  const row = x => `<div class="card dsc"><div class="row"><b style="flex:1">${esc(x.name)}</b><small class="muted">${esc(x.date)}</small></div>
+    ${x.stop ? `<div class="dsl" style="color:var(--bad)">⛔ الموقع وقف: ${esc(x.stop)}</div>` : ''}<div class="dsl">👷 ${x.att} عامل${x.cost != null ? ' · ' + money(x.cost) : ''}${x.exp ? ' · 🧾 ' + money(x.exp) : ''}</div>
+    ${x.out.length ? `<div class="dsl">✅ ${x.out.map(esc).join(' · ')}</div>` : ''}${x.del.length ? `<div class="dsl">🚚 ${x.del.map(esc).join(' · ')}</div>` : ''}${x.eq.length ? `<div class="dsl">🚜 ${x.eq.map(esc).join(' · ')}</div>` : ''}${x.notes.length ? `<div class="dsl">📝 ${x.notes.map(esc).join(' · ')}</div>` : ''}</div>`;
+  el.innerHTML = `<button class="btn ghost" id="drPdf">🖨️ PDF</button>` + (r.days.map(row).join('') || emptyBox('doc', 'مفيش تقارير في الفترة دي'));
+  el.className = '';
+  $('#drPdf').onclick = () => { const w = open('', '_blank'); if (!w) return; w.document.write(`<html dir="rtl"><head><meta charset="utf-8"><style>@page{size:A4 portrait;margin:12mm}body{font-family:Cairo,Tahoma;font-size:12px}.c{border:1px solid #ccc;border-radius:6px;padding:6px 10px;margin:6px 0;page-break-inside:avoid}h2{font-size:15px;border-bottom:2px solid #1D2E4F}</style></head><body><h2>MEC · التقارير اليومية ${esc(r.from)} ← ${esc(r.to)}</h2>${r.days.map(row).join('').replace(/class="card dsc"/g, 'class="c"')}<script>setTimeout(()=>print(),400)<\/script></body></html>`); w.document.close(); };
+}
+// التوقعات: تقويم الصرف المتوقع
+function dsFcSheet(D){
+  const f = D.fc; if (!f) return; const rows = [['خامات', 'mat'], ['مصنعيات المقاولين', 'kx'], ['يوميات العمال', 'labor'], ['توريدات', 'del'], ['مشتريات', 'pur'], ['معدات', 'eq'], ['مرتبات', 'sal']];
+  const mx = Math.max(1, ...rows.map(r => f.month.by[r[1]]));
+  openSheet(`<h3>📅 الفلوس المطلوبة</h3><table class="kt"><tr><th style="width:36%"></th><th>لحد آخر الأسبوع</th><th>لحد آخر الشهر</th></tr>${rows.map(([n, k]) => `<tr><td style="text-align:right">${n}${dsBar(f.month.by[k] / mx * 100, '#378ADD')}</td><td>${money(f.week.by[k])}</td><td>${money(f.month.by[k])}</td></tr>`).join('')}<tr><td><b>الإجمالي</b></td><td><b>${money(f.week.rest)}</b></td><td><b>${money(f.month.rest)}</b></td></tr></table>
+    <div class="dsl">ملتزمين بيه: مستخلصات مقاولين معتمدة ${money(f.comm.kx)} · طلبات شراء مفتوحة ${money(f.comm.pur)} · خطة المقاولين الأسبوع ده ${money(f.comm.plan)}</div><small class="muted">على أساس: ${esc(f.basis)}</small><button class="btn ghost" id="fcBk" style="margin-top:8px">رجوع</button>`);
+  $('#fcBk').onclick = () => { closeSheet(); setTimeout(() => ownerDash(), 260); };
+}
+async function salSheet(){
+  openSheet(`<h3>👥 المرتبات الشهرية</h3><div class="muted">بيحمّل…</div>`); const r = await api('salGet', {});
+  if (!r.ok) { $('#sheetBody').innerHTML = esc(errMsg(r)); return; }
+  $('#sheetBody').innerHTML = `<h3>👥 المرتبات الشهرية</h3><small class="muted">بتدخل في توقع الفلوس يوم ${r.salDay} من كل شهر (⚙️). بيشوفها المالك والمدير والمحاسب بس.</small>
+    ${r.people.map(p => `<div class="row" style="gap:6px;margin-top:6px"><span style="flex:1">${esc(p.dn)} <small class="muted">${esc(ROLE_N ? (ROLE_N[p.role] || p.role) : p.role)}</small></span><input class="in" data-sl="${esc(p.id)}" inputmode="numeric" value="${p.sal || ''}" style="width:110px"></div>`).join('')}
+    <button class="btn gold" id="slGo" style="margin-top:10px">احفظ</button>`;
+  $('#slGo').onclick = async () => { busy($('#slGo'), true); for (const e of document.querySelectorAll('[data-sl]')) { const p = r.people.find(x => x.id === e.dataset.sl); const v = Number(digits(e.value)) || 0; if (v !== (p.sal || 0)) await api('salSet', {id: p.id, sal: v}); } toast('اتحفظ ✓'); closeSheet(); setTimeout(() => ownerDash(true), 260); };
+}
+const ROLE_N = {owner: 'المالك', manager: 'المدير', accountant: 'المحاسب', engineer: 'مهندس', supervisor: 'مشرف', supervisor2: 'مساعد مشرف', buyer: 'مشتريات', tech: 'فني'};
+// ⚙️: فلاتر المنطقة والمهندس + «غيّر النواتج» + الإعدادات
+async function dsSettings(){
+  const F = S.ds, D = S.dsD, hide = store.get('dsHide', []);
+  openSheet(`<h3>⚙️ لوحة المالك</h3><label class="f">المنطقة</label><div class="chips">${[''].concat(D.regions || []).map(r => `<button class="chip ${F.region === r ? 'on' : ''}" data-sr="${esc(r)}">${esc(r || 'الكل')}</button>`).join('')}</div>
+    <label class="f">المهندس</label><select class="in" id="seE"><option value="">الكل</option>${(D.engs || []).map(e => `<option value="${esc(e.id)}" ${F.eng === e.id ? 'selected' : ''}>${esc(e.dn)}</option>`).join('')}</select>
+    <div class="sec-t" style="margin-top:10px">غيّر النواتج (الكروت اللي تظهر)</div>${Object.keys(DS_CARDS).map(k => `<label class="row tgrow" style="gap:8px"><input type="checkbox" data-sh="${k}" ${hide.includes(k) ? '' : 'checked'}> ${esc(DS_CARDS[k])}</label>`).join('')}
+    ${isBoss() ? `<div class="sec-t" style="margin-top:10px">الإعدادات</div><label class="f">تنبيه العمالة لو الفرق عن المعدل أكتر من (%)</label><input class="in" id="seT" inputmode="numeric"><label class="f">يوم صرف المرتبات في الشهر</label><input class="in" id="seS" inputmode="numeric"><label class="f">التوقع على متوسط آخر كام يوم</label><input class="in" id="seL" inputmode="numeric">` : ''}
+    <button class="btn gold" id="seGo" style="margin-top:10px">تمام</button>`);
+  let reg = F.region; document.querySelectorAll('[data-sr]').forEach(b => b.onclick = () => { reg = b.dataset.sr; document.querySelectorAll('[data-sr]').forEach(c => c.classList.toggle('on', c === b)); });
+  if (isBoss()) { const c = await api('dashCfg', {}); if (c.ok && $('#seT')) { $('#seT').value = c.cfg.tol; $('#seS').value = c.cfg.salDay; $('#seL').value = c.cfg.look; store.set('dsCfgL', c.cfg); } }
+  $('#seGo').onclick = async () => { F.region = reg; F.eng = $('#seE').value; store.set('dsHide', [...document.querySelectorAll('[data-sh]')].filter(e => !e.checked).map(e => e.dataset.sh));
+    if (isBoss() && $('#seT').value) { const c = await api('dashCfg', {set: true, tol: $('#seT').value, salDay: $('#seS').value, look: $('#seL').value}); if (c.ok) store.set('dsCfgL', c.cfg); }
+    store.set('dsF', F); closeSheet(); setTimeout(() => ownerDash(true), 260); };
+}
+async function dsAi(){
+  openSheet(`<h3>🤖 تقرير ذكي</h3><div class="muted">بيكتب التقرير…</div>`); const F = S.ds;
+  const r = await api('aiReport', {period: F.period === 'd' ? 'w' : F.period, kind: F.kind, project: F.project, region: F.region, eng: F.eng});
+  if (!r.ok) { $('#sheetBody').innerHTML = esc(errMsg(r)); return; }
+  const txt = r.text || ('الذكاء الاصطناعي مش متاح دلوقتي' + (r.noKey ? ' (مفتاح Gemini مش متسجل)' : '') + '. دي الأرقام:\n' + Object.keys(r.facts).map(k => '• ' + k.replace(/_/g, ' ') + ': ' + (typeof r.facts[k] === 'object' ? JSON.stringify(r.facts[k]) : r.facts[k])).join('\n'));
+  $('#sheetBody').innerHTML = `<h3>🤖 تقرير ذكي</h3><div style="white-space:pre-wrap;line-height:1.8">${esc(txt)}</div><div class="row" style="gap:6px;margin-top:10px"><button class="btn gold" id="aiWa" style="flex:1">📲 واتساب</button><button class="btn ghost" id="aiCp" style="flex:1">📋 نسخ</button></div>`;
+  $('#aiWa').onclick = () => open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+  $('#aiCp').onclick = () => { navigator.clipboard && navigator.clipboard.writeText(txt); toast('اتنسخ ✓'); };
+}
+// تقرير المحاسب الشهري: Job Cost + WIP (Excel + PDF)
+async function accMonthSheet(m){
+  m = m || tdy().slice(0, 7); openSheet(`<h3>📒 تقرير المحاسب الشهري</h3><div class="muted">بيحمّل…</div>`);
+  const F = S.ds || {}, r = await api('accMonth', {month: m, kind: F.kind, project: F.project, region: F.region, eng: F.eng}); if (!r.ok) { $('#sheetBody').innerHTML = esc(errMsg(r)); return; }
+  const cols = [['name', 'المشروع'], ['monthTotal', 'تكلفة الشهر'], ['costToDate', 'التكلفة لحد آخر الشهر'], ['earned', 'قيمة المنفذ'], ['billed', 'المستخلص المعتمد'], ['recv', 'المحصّل'], ['wip', 'أعمال تحت التنفيذ (WIP)'], ['margin', 'الهامش %']];
+  const tbl = cls => `<table class="${cls}"><tr>${cols.map(c => `<th>${c[1]}</th>`).join('')}</tr>${r.rows.map(x => `<tr>${cols.map(c => `<td>${c[0] === 'name' ? esc(x.name) : c[0] === 'margin' ? (x.margin == null ? '—' : x.margin + '%') : money(x[c[0]])}</td>`).join('')}</tr>`).join('')}<tr>${cols.map(c => `<td><b>${c[0] === 'name' ? 'الإجمالي' : c[0] === 'margin' ? '' : money(r.tot[c[0]])}</b></td>`).join('')}</tr></table>`;
+  $('#sheetBody').innerHTML = `<h3>📒 تقرير المحاسب الشهري</h3><input type="month" class="in" id="amM" value="${esc(r.month)}"><div style="overflow-x:auto">${tbl('kt')}</div>
+    <small class="muted">تكلفة الشهر = عمالة + مقاولين + توريدات + مشتريات + معدات. WIP = قيمة المنفذ بأسعار العقد − آخر مستخلص معتمد (موجب = شغل مستحق لسه ما اتفوترش).</small>
+    <div style="margin-top:6px">${r.rows.map(x => `<details class="tgrow"><summary>${esc(x.name)} · تفصيل الشهر</summary><div class="dsl">عمالة ${money(x.month.labor)} · مقاولين ${money(x.month.kx)} · توريدات ${money(x.month.del)} · مشتريات ${money(x.month.pur)} · معدات ${money(x.month.eq)}</div></details>`).join('')}</div>
+    <div class="row" style="gap:6px;margin-top:10px"><button class="btn gold" id="amX" style="flex:1">⬇️ Excel</button><button class="btn ghost" id="amP" style="flex:1">🖨️ PDF</button></div>`;
+  $('#amM').onchange = e => accMonthSheet(e.target.value);
+  $('#amX').onclick = () => { const csv = '﻿' + [cols.map(c => c[1]).concat(['عمالة', 'مقاولين', 'توريدات', 'مشتريات', 'معدات'])].concat(r.rows.map(x => cols.map(c => c[0] === 'name' ? x.name : x[c[0]] == null ? '' : x[c[0]]).concat([x.month.labor, x.month.kx, x.month.del, x.month.pur, x.month.eq]))).map(a => a.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+    const l = document.createElement('a'); l.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'})); l.download = 'تقرير المحاسب ' + r.month + '.csv'; l.click(); };
+  $('#amP').onclick = () => { const w = open('', '_blank'); if (!w) return; w.document.write(`<html dir="rtl"><head><meta charset="utf-8"><style>@page{size:A4 portrait;margin:10mm}body{font-family:Cairo,Tahoma;font-size:11px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #999;padding:4px;text-align:center}th{background:#1D2E4F;color:#fff}tr:last-child td{background:#E8F0FB}</style></head><body><h2>MEC · تقرير المحاسب الشهري ${esc(r.month)}</h2>${tbl('')}<p style="font-size:10px">WIP = قيمة المنفذ بأسعار العقد − آخر مستخلص معتمد.</p><script>setTimeout(()=>print(),400)<\/script></body></html>`); w.document.close(); };
+}
+
+/* ================= 0.16: 🔍 البحث العام · ☁️ الطقس · 📝 عندك متعلقين · 📘 الدليل · المكتبة · الانتهاء · الطباعة · الوحدات ================= */
+// ---------- 🔍 البحث العام (كتابة أو صوت) ----------
+function gSearchSheet(){
+  openSheet(`<h3>🔍 دوّر على أي حاجة</h3><div class="row" style="gap:6px"><input class="in" id="gsQ" placeholder="خامة، مورد، عامل، مقاول، مشروع، بند، مصروف…" style="flex:1">${micBtn('gsQ')}</div><div id="gsR" style="margin-top:8px"></div>`);
+  wireMics && wireMics(); let tm = 0; const q = $('#gsQ'); q.focus();
+  const run = async () => { const v = q.value.trim(); if (v.length < 2) { $('#gsR').innerHTML = ''; return; }
+    let res = [];
+    if (navigator.onLine) { const r = await api('gSearch', {q: v}); if (r.ok) res = r.res; }
+    if (!res.length) { const n = normN(v); res = (S.projects || []).filter(p => normN(p.name + ' ' + (p.short || '') + ' ' + (p.client || '') + ' ' + p.code).includes(n)).map(p => ({g: 'المشاريع', t: p.name, s: p.client || '', k: 'proj', code: p.code})); }
+    if (q.value.trim() !== v) return;
+    const G = [...new Set(res.map(x => x.g))];
+    $('#gsR').innerHTML = G.map(g => `<div class="sec-t">${esc(g)}</div>${res.filter(x => x.g === g).map(x => `<button class="irow" data-gs="${res.indexOf(x)}"><b>${esc(x.t)}</b><small class="muted" style="display:block">${esc(x.s || '')}</small></button>`).join('')}`).join('') || emptyBox('search', 'مفيش نتايج');
+    document.querySelectorAll('[data-gs]').forEach(b => b.onclick = () => gsOpen(res[Number(b.dataset.gs)])); };
+  q.oninput = () => { clearTimeout(tm); tm = setTimeout(run, 350); };
+}
+function gsOpen(x){
+  closeSheet();
+  setTimeout(() => {
+    if (x.k === 'proj') { S.tab = 'projects'; S.project = x.code; store.set('lastProj', x.code); render(); scrollTo(0, 0); }
+    else if (x.k === 'person') { peopleSheet(x.type).then(() => { const i = $('#ppQ'); if (i) { i.value = x.code; i.dispatchEvent(new Event('input')); } }); }
+    else if (x.k === 'boq') itemCardSheet(x.proj, x.id);
+    else if (x.k === 'del') supplySheet(x.proj, x.date);
+    else if (x.k === 'exp' || x.k === 'pur') expChat(x.proj);
+    else toast(x.t);
+  }, 260);
+}
+// ---------- ☁️ الطقس: شريط رفيع تحت الشريط الكحلي لكل الناس، بطقس منطقة مشروعه ----------
+const WX_REG = {'القاهرة': [30.04, 31.24], 'إسكندرية': [31.2, 29.92], 'الساحل': [30.95, 28.8]};
+const WX_CODE = c => c >= 95 ? '⛈️ عواصف' : c >= 80 ? '🌧️ مطر متقطع' : c >= 61 ? '🌧️ مطر' : c >= 51 ? '🌦️ رذاذ' : c >= 45 ? '🌫️ شبورة' : c >= 3 ? '☁️ غايم' : c >= 1 ? '⛅ غايم جزئي' : '☀️ صافي';
+function wxStrip(){ const W = S.wx || store.get('wx', null); return `<div id="wx" class="wx">${W && W.rows ? wxHtml(W) : ''}</div>`; }
+function wxHtml(W){ return W.rows.map(r => `<span>${esc(r.reg)} ${r.t}° · بكرة ${esc(r.tm)}${r.warn ? ` <b style="color:var(--gold)">${esc(r.warn)}</b>` : ''}</span>`).join(''); }
+async function wxLoad(){
+  const old = store.get('wx', null); if (old && Date.now() - old.at < 2 * 3600e3) { S.wx = old; return; }
+  if (!navigator.onLine) return;
+  const mine = (S.projects || []).filter(p => p.status === 'جاري'); const regs = {};
+  mine.forEach(p => { const r = p.region || 'القاهرة'; if (!regs[r]) regs[r] = p.lat !== '' && p.lat != null && p.lat ? [Number(p.lat), Number(p.lng)] : WX_REG[r] || WX_REG['القاهرة']; });
+  if (!Object.keys(regs).length) regs['القاهرة'] = WX_REG['القاهرة'];
+  const rows = [];
+  for (const reg of Object.keys(regs).slice(0, 3)) { try { const [la, lo] = regs[reg];
+    const j = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,precipitation_sum,precipitation_probability_max,wind_speed_10m_max&timezone=Africa%2FCairo&forecast_days=2`)).json();
+    const d = j.daily, rain = (d.precipitation_sum[1] || 0) >= 1 || (d.precipitation_probability_max[1] || 0) >= 60, hot = (d.temperature_2m_max[1] || 0) >= 38, wind = (d.wind_speed_10m_max[1] || 0) >= 45;
+    rows.push({reg, t: Math.round(j.current.temperature_2m), tm: WX_CODE(d.weather_code[1]).replace(/^\S+ /, '') + ' ' + Math.round(d.temperature_2m_max[1]) + '°',
+      warn: rain ? '☔ أجّل الدهان الخارجي والعزل' : hot ? '🔥 المحارة والصب الصبح بدري ورش مية' : wind ? '💨 رياح: بلاش شغل على السقالات' : ''}); } catch (e) {} }
+  if (!rows.length) return; S.wx = {at: Date.now(), rows}; store.set('wx', S.wx); const el = $('#wx'); if (el) el.innerHTML = wxHtml(S.wx);
+}
+// ---------- 📝 «عندك متعلقين»: أي فورمة اتكتب فيها بتتحفظ، وكارت في الرئيسية ----------
+const DR_SKIP = /دوّر|اسأل|بحث|🔍|📊|📖/;
+function drKey(){ const h = $('#sheetBody h3'); return h ? h.textContent.replace(/\s+/g, ' ').trim().slice(0, 60) : ''; }
+document.addEventListener('input', e => { const el = e.target; if (!el.closest || !el.closest('#sheetBody') || !el.id || el.type === 'file' || el.type === 'password') return;
+  const k = drKey(); if (!k || DR_SKIP.test(k)) return; const D = store.get('drafts', {}), vals = {};
+  document.querySelectorAll('#sheetBody input[id],#sheetBody textarea[id],#sheetBody select[id]').forEach(x => { if (x.type === 'checkbox') vals[x.id] = x.checked; else if (x.type !== 'file' && x.value !== '') vals[x.id] = x.value; });
+  if (!Object.keys(vals).length) { delete D[k]; } else D[k] = {vals, at: Date.now(), proj: S.project || S.tkCode || '', who: S.user && S.user.id};
+  S.drLast = k; store.set('drafts', D); }, true);
+// بعد أي حفظ ناجح (toast فيه ✓) المسودة بتتمسح
+const drDone = () => { const k = S.drLast; if (!k) return; S.drLast = ''; const D = store.get('drafts', {}); if (D[k]) { delete D[k]; store.set('drafts', D); } };
+// لما فورمة ليها مسودة تتفتح: زرار «كمّل اللي كنت كاتبه»
+function drOffer(){ const k = drKey(), D = store.get('drafts', {})[k]; if (!D || $('#drBar')) return; const h = $('#sheetBody h3'); if (!h) return;
+  h.insertAdjacentHTML('afterend', `<div id="drBar" class="sline" style="display:flex;gap:6px;align-items:center">📝 <span style="flex:1">عندك كلام متكتب هنا ${ago(new Date(D.at).toISOString())}</span><button class="chip" id="drGo">كمّله</button><button class="chip" id="drNo">امسحه</button></div>`);
+  $('#drGo').onclick = () => { Object.keys(D.vals).forEach(id => { const x = document.getElementById(id); if (!x) return; if (x.type === 'checkbox') x.checked = D.vals[id]; else x.value = D.vals[id]; x.dispatchEvent(new Event('change')); }); $('#drBar').remove(); };
+  $('#drNo').onclick = () => { const A = store.get('drafts', {}); delete A[k]; store.set('drafts', A); $('#drBar').remove(); }; }
+function draftsHome(){ const D = store.get('drafts', {}), K = Object.keys(D).filter(k => D[k].who === (S.user && S.user.id) && Date.now() - D[k].at < 14 * 864e5); if (!K.length) return '';
+  return `<h2 class="sec">📝 عندك متعلقين</h2><div class="card" style="padding:4px 14px">${K.slice(0, 5).map(k => `<button class="mi" data-drp="${esc(D[k].proj || '')}" data-drk="${esc(k)}" style="font-weight:400"><span style="flex:1"><b style="font-weight:600">${esc(k)}</b> <small class="muted">${D[k].proj ? esc(pName(D[k].proj)) + ' · ' : ''}${ago(new Date(D[k].at).toISOString())}</small></span></button>`).join('')}</div>`; }
+// ---------- 📘 الدليل: كروت مترقمة حسب الدور، كل كارت 3 خطوات و«افتحها» ----------
+const GUIDE = [
+  {r: 'all', t: 'سجّل حضور العمال', s: ['افتح المشروع', 'مربع «الحضور»', 'دوس على كل عامل: حاضر / نص / غياب'], go: () => S.project ? attendanceSheet(S.project) : quickGo('att')},
+  {r: 'all', t: 'سجّل إنجاز النهارده', s: ['افتح المشروع ← «الحضور»', '«📐 إنجاز النهارده»', 'البند والكمية و«مين نفّذ؟» (عمالتنا أو المقاول)'], go: () => S.project ? attendanceSheet(S.project) : quickGo('att')},
+  {r: 'all', t: 'استلام توريد (رمل، زلط…)', s: ['زرار ➕ تحت', '«استلام خامة»', 'المورد والنقلات وصورة البون'], go: () => quickGo('sup')},
+  {r: 'all', t: 'حصر أوضة', s: ['المشروع ← مربع «📐 الحصر»', '«➕ دور / شقة» ثم «➕ أوضة»', 'الطول والعرض والارتفاع والأبواب والشبابيك، وبص على الرسمة'], go: () => openTakeoff()},
+  {r: 'eng', t: 'إسناد بند لمقاول', s: ['المشروع ← «المقايسة والمستخلصات»', '«👷 المقاولين» ← «➕ إسناد»', 'المقاول والبند والكمية والمصنعية'], go: () => S.project ? boqHub(S.project) : toast('افتح المشروع الأول')},
+  {r: 'eng', t: 'مستخلص مقاول', s: ['كارت المقاول', '«📄 مستخلص جديد»', 'راجع ← «قدّمه» ← المهندس «اعتمد»'], go: () => S.project ? kxSheet(S.project, 'c') : toast('افتح المشروع الأول')},
+  {r: 'eng', t: 'مستخلص العميل', s: ['المقاولين والمستخلصات ← تاب «مستخلص العميل»', '«➕ مستخلص» بالمسودة الجاهزة', 'بعد التقديم ارفع نسخة PDF أو صورة'], go: () => S.project ? kxSheet(S.project, 'ce') : toast('افتح المشروع الأول')},
+  {r: 'money', t: 'صرف مصروف أو شراء', s: ['المشروع ← «💰 الصرف»', 'اكتب أو صوّر الفاتورة', 'اختار البند (🪄 بيقترح)'], go: () => S.project ? expChat(S.project) : toast('افتح المشروع الأول')},
+  {r: 'boss', t: 'لوحة المالك', s: ['الرئيسية ← «📊 لوحة المالك»', 'اختار النهارده / الأسبوع / الشهر', 'التابات: الموقع، المشاريع، الفلوس، المخاطر، التقارير'], go: () => ownerDash()},
+  {r: 'boss', t: 'الفلوس المطلوبة', s: ['لوحة المالك ← «الفلوس»', 'الأسبوع ده وآخر الشهر والتفصيل', '«👥 المرتبات» تحط مرتب كل واحد'], go: () => { S.ds = Object.assign(S.ds || {}, {tab: 'money'}); store.set('dsF', S.ds); ownerDash(); }},
+  {r: 'boss', t: 'تقرير المحاسب الشهري', s: ['لوحة المالك ← «الفلوس»', '«📒 تقرير المحاسب الشهري»', 'اختار الشهر ← Excel أو PDF'], go: () => accMonthSheet()},
+  {r: 'boss', t: 'المكتبة الفنية', s: ['المزيد ← «📖 المكتبة الفنية»', '«📂 الفولدرات» ارفع الملفات في درايف', '«📚 فهرس الملفات الجديدة» وبعدين «اسأل المكتبة»'], go: () => libSheet()}
+];
+function guideSheet(){
+  const r = role(), mine = GUIDE.filter(g => g.r === 'all' || (g.r === 'eng' && ['owner', 'manager', 'engineer', 'supervisor'].includes(r)) || (g.r === 'money' && canMoney()) || (g.r === 'boss' && ['owner', 'manager', 'accountant'].includes(r)));
+  openSheet(`<h3>📘 الدليل</h3><small class="muted">كل كارت 3 خطوات، و«افتحها» بتوديك على طول</small>${mine.map((g, i) => `<div class="card dsc"><div class="row"><span class="gnum">${i + 1}</span><b style="flex:1">${esc(g.t)}</b><button class="chip" data-gd="${GUIDE.indexOf(g)}">افتحها ‹</button></div><ol class="steps" style="margin:6px 0 0">${g.s.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>`).join('')}`);
+  document.querySelectorAll('[data-gd]').forEach(b => b.onclick = () => { closeSheet(); setTimeout(GUIDE[Number(b.dataset.gd)].go, 260); });
+}
+// ---------- المكتبة: الفولدرات والفهرسة ----------
+async function libDirsSheet(){ openSheet(`<h3>📂 فولدرات المكتبة</h3><div class="muted">بيحمّل…</div>`); const r = await api('libDirs', {}); if (!r.ok) { $('#sheetBody').innerHTML = esc(errMsg(r)); return; }
+  $('#sheetBody').innerHTML = `<h3>📂 فولدرات المكتبة</h3><small class="muted">ارفع الملفات (PDF، صور، Word) في الفولدر المناسب على درايف، وبعدين «📚 فهرس الملفات الجديدة». متفهرس لحد دلوقتي: ${r.indexed} ملف.</small>${r.dirs.map(d => `<a class="irow" href="${esc(d.url)}" target="_blank" style="display:block;text-decoration:none;color:inherit">📁 ${esc(d.name)}</a>`).join('')}<button class="btn gold" id="lxGo" style="margin-top:10px">📚 فهرس الملفات الجديدة</button>`;
+  $('#lxGo').onclick = libIndexRun; }
+async function libIndexRun(){ toast('بيقرا الملفات… ممكن ياخد دقايق'); const r = await api('libIndex', {});
+  if (!r.ok) { toast(r.error === 'noAI' ? 'مفتاح Gemini مش متسجل' : errMsg(r)); return; }
+  toast(`اتفهرس ${r.done} ملف · ${r.nums} رقم استرشادي «يتراجع»${r.left ? ' · فاضل ' + r.left + ' (دوس تاني)' : ''}${r.fails.length ? ' · ما اتقراش: ' + r.fails.length : ''}`); }
+// ---------- ⏰ تنبيهات الانتهاء (للمالك والمدير في الرئيسية) ----------
+async function expLoad(){ if (!['owner', 'manager', 'engineer', 'accountant'].includes(role()) || !navigator.onLine) return; const old = store.get('expiry', null); if (old && Date.now() - old.at < 6 * 3600e3) return;
+  const r = await api('expiry', {}); if (r.ok) { store.set('expiry', {at: Date.now(), items: r.items}); const el = $('#expH'); if (el) el.outerHTML = expHome(); } }
+function expHome(){ const X = (store.get('expiry', {}) || {}).items || []; if (!X.length) return '<div id="expH"></div>';
+  return `<div id="expH"><h2 class="sec">⏰ تنبيهات الانتهاء</h2><div class="card" style="padding:6px 14px">${X.slice(0, 5).map(x => `<div class="dsl"><i class="dsd" style="background:${x.sev >= 3 ? 'var(--bad)' : x.sev === 2 ? 'var(--warn)' : '#C9CDD4'}"></i>${esc(x.t)}${x.proj ? ' <small class="muted">' + esc(x.proj) + '</small>' : ''}</div>`).join('')}</div></div>`; }
+// ---------- 🖨️ إعدادات الطباعة (التوقيعات) ----------
+async function printCfgSheet(){ const r = await api('printCfg', {}); const c = r.ok ? r.cfg : store.get('printCfg', {}); if (r.ok) store.set('printCfg', c);
+  openSheet(`<h3>🖨️ إعدادات الطباعة</h3><small class="muted">أسامي خانات التوقيع تحت كل نموذج مطبوع (A4 بورتريه)</small><label class="f">خانة 1</label><input class="in" id="pcG" value="${esc(c.give || '')}"><label class="f">خانة 2</label><input class="in" id="pcT" value="${esc(c.take || '')}"><label class="f">خانة 3</label><input class="in" id="pcR" value="${esc(c.rev || '')}"><label class="f">سطر تحت الصفحة (اختياري)</label><input class="in" id="pcF" value="${esc(c.foot || '')}" placeholder="العنوان · التليفون">
+    <button class="btn gold" id="pcGo" style="margin-top:10px">احفظ</button>`);
+  $('#pcGo').onclick = async () => { const s = await api('printCfg', {set: true, give: $('#pcG').value, take: $('#pcT').value, rev: $('#pcR').value, foot: $('#pcF').value}); if (s.ok) { store.set('printCfg', s.cfg); toast('اتحفظ ✓'); closeSheet(); } else toast(errMsg(s)); }; }
+const prSig = () => { const c = Object.assign({give: 'المسلّم', take: 'المستلم', rev: 'المراجع'}, store.get('printCfg', {})); return `<div style="display:flex;justify-content:space-between;margin-top:30px">${[c.give, c.take, c.rev].map(x => `<span>${esc(x)}: ............</span>`).join('')}</div>${c.foot ? `<div style="text-align:center;font-size:10px;color:#666;margin-top:12px">${esc(c.foot)}</div>` : ''}`; };
+// ---------- ⚖️ تحويل الوحدات + 💰 قيمة الخامات في المواقع ----------
+async function unitsSheet(){ const r = await api('units', {}); const U = r.ok ? r.units : {};
+  openSheet(`<h3>⚖️ تحويل الوحدات</h3><small class="muted">لكل خامة: الوحدة التانية = كام من الوحدة الأساسية (مثال: أسمنت · طن = 20 شيكارة)</small>${Object.keys(U).map(m => `<div class="dsl"><b>${esc(m)}</b>: ${U[m].map(x => '1 ' + esc(x.u) + ' = ' + x.f).join(' · ')}</div>`).join('')}
+    <label class="f">الخامة</label><input class="in" id="unM" placeholder="أسمنت"><div class="row" style="gap:6px"><div style="flex:1"><label class="f">الوحدة</label><input class="in" id="unU" placeholder="طن"></div><div style="flex:1"><label class="f">= كام من الأساسية</label><input class="in" id="unF" inputmode="decimal" placeholder="20"></div></div>
+    <button class="btn gold" id="unGo" style="margin-top:10px">احفظ</button>`);
+  $('#unGo').onclick = async () => { const m = $('#unM').value.trim(), cur = (U[normN(m)] || U[m] || []).filter(x => x.u !== $('#unU').value.trim()); const s = await api('units', {set: true, mat: m, list: cur.concat([{u: $('#unU').value.trim(), f: digits($('#unF').value)}])}); toast(s.ok ? 'اتحفظ ✓' : errMsg(s)); if (s.ok) unitsSheet(); }; }
+async function stockValSheet(){ openSheet(`<h3>💰 قيمة الخامات في المواقع</h3><div class="muted">بيحمّل…</div>`); const r = await api('stockVal', {}); if (!r.ok) { $('#sheetBody').innerHTML = esc(errMsg(r)); return; }
+  const P = [...new Set(r.rows.map(x => x.proj))];
+  $('#sheetBody').innerHTML = `<h3>💰 قيمة الخامات في المواقع</h3><div class="dsbig">${money(r.total)}</div><small class="muted">المستلم − المستخدم (من تسوية الخامات) × آخر سعر شراء. راجعها بصورة من الموقع.</small>${P.map(p => { const L = r.rows.filter(x => x.proj === p), t = L.reduce((s, x) => s + x.val, 0);
+    return `<div class="card dsc"><div class="row"><b style="flex:1">${esc(r.names[p] || p)}</b><b>${money(t)}</b></div>${dsBar(t / (r.total || 1) * 100)}${L.map(x => `<div class="row dsl"><span style="flex:1">${esc(x.mat)} ${n1(x.qty)} ${esc(x.unit)}</span><small class="muted">${x.price ? money(x.val) : 'مالهاش سعر'}</small></div>`).join('')}</div>`; }).join('') || emptyBox('box', 'مفيش خامات مستلمة')}`; }
+// ---------- 🗑️ طلب حذف المشروع ----------
+async function delReq(code){ const why = prompt('ليه عاوز تحذف المشروع؟ (المالك هو اللي بيحذف)'); if (!why) return; const r = await api('delReq', {project: code, why}); toast(r.ok ? 'الطلب وصل للمالك ✓' : errMsg(r)); }
+// ---------- توصيل كل ده (event delegation) ----------
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-x16]'); if (!b) return; const k = b.dataset.x16;
+  ({guide: guideSheet, search: gSearchSheet, dash: () => ownerDash(), acc: () => accMonthSheet(), print: printCfgSheet, units: unitsSheet, stock: stockValSheet, libDirs: libDirsSheet, libIdx: libIndexRun, delReq: () => delReq(S.project)}[k] || (() => {}))(); });
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-drk]'); if (!b) return; const p = b.dataset.drp;
+  if (p) { S.tab = 'projects'; S.project = p; render(); scrollTo(0, 0); } toast('افتح «' + b.dataset.drk + '» وهتلاقي زرار «كمّله»'); });
+
 /* ================= البداية ================= */
 (function boot(){
   const ct = new URLSearchParams(location.search).get('c');
@@ -7287,6 +8314,9 @@ function noteGo(n){
   if (ec && /^[a-f0-9]{10,40}$/i.test(ec)) { S.publicMode = true; setTimeout(() => estPage(ec), 0); return; }
   if (sl && /^[a-f0-9]{10,40}$/i.test(sl)) { S.publicMode = true; setTimeout(() => pubPage('sl', sl), 0); return; }
   if (cl && /^[a-f0-9]{10,40}$/i.test(cl)) { S.publicMode = true; setTimeout(() => pubPage('cl', cl), 0); return; }
+  const kq = new URLSearchParams(location.search).get('k'), wq = new URLSearchParams(location.search).get('w');   // 0.16: لينك المقاول والعامل
+  if (kq && /^[\w-]{8,40}$/.test(kq)) { S.publicMode = true; setTimeout(() => kPubPage('k', kq), 0); return; }
+  if (wq && /^[\w-]{8,40}$/.test(wq)) { S.publicMode = true; setTimeout(() => kPubPage('w', wq), 0); return; }
   const code = new URLSearchParams(location.search).get('invite');
   if (code) {
     S.invite = code; store.set('pendingInvite', code);
